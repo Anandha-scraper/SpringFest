@@ -200,6 +200,12 @@
 .pill-failed    { background: var(--bad-bg);  color: var(--bad); }
 .pill-unknown   { background: var(--border);  color: var(--ink-faint); }
 
+/* Role pills (Manage People). */
+.pill-admin       { background: var(--accent-soft); color: var(--accent-hover); }
+.pill-judge       { background: var(--ok-bg);       color: var(--ok); }
+.pill-volunteer   { background: var(--warn-bg);     color: var(--warn); }
+.pill-participant { background: var(--border);      color: var(--ink-faint); }
+
 .empty-state {
   text-align: center;
   color: var(--ink-faint);
@@ -357,4 +363,39 @@
   overflow-x: auto;
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+
+/* ── Role dashboards (admin / judge / volunteer / participant) ──
+   Sidebar + outlet. The nav links reuse .chips/.chip/.chip.active,
+   which were already styled here but unused. */
+.role-shell {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.role-nav {
+  flex-direction: column;
+  align-items: stretch;
+  position: sticky;
+  top: calc(var(--nav-h) + 24px);
+}
+.role-nav .chip { text-align: center; text-decoration: none; }
+
+/* min-width: 0 or a wide .data-table blows the grid track out. */
+.role-body { min-width: 0; }
+
+@media (max-width: 899px) {
+  .role-shell { grid-template-columns: 1fr; gap: 18px; }
+  .role-nav {
+    position: static;
+    flex-direction: row;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+  }
+  .role-nav::-webkit-scrollbar { display: none; }
+  .role-nav .chip { white-space: nowrap; }
 }

@@ -16,7 +16,9 @@ async function req(path, options = {}, authRequired = false) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.detail || `Request failed: ${res.status}`);
   }
-  return res.json();
+  // DELETE replies 204 with no body — res.json() would throw on it.
+  if (res.status === 204) return null;
+  return res.json().catch(() => null);
 }
 
 // ── Public ───────────────────────────────────────────────────
@@ -43,6 +45,16 @@ export const getAdminRegistrations = (filters = {}) => {
 
 export const getEventParticipants = (eventId) =>
   req(`/admin/events/${eventId}/participants`, {}, true);
+
+// People / roles
+export const getPeople = (role) =>
+  req(`/admin/people${role ? `?role=${encodeURIComponent(role)}` : ""}`, {}, true);
+
+export const addPerson = (data) =>
+  req("/admin/people", { method: "POST", body: JSON.stringify(data) }, true);
+
+export const removePerson = (email) =>
+  req(`/admin/people/${encodeURIComponent(email)}`, { method: "DELETE" }, true);
 
 export async function downloadRegistrationsCsv(filters = {}) {
   const qs = new URLSearchParams(

@@ -1,11 +1,13 @@
 import csv
 import io
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
 
 from app.deps import AdminUser
+from app.models.schemas import Person, PersonCreate
 from app.services.firebase import get_db
+from app.services import roles as roles_service
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -115,3 +117,44 @@ def registrations_csv(
         media_type="text/csv",
         headers={"Content-Disposition": 'attachment; filename="registrations.csv"'},
     )
+
+
+
+# ── People / role management ─────────────────────────────────
+@router.get("/people", response_model=list[Person])
+def people(role: str | None = Query(default=None), user=AdminUser):
+    return roles_service.list_people(role)
+
+
+@router.post("/people", response_model=Person, status_code=status.HTTP_201_CREATED)
+def add_person(payload: PersonCreate, user=AdminUser):
+    email = roles_service.normalize_email(payload.email)
+
+    # Changing your own role is the realistic way to lock the last admin out.
+    if email == roles_service.normalize_email(user["email"]):
+        raise HTTPException(400, "You cannot change your own role")
+    # Seeded admins come from ADMIN_EMAILS; a document would be ignored anyway.
+    if roles_service.is_seeded_admin(email):
+        raise HTTPException(403, "This account is managed in ADMIN_EMAILS")
+
+    row = roles_service.upsert_person(
+        email=email,
+        role=payload.role,
+        name=payload.name,
+        added_by=user["email"],
+    )
+    return Person(**row)
+
+
+@router.delete("/people/{email}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_person(email: str, user=AdminUser):
+    key = roles_service.normalize_email(email)
+
+    if key == roles_service.normalize_email(user["email"]):
+        raise HTTPException(400, "You cannot remove yourself")
+    if roles_service.is_seeded_admin(key):
+        raise HTTPException(403, "This account is managed in ADMIN_EMAILS")
+
+    if not roles_service.remove_person(key):
+        raise HTTPException(404, "No role record for that address")
+    return None

@@ -8,8 +8,8 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  padding: calc(var(--nav-h) + 40px) 0 80px;
-  background: linear-gradient(180deg, var(--cream-2) 0%, var(--cream) 100%);
+  padding: calc(var(--nav-h) + 74px) 0 118px;
+  background: linear-gradient(180deg, rgba(246, 246, 247, 0.82) 0%, rgba(238, 238, 238, 0.86) 100%);
 }
 
 /* CSS blob fallback — always painted, sits under the WebGL canvas */
@@ -54,6 +54,214 @@
     linear-gradient(180deg, transparent 48%, var(--cream) 100%);
 }
 
+/* Partner loop: a thin strip between the pill nav and the hero cards.
+   Absolutely placed so the hero's centred grid isn't pushed around. */
+.hero-logoloop {
+  position: absolute;
+  top: calc(var(--nav-h) + 16px);
+  left: 0;
+  right: 0;
+  z-index: 3;
+}
+.loop-wordmark {
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  white-space: nowrap;
+  transition: color 0.2s ease;
+}
+.hero-logoloop .logoloop__item:hover .loop-wordmark { color: var(--accent); }
+
+/* Marquee pinned to the bottom of the hero — absolute so it can't change the
+   hero's height or shift the centred grid. */
+.hero-marquee {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 3;
+  padding-bottom: 14px;
+  pointer-events: none;
+  mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+}
+.hero-marquee .parallax + .parallax { margin-top: 2px; }
+.hero-marquee .scroller {
+  font-family: var(--font-display);
+  font-size: clamp(1.4rem, 3.4vw, 2.6rem);
+  line-height: 1.15;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  filter: none;
+}
+.hero-marquee-text { color: var(--ink); opacity: 0.14; }
+.hero-marquee .parallax:nth-child(2) .hero-marquee-text {
+  color: var(--accent);
+  opacity: 0.3;
+}
+
+/* ── Events: split-flap heading + BubbleMenu track picker ── */
+/* .section centres its children; the events header should sit at the top.
+   .section's default top pad is nav-h + 48px; drop the 48 so the split-flap
+   sits higher, keeping only the fixed-navbar clearance the /#events anchor
+   needs. */
+#events.section {
+  justify-content: flex-start;
+  padding-top: calc(var(--nav-h) + 8px);
+}
+/* Let the two columns absorb the section's leftover height instead of leaving
+   a void under them — .container is the section's flex item.
+   Full-bleed like the hero: .container caps at --page-w and centres, which
+   parked the split-flap heading behind a wide gutter instead of hard left.
+   The left pad is the minimum gap the title keeps from the viewport edge. */
+#events .container {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  width: 100%;
+  max-width: none;
+  padding-left: clamp(12px, 1.4vw, 22px);
+  padding-right: clamp(16px, 2vw, 32px);
+}
+
+/* Two columns: title + track picker on the left, the lanyard on the right.
+   The left column is the substantial one — the split-flap heading and the 2x2
+   track grid need the room — so it takes ~2/3. `stretch` (not `center`) so
+   each half is full height; minmax(0, …) keeps the flap's horizontal overflow
+   from inflating the track. */
+.events-top {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1.9fr) minmax(0, 1fr);
+  gap: 40px;
+  align-items: stretch;
+  margin-bottom: clamp(32px, 5vh, 64px);
+}
+.events-left {
+  min-width: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: stretch;
+  /* The auto margin on .events-bubble opens the gap before the track pills. */
+  gap: clamp(10px, 1.4vw, 22px);
+}
+.events-right {
+  position: relative;
+  min-width: 0;
+  min-height: 420px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+/* Lanyard ships `height: 100vh`. A percentage height here resolves against a
+   grid row that the canvas itself helps size, so the section grew every frame;
+   r3f also can't measure the box if it's taken out of flow. A definite,
+   viewport-relative height avoids both. */
+.events-right .lanyard-wrapper {
+  height: clamp(420px, 64vh, 700px);
+}
+
+/* The container is full-bleed for the header's sake; cap the card grid back to
+   the page width so auto-fill doesn't spread into 6–7 narrow columns. It stays
+   flush left, aligned with the heading above it. */
+#events .grid { max-width: var(--page-w); }
+
+.events-flap {
+  display: flex;
+  justify-content: flex-start;
+  max-width: 100%;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: none;
+}
+.events-flap::-webkit-scrollbar { display: none; }
+
+/* BubbleMenu returns <nav> + overlay as siblings; this wrapper scopes both.
+   `margin-top: auto` drops the pills to the bottom of the left column instead
+   of letting them stretch to fill it — the .events-left gap is now just the
+   floor, the auto margin absorbs whatever height is left over. */
+.events-bubble { margin: auto 0 0; flex: 0 0 auto; display: flex; min-height: 0; }
+
+/* The logo bubble and the hamburger/X are dropped here — the pills are the
+   whole control, and the bar would otherwise float over the heading. */
+.events-bubble .bubble-menu { display: none; }
+
+/* In-flow instead of an absolute inset:0 overlay, so the pills sit under the
+   heading and take real layout space rather than covering the section. */
+.events-bubble .bubble-menu-items,
+.events-bubble .bubble-menu-items.absolute {
+  position: static;
+  inset: auto;
+  padding: 0;
+  background: none;
+  backdrop-filter: none;
+  pointer-events: auto;
+  align-items: flex-end;
+  flex: 0 0 auto;
+  width: 100%;
+  min-height: 0;
+}
+
+.events-bubble .bubble-list {
+  padding: 0;
+  /* The pills are rotated +/-8deg, so their corners swing ~40px past the box.
+     The row gap has to clear that or the two rows visually collide. */
+  row-gap: clamp(32px, 8vh, 82px);
+  flex: 0 0 auto;
+  align-content: flex-end;
+  margin: 0 -18px;
+  width: calc(100% + 36px);
+  max-width: none;
+}
+/* A 2x2 block with breathing room. The component's default is 3-across
+   (100%/3) with the 4th offset, and columns that touch edge to edge. Its rule
+   is `.bubble-menu-items .bubble-list .bubble-col`, so the override has to
+   match that depth or flex-basis loses on specificity and stays at 33%. */
+.events-bubble .bubble-list .bubble-col {
+  flex: 0 0 50%;
+  padding: 0 18px;
+  margin-left: 0 !important;
+}
+
+/* The component's default pill is 160px tall with up to 8rem of padding. Here
+   the 2x2 block has a tall column to fill, so the pills scale with viewport
+   height rather than sitting at a fixed height. */
+.events-bubble .bubble-list .bubble-link {
+  --bubble-min-h: clamp(120px, 23vh, 215px);
+  min-height: var(--bubble-min-h);
+  height: auto;
+  padding: 0 24px;
+  font-family: var(--font-display);
+  font-size: clamp(1.4rem, 2.6vw, 2.6rem);
+  font-weight: 600;
+  color: var(--ink);
+  box-shadow: var(--shadow-md);
+}
+
+@media (max-width: 899px) {
+  .events-top {
+    grid-template-columns: 1fr;
+    gap: 32px;
+    margin-bottom: 44px;
+  }
+  .events-flap { justify-content: center; }
+  .events-bubble .bubble-menu-items,
+  .events-bubble .bubble-menu-items.absolute {
+    padding-top: 0;
+  }
+  .events-bubble .bubble-list .bubble-col { flex: 0 0 50%; padding: 0 8px; }
+  .events-bubble .bubble-list .bubble-link { --bubble-min-h: 88px; }
+}
+
+@media (max-width: 560px) {
+  .events-bubble .bubble-list .bubble-col { flex: 0 0 100%; padding: 0; }
+}
+
 /* Two-column hero: copy left, PixelSwap right */
 /* Hero runs full-bleed — the shared .container caps at --page-w and centres,
    which left a wide gutter on both sides. */
@@ -68,8 +276,8 @@
   z-index: 3;
   width: 100%;
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 40px;
+  grid-template-columns: 1fr 1.18fr;
+  gap: 36px;
   align-items: center;
 }
 .hero-copy {
@@ -82,10 +290,14 @@
   display: flex;
   justify-content: flex-end;
 }
-/* Fill the right half — only the container's own (reduced) padding remains. */
+/* Width-driven sizing blew past the viewport once the hero went full-bleed
+   (a 4/5 card in a ~740px column is ~925px tall). Drive it off height so the
+   hero always fits one screen. */
 .hero-pixelswap {
-  width: 100%;
-  max-width: none;
+  height: min(calc(100svh - 230px), 440px);
+  width: auto;
+  max-width: 100%;
+  margin-left: auto;
   border-radius: 24px;
   overflow: hidden;
   box-shadow: var(--shadow-lg);
@@ -169,16 +381,29 @@
 .ps-register p {
   font-size: 0.9rem;
   color: var(--ink-soft);
-  max-width: 240px;
+  max-width: 320px;
 }
 .ps-register .btn { margin-top: 6px; }
+
+/* Title and the Register button share a row; the button's corner brackets
+   fly ~36px outward on hover, hence the generous gap and padding. */
+.hero-headline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
+  flex-wrap: wrap;
+  width: 100%;
+  margin-bottom: 18px;
+  padding-right: 44px;
+}
 
 .hero-title {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 2px;
-  margin-bottom: 18px;
+  margin-bottom: 0;
 }
 .hero-title-main {
   font-family: var(--font-display);
@@ -207,7 +432,7 @@
   max-width: 540px;
   color: var(--ink-faint);
   font-size: 0.98rem;
-  margin-bottom: 34px;
+  margin-bottom: 20px;
 }
 
 /* Hero button row: Register (live) + dummy filter chips */
@@ -217,14 +442,7 @@
   gap: 12px;
   flex-wrap: wrap;
   justify-content: flex-start;
-  margin-bottom: 40px;
-}
-.hero-register {
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  font: inherit;
+  margin: 0 0 30px;
 }
 .hero-chip {
   font-family: var(--font-body);
@@ -260,67 +478,62 @@
 }
 .hero-inst strong { color: var(--ink-soft); }
 
-.hero-scroll {
-  position: absolute;
-  bottom: 26px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 3;
-  width: 24px;
-  height: 38px;
-  border: 2px solid var(--border-strong);
-  border-radius: var(--r-full);
-  display: flex;
-  justify-content: center;
-  padding-top: 7px;
-}
-.hero-scroll span {
-  width: 4px; height: 8px;
-  background: var(--accent);
-  border-radius: 2px;
-  animation: scroll-cue 1.6s ease-in-out infinite;
-}
-@keyframes scroll-cue {
-  0%, 100% { opacity: 0; transform: translateY(0); }
-  40%      { opacity: 1; transform: translateY(6px); }
-  80%      { opacity: 0; transform: translateY(12px); }
-}
 
 @media (max-width: 900px) {
+  /* BubbleMenu floats at top:2em and its bubble is 56px tall — the hero has to
+     start below that, not below the (desktop) --nav-h. */
+  .hero {
+    min-height: auto;
+    padding: 168px 0 104px;
+  }
+  .hero-logoloop { top: 108px; }
   .hero-grid {
     grid-template-columns: 1fr;
-    gap: 40px;
+    gap: 36px;
   }
   .hero-copy {
     align-items: center;
     text-align: center;
   }
   .hero-title { align-items: center; }
+  .hero-headline {
+    flex-direction: column;
+    justify-content: center;
+    gap: 26px;
+    padding-right: 0;
+    margin-bottom: 16px;
+  }
   .hero-tagline { justify-content: center; }
   .hero-cta { justify-content: center; }
   .hero-blurb { margin-left: auto; margin-right: auto; }
   .hero-visual { order: 2; justify-content: center; }
-  .hero-pixelswap { max-width: 360px; }
+  /* Width-driven again: 16/9 across the column, capped so it stays readable. */
+  .hero-pixelswap {
+    height: auto;
+    width: 100%;
+    max-width: 520px;
+    margin-left: auto;
+    margin-right: auto;
+  }
   .hero-actions { justify-content: center; }
   .hero .container { padding-left: 24px; padding-right: 24px; }
 }
 
-/* ── React Bits light-theme overrides ─────────────────────── */
-/* StarBorder and SpotlightCard ship dark by default. */
-.hero-star-btn .inner-content,
-.star-border-container.hero-star-btn .inner-content {
-  background: var(--accent);
-  border: 1px solid var(--accent);
-  color: #fff;
-  font-family: var(--font-body);
-  font-weight: 700;
-  font-size: 0.98rem;
-  padding: 15px 32px;
-  border-radius: 20px;
-  box-shadow: var(--shadow-glow);
-  transition: background 0.16s ease;
+@media (max-width: 560px) {
+  .hero { padding: 154px 0 92px; }
+  .hero-logoloop { top: 96px; }
+  .hero-pixelswap { max-width: 100%; border-radius: 18px; }
+  .ps-face { padding: 24px 20px; gap: 10px; }
+  .ps-title span { font-size: 1.45rem; }
+  .ps-title strong { font-size: 2.5rem; }
+  .ps-register h3 { font-size: 1.35rem; }
+  .ps-register p { font-size: 0.84rem; }
+  .hero-actions { gap: 10px; }
+  .hero-chip { padding: 9px 18px; font-size: 0.85rem; }
 }
-.hero-star-btn:hover .inner-content { background: var(--accent-hover); }
+
+/* ── React Bits light-theme overrides ─────────────────────── */
+/* SpotlightCard ships dark by default. */
 
 .card-spotlight.event-card {
   background: var(--surface);
@@ -342,42 +555,11 @@
 .event-card p { color: var(--ink-soft); font-size: 0.92rem; flex: 1; }
 .event-link { display: block; height: 100%; }
 
-/* ═══════════════════════════════════════════════════════════
-   STATS
-   ═══════════════════════════════════════════════════════════ */
-.stats-strip {
-  background: var(--surface);
-  border-top: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
-  padding: 48px 0;
-}
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 28px;
-  text-align: center;
-}
-.stat-value {
-  font-family: var(--font-display);
-  font-size: clamp(2rem, 5vw, 3rem);
-  font-weight: 600;
-  color: var(--accent);
-  line-height: 1;
-  letter-spacing: -0.02em;
-}
-.stat-label {
-  font-size: 0.82rem;
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--ink-faint);
-  margin-top: 8px;
-}
 
 /* ═══════════════════════════════════════════════════════════
    ABOUT
    ═══════════════════════════════════════════════════════════ */
-.section-tint { background: var(--surface-2); }
+.section-tint { background: rgba(247, 248, 244, 0.84); }
 .section-title {
   font-family: var(--font-display);
   font-size: clamp(1.9rem, 4vw, 2.8rem);
@@ -385,32 +567,8 @@
   letter-spacing: -0.02em;
 }
 
-.about-placeholder { min-height: 320px; }
 
-.about-copy {
-  max-width: 720px;
-  margin: 0 auto 56px;
-  text-align: center;
-}
-.about-copy p { color: var(--ink-soft); font-size: 1.04rem; margin-bottom: 18px; }
 
-.highlight-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 20px;
-}
-.highlight {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--r-lg);
-  padding: 26px 22px;
-  height: 100%;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-.highlight:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); }
-.highlight-icon { font-size: 1.9rem; display: block; margin-bottom: 12px; }
-.highlight h3 { font-size: 1.05rem; margin-bottom: 6px; }
-.highlight p { color: var(--ink-soft); font-size: 0.9rem; }
 
 /* ═══════════════════════════════════════════════════════════
    SCHEDULE
@@ -606,4 +764,87 @@
   }
   .timeline-dot { margin-top: 6px; }
   .title-tier .sponsor-logo { padding: 24px 30px; font-size: 1.1rem; }
+}
+
+
+/* ── Schedule: Shuffle heading, top-left like the events title ── */
+/* Same treatment as #events: the shared .container caps at --page-w and
+   centres, which would park the heading behind a wide gutter. */
+#schedule.section {
+  justify-content: flex-start;
+  padding-top: calc(var(--nav-h) + 8px);
+}
+#schedule .container {
+  max-width: none;
+  padding-left: clamp(12px, 1.4vw, 22px);
+  padding-right: clamp(16px, 2vw, 32px);
+}
+.schedule-head {
+  display: flex;
+  justify-content: flex-start;
+}
+/* The component ships a fixed 4rem; scale it to the viewport like the
+   split-flap next door. Press Start 2P is a pixel face — it needs a little
+   letter-spacing at size and sits on the ink colour. */
+.schedule-head .shuffle-parent {
+  font-size: clamp(1.5rem, 4.4vw, 3.4rem);
+  letter-spacing: 0.02em;
+  color: var(--ink);
+}
+
+
+/* ── Schedule: React Flow timeline ─────────────────────────── */
+.schedule-flow {
+  width: 100%;
+  height: clamp(380px, 52vh, 560px);
+  margin-top: clamp(20px, 3vh, 40px);
+  border: 1px solid rgba(17, 34, 78, 0.1);
+  border-radius: var(--r-lg, 18px);
+  background: rgba(255, 255, 255, 0.55);
+  overflow: hidden;
+}
+/* React Flow paints its own surface; let the section's backdrop through. */
+.schedule-flow .react-flow__renderer,
+.schedule-flow .react-flow { background: transparent; }
+
+.flow-day,
+.flow-slot {
+  font-family: var(--font-body);
+  border-radius: 14px;
+  padding: 12px 16px;
+  width: 200px;
+  box-shadow: var(--shadow-md);
+}
+.flow-day {
+  background: var(--ink);
+  color: var(--cream);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.flow-day strong { font-family: var(--font-display); font-size: 1.15rem; }
+.flow-day span { font-size: 0.78rem; color: #b3bed3; }
+
+.flow-slot { background: #fff; border: 1px solid rgba(17, 34, 78, 0.08); }
+.flow-time {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+.flow-slot h4 { font-size: 0.92rem; line-height: 1.25; margin: 0 0 4px; }
+.flow-slot p { font-size: 0.76rem; color: var(--ink-faint); margin: 0; }
+
+.schedule-flow .react-flow__handle {
+  width: 7px;
+  height: 7px;
+  background: var(--accent);
+  border: none;
+}
+.schedule-flow .react-flow__edge-path { stroke: var(--ink-faint); stroke-width: 1.6; }
+
+@media (max-width: 899px) {
+  .schedule-flow { height: clamp(340px, 60vh, 460px); }
 }

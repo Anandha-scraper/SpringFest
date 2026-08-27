@@ -1,44 +1,29 @@
-import { useState } from "react";
-import { fest } from "../../content/fest.js";
+import Shuffle from "../reactbits/Shuffle.jsx";
+import ScheduleFlow from "./ScheduleFlow.jsx";
 
 export default function Schedule() {
-  const [active, setActive] = useState(0);
-  const day = fest.schedule[active];
-
   return (
     <section id="schedule" className="section">
       <div className="container">
-        <div className="section-head">
-          <span className="eyebrow">Three days</span>
-          <h2>Schedule</h2>
-          <p>{fest.dates} · {fest.venue}</p>
+        <div className="schedule-head">
+          <Shuffle
+            text="Schedule"
+            tag="h2"
+            textAlign="left"
+            shuffleDirection="right"
+            duration={0.35}
+            animationMode="evenodd"
+            shuffleTimes={1}
+            ease="power3.out"
+            stagger={0.03}
+            threshold={0.1}
+            triggerOnce
+            triggerOnHover
+            respectReducedMotion
+          />
         </div>
 
-        <div className="day-tabs">
-          {fest.schedule.map((d, i) => (
-            <button
-              key={d.day}
-              className={`day-tab ${i === active ? "active" : ""}`}
-              onClick={() => setActive(i)}
-            >
-              <strong>{d.day}</strong>
-              <span>{d.date}</span>
-            </button>
-          ))}
-        </div>
-
-        <ol className="timeline">
-          {day.items.map((item) => (
-            <li key={`${day.day}-${item.time}-${item.title}`} className="timeline-item">
-              <span className="timeline-time">{item.time}</span>
-              <span className="timeline-dot" aria-hidden="true" />
-              <div className="timeline-body">
-                <h3>{item.title}</h3>
-                <p className="muted">{item.venue}</p>
-              </div>
-            </li>
-          ))}
-        </ol>
+        <ScheduleFlow />
       </div>
     </section>
   );

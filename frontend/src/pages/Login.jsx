@@ -3,23 +3,27 @@ import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext.jsx";
 import GoogleIcon from "../components/GoogleIcon.jsx";
 import { fest } from "../content/fest.js";
+import { homeForRole } from "../content/roles.js";
 
 export default function Login() {
-  const { user, loading, loginWithGoogle, isFirebaseConfigured, firebaseConfigError } = useAuth();
+  const { user, role, loading, loginWithGoogle, refreshRole, isFirebaseConfigured, firebaseConfigError } = useAuth();
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const navigate = useNavigate();
   const { state } = useLocation();
 
   if (loading) return <div className="spinner" />;
-  if (user) return <Navigate to={state?.from || "/"} replace />;
+  if (user) return <Navigate to={state?.from || homeForRole(role)} replace />;
 
   const signIn = async () => {
     setError("");
     setBusy(true);
     try {
       await loginWithGoogle();
-      navigate(state?.from || "/", { replace: true });
+      // `state.from` is where ProtectedRoute bounced them from — honour it
+      // first, otherwise send them to their role's dashboard.
+      const resolved = await refreshRole();
+      navigate(state?.from || homeForRole(resolved), { replace: true });
     } catch (err) {
       if (err.code === "auth/popup-closed-by-user") setError("Sign-in was cancelled.");
       else if (err.code === "auth/popup-blocked") setError("Your browser blocked the popup. Allow popups and try again.");

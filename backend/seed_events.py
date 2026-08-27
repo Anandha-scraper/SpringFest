@@ -4,7 +4,6 @@ Run once:  python seed_events.py
 Safe to re-run — documents are overwritten by id.
 """
 from app.services.firebase import get_db
-
 EVENTS = [
     {
         "id": "hackathon-24h",

@@ -4,7 +4,17 @@
 
 * { margin: 0; padding: 0; }
 
-html { scroll-behavior: smooth; scroll-padding-top: calc(var(--nav-h) + 16px); }
+html { scroll-behavior: smooth; scroll-padding-top: 0; }
+
+/* Site-wide glyph backdrop: fixed behind every route. Negative z-index keeps
+   it above the root background but under all content. */
+.app-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.5;
+}
 
 body {
   font-family: var(--font-body);
@@ -39,7 +49,14 @@ img { max-width: 100%; display: block; }
 .container.narrow { max-width: 560px; }
 .center { text-align: center; }
 
-.section { padding: 96px 0; position: relative; }
+.section {
+  position: relative;
+  min-height: 100svh;
+  padding: calc(var(--nav-h) + 48px) 0 64px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
 .section-head { text-align: center; max-width: 620px; margin: 0 auto 56px; }
 .section-head h2 { font-size: clamp(1.9rem, 4vw, 2.8rem); margin-bottom: 12px; }
 .section-head p { color: var(--ink-soft); font-size: 1.02rem; }
@@ -168,9 +185,14 @@ img { max-width: 100%; display: block; }
 
 .page-pad { padding-top: calc(var(--nav-h) + 48px); padding-bottom: 80px; }
 
+@media (max-width: 899px) {
+  /* BubbleMenu sits lower than the desktop pill bar. */
+  .section { padding: 124px 0 56px; }
+}
+
 @media (max-width: 640px) {
-  .section { padding: 64px 0; }
   .container { padding: 0 18px; }
+  .section-head { margin-bottom: 40px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -27,9 +27,14 @@ export default function BubbleMenu({
   items,
   animationEase = 'back.out(1.5)',
   animationDuration = 0.5,
-  staggerDelay = 0.12
+  staggerDelay = 0.12,
+  open
 }) {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  // `open` makes the menu controlled (used to auto-open on scroll-in);
+  // left undefined it falls back to its own internal state.
+  const isControlled = open !== undefined;
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isMenuOpen = isControlled ? open : internalOpen;
   const [showOverlay, setShowOverlay] = useState(false);
 
   const overlayRef = useRef(null);
@@ -44,9 +49,15 @@ export default function BubbleMenu({
   const handleToggle = () => {
     const nextState = !isMenuOpen;
     if (nextState) setShowOverlay(true);
-    setIsMenuOpen(nextState);
+    if (!isControlled) setInternalOpen(nextState);
     onMenuClick?.(nextState);
   };
+
+  // The overlay has to be mounted before the open animation can run — when the
+  // parent flips `open` there is no click to do that.
+  useEffect(() => {
+    if (isMenuOpen) setShowOverlay(true);
+  }, [isMenuOpen]);
 
   useEffect(() => {
     const overlay = overlayRef.current;
@@ -145,7 +156,7 @@ export default function BubbleMenu({
                   aria-label={item.ariaLabel || item.label}
                   className="bubble-link"
                   onClick={() => {
-                    setIsMenuOpen(false);
+                    if (!isControlled) setInternalOpen(false);
                     onMenuClick?.(false);
                   }}
                   style={{

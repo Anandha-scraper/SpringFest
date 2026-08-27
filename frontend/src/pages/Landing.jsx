@@ -1,32 +1,33 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import Hero from "../components/sections/Hero.jsx";
-import Stats from "../components/sections/Stats.jsx";
-import About from "../components/sections/About.jsx";
 import EventsPreview from "../components/sections/EventsPreview.jsx";
 import Schedule from "../components/sections/Schedule.jsx";
-import FAQ from "../components/sections/FAQ.jsx";
-import CTA from "../components/sections/CTA.jsx";
 
 export default function Landing() {
-  const { hash } = useLocation();
+  const { hash, key } = useLocation();
 
-  // Support /#schedule style links arriving from another route
+  // Scroll to /#schedule style targets. Keyed on `key` as well as `hash` so
+  // clicking the same nav link twice scrolls again (the hash alone wouldn't
+  // change, so the effect would never re-run). rAF lets the section mount
+  // first when arriving from another route.
   useEffect(() => {
-    if (!hash) return;
-    const el = document.querySelector(hash);
-    if (el) el.scrollIntoView({ behavior: "smooth" });
-  }, [hash]);
+    if (!hash) {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+    const id = hash.slice(1);
+    const raf = requestAnimationFrame(() => {
+      document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [hash, key]);
 
   return (
     <>
       <Hero />
-      <Stats />
-      <About />
       <EventsPreview />
       <Schedule />
-      <FAQ />
-      <CTA />
     </>
   );
 }

@@ -1,32 +1,40 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Aurora from "../reactbits/Aurora.jsx";
 import SplitText from "../reactbits/SplitText.jsx";
 import BlurText from "../reactbits/BlurText.jsx";
 import GradientText from "../reactbits/GradientText.jsx";
-import StarBorder from "../reactbits/StarBorder.jsx";
-import Magnet from "../reactbits/Magnet.jsx";
 import HeroShowcase from "./HeroShowcase.jsx";
+import ScrollVelocity from "../reactbits/ScrollVelocity.jsx";
+import LogoLoop from "../reactbits/LogoLoop.jsx";
+import RegisterButton from "../RegisterButton.jsx";
+import SignInModal from "../SignInModal.jsx";
 import { useAuth } from "../../auth/AuthContext.jsx";
 import { fest } from "../../content/fest.js";
+import { homeForRole } from "../../content/roles.js";
 
 // Placeholder filters — no navigation yet.
 const DUMMY_ACTIONS = ["Technical", "Non-Technical", "Schedule"];
 
+const PARTNER_LOGOS = fest.partners.map((name) => ({
+  node: <span className="loop-wordmark">{name}</span>,
+  title: name,
+  ariaLabel: name,
+}));
+
+// Placeholder marquee copy — replace with the real strings later.
+const MARQUEE_TEXTS = ["Spring Fest 2k26 ✦ Code · Culture · Chaos ✦", "24 Events ✦ 30+ Colleges ✦ ₹1L Prizes ✦"];
+
 export default function Hero() {
+  const { user, role } = useAuth();
+  const [signInOpen, setSignInOpen] = useState(false);
   const navigate = useNavigate();
-  const { user, loginWithGoogle } = useAuth();
 
   // Register is the sign-in entry point now that the navbar has no button.
-  const handleRegister = async () => {
-    if (user) {
-      document.querySelector("#events")?.scrollIntoView({ behavior: "smooth" });
-      return;
-    }
-    try {
-      await loginWithGoogle();
-    } catch {
-      navigate("/login");
-    }
+  // Already signed in, it goes straight to your role dashboard.
+  const handleRegister = () => {
+    if (user) navigate(homeForRole(role));
+    else setSignInOpen(true);
   };
 
   return (
@@ -45,29 +53,55 @@ export default function Hero() {
       </div>
       <div className="hero-veil" aria-hidden="true" />
 
+      <div className="hero-logoloop">
+        <LogoLoop
+          logos={PARTNER_LOGOS}
+          speed={45}
+          direction="left"
+          logoHeight={18}
+          gap={56}
+          hoverSpeed={0}
+          scaleOnHover
+          fadeOut
+          fadeOutColor="#f6f6f7"
+          ariaLabel="Partners and sponsors"
+        />
+      </div>
+
       <div className="container hero-grid">
         <div className="hero-copy">
-          <h1 className="hero-title">
-            <SplitText
-              text={fest.name}
-              className="hero-title-main"
-              delay={60}
-              duration={0.8}
-              ease="power3.out"
-              splitType="chars"
-              from={{ opacity: 0, y: 60 }}
-              to={{ opacity: 1, y: 0 }}
-              threshold={0.1}
-              textAlign="left"
+          <div className="hero-headline">
+            <h1 className="hero-title">
+              <SplitText
+                text={fest.name}
+                className="hero-title-main"
+                delay={60}
+                duration={0.8}
+                ease="power3.out"
+                splitType="chars"
+                from={{ opacity: 0, y: 60 }}
+                to={{ opacity: 1, y: 0 }}
+                threshold={0.1}
+                textAlign="left"
+              />
+              <GradientText
+                className="hero-title-year"
+                colors={["#f87b1b", "#11224e", "#9bb15f", "#f5a55c", "#f87b1b"]}
+                animationSpeed={6}
+              >
+                {fest.year}
+              </GradientText>
+            </h1>
+
+            <RegisterButton
+              label="Register Now"
+              topText="registrations"
+              bottomText="close soon"
+              onClick={handleRegister}
             />
-            <GradientText
-              className="hero-title-year"
-              colors={["#f87b1b", "#11224e", "#9bb15f", "#f5a55c", "#f87b1b"]}
-              animationSpeed={6}
-            >
-              {fest.year}
-            </GradientText>
-          </h1>
+
+            <SignInModal open={signInOpen} onClose={() => setSignInOpen(false)} />
+          </div>
 
           <BlurText
             text={fest.tagline}
@@ -80,14 +114,6 @@ export default function Hero() {
           <p className="hero-blurb">{fest.blurb}</p>
 
           <div className="hero-actions">
-            <Magnet padding={80} magnetStrength={6}>
-              <button type="button" className="hero-register" onClick={handleRegister}>
-                <StarBorder as="div" color="#f87b1b" speed="4s" className="hero-star-btn">
-                  Register Now →
-                </StarBorder>
-              </button>
-            </Magnet>
-
             {DUMMY_ACTIONS.map((label) => (
               <button key={label} type="button" className="hero-chip">
                 {label}
@@ -107,9 +133,14 @@ export default function Hero() {
         </div>
       </div>
 
-      <a href="#stats" className="hero-scroll" aria-label="Scroll to content">
-        <span />
-      </a>
+      <div className="hero-marquee" aria-hidden="true">
+        <ScrollVelocity
+          texts={MARQUEE_TEXTS}
+          velocity={60}
+          numCopies={8}
+          className="hero-marquee-text"
+        />
+      </div>
     </section>
   );
 }

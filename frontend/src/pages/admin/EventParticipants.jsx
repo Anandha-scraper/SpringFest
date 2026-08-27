@@ -40,7 +40,7 @@ export default function EventParticipants() {
   if (!data) return <div className="spinner" />;
 
   return (
-    <div className="container page-pad admin">
+    <div className="admin">
       <Link to="/admin" className="back-link">← Back to dashboard</Link>
 
       <div className="admin-head">

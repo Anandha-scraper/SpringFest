@@ -63,7 +63,7 @@ export default function AdminDashboard() {
   const maxCount = Math.max(1, ...(stats?.per_event || []).map((e) => e.count));
 
   return (
-    <div className="container page-pad admin">
+    <div className="admin">
       <div className="admin-head">
         <div>
           <span className="eyebrow">Organiser view</span>

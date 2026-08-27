@@ -45,10 +45,10 @@ export default function HeroShowcase() {
   return (
     <PixelSwap
       className="hero-pixelswap"
-      aspectRatio="4 / 5"
+      aspectRatio="16 / 9"
       trigger="hover"
       pattern="random"
-      pixelSize={40}
+      pixelSize={44}
       duration={1100}
       pixelDuration={400}
       firstContent={<PosterCard />}

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext.jsx";
+import { ROLE_TITLE, homeForRole } from "../../content/roles.js";
 
 /**
  * Account control inside the PillNav bar.
@@ -10,7 +11,7 @@ import { useAuth } from "../../auth/AuthContext.jsx";
  * reach My Registrations / Admin / Log out.
  */
 export default function AccountControl() {
-  const { user, isAdmin, logout } = useAuth();
+  const { user, role, logout } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const ref = useRef(null);
   const navigate = useNavigate();
@@ -60,9 +61,9 @@ export default function AccountControl() {
             <span>{user.email}</span>
           </div>
           <Link to="/my-registrations" role="menuitem">My Registrations</Link>
-          {isAdmin && (
-            <Link to="/admin" role="menuitem" className="nav-menu-admin">
-              Admin Dashboard
+          {role && (
+            <Link to={homeForRole(role)} role="menuitem" className="nav-menu-admin">
+              {ROLE_TITLE[role]} Dashboard
             </Link>
           )}
           <button onClick={handleLogout} role="menuitem">Log out</button>

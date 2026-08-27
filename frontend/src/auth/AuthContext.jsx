@@ -1,17 +1,47 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut } from "firebase/auth";
 import { auth, isFirebaseConfigured, firebaseConfigError } from "./firebase.js";
 import { getMe } from "../api/client.js";
+import { DEFAULT_ROLE, ROLES } from "../content/roles.js";
 
 const AuthContext = createContext(null);
 
 const provider = new GoogleAuthProvider();
 provider.setCustomParameters({ prompt: "select_account" });
 
+// A wedged API must not pin every ProtectedRoute on the spinner forever, so the
+// role lookup is bounded. Past this we fall back to participant and say so.
+const ROLE_TIMEOUT_MS = 8000;
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
-  const [isAdmin, setIsAdmin] = useState(false);
+  // The backend is the sole authority on roles — resolved from ADMIN_EMAILS and
+  // the Firestore `roles` collection, and delivered by GET /api/me.
+  const [role, setRole] = useState(null);
+  const [roleError, setRoleError] = useState("");
   const [loading, setLoading] = useState(isFirebaseConfigured);
+
+  // Returns the role as well as storing it: the sign-in flows need the value
+  // immediately and can't wait for a re-render to redirect.
+  const refreshRole = useCallback(async () => {
+    try {
+      const me = await Promise.race([
+        getMe(),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("Timed out reaching the API")), ROLE_TIMEOUT_MS)
+        ),
+      ]);
+      const resolved = me?.role || DEFAULT_ROLE;
+      setRole(resolved);
+      setRoleError("");
+      return resolved;
+    } catch (err) {
+      // Fail closed: no confirmed role means the least privilege we have.
+      setRole(DEFAULT_ROLE);
+      setRoleError(err.message || "Could not confirm your role.");
+      return DEFAULT_ROLE;
+    }
+  }, []);
 
   useEffect(() => {
     // Nothing to subscribe to without credentials — the public pages still work.
@@ -20,20 +50,16 @@ export function AuthProvider({ children }) {
     return onAuthStateChanged(auth, async (u) => {
       setUser(u);
       if (u) {
-        // The backend is the authority on who is an admin; the flag only
-        // decides whether to render the link, never whether data is served.
-        try {
-          const me = await getMe();
-          setIsAdmin(Boolean(me.is_admin));
-        } catch {
-          setIsAdmin(false);
-        }
+        // `loading` has to cover this: ProtectedRoute reads `role`, and letting
+        // it evaluate null would bounce an admin off their own dashboard.
+        await refreshRole();
       } else {
-        setIsAdmin(false);
+        setRole(null);
+        setRoleError("");
       }
       setLoading(false);
     });
-  }, []);
+  }, [refreshRole]);
 
   const requireAuth = () => {
     if (!auth) throw new Error(firebaseConfigError);
@@ -42,10 +68,13 @@ export function AuthProvider({ children }) {
 
   const value = {
     user,
-    isAdmin,
+    role,
+    roleError,
+    isAdmin: role === ROLES.ADMIN,
     loading,
     isFirebaseConfigured,
     firebaseConfigError,
+    refreshRole,
     loginWithGoogle: () => signInWithPopup(requireAuth(), provider),
     logout: () => signOut(requireAuth()),
     getToken: () => auth?.currentUser?.getIdToken(),

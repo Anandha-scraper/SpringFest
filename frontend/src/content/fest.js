@@ -9,7 +9,7 @@ export const fest = {
   tagline: "Three days of code, culture and chaos.",
   blurb:
     "The annual inter-collegiate technical symposium — 24 events, 30+ colleges, one campus in full bloom.",
-  dates: "March 14–16, 2026",
+  dates: "March 14–15, 2026",
   venue: "Main Campus Auditorium",
 
   institution: {
@@ -40,12 +40,6 @@ export const fest = {
     { icon: "🎤", title: "Cultural Night", text: "Live band, stand-up and the closing awards ceremony." },
   ],
 
-  // Shown when the events API is unreachable — placeholder categories
-  eventCategories: [
-    { name: "Technical", count: 10, description: "Hackathons, paper presentations, coding sprints." },
-    { name: "Non-Technical", count: 8, description: "Quizzes, debates, treasure hunts, gaming." },
-    { name: "Workshops", count: 6, description: "AI, cloud, embedded systems, design." },
-  ],
 
   schedule: [
     {
@@ -54,7 +48,7 @@ export const fest = {
       items: [
         { time: "09:00", title: "Registration & Welcome Kit", venue: "Main Foyer" },
         { time: "10:30", title: "Inauguration & Keynote", venue: "Auditorium" },
-        { time: "12:00", title: "Paper Presentation — Round 1", venue: "Seminar Hall A" },
+        { time: "12:00", title: "Paper Presentation", venue: "Seminar Hall A" },
         { time: "14:00", title: "Code Sprint Prelims", venue: "Lab Block 2" },
         { time: "17:00", title: "Hackathon Kickoff", venue: "Innovation Centre" },
       ],
@@ -64,20 +58,10 @@ export const fest = {
       date: "Sat, March 15",
       items: [
         { time: "09:00", title: "Robotics Arena", venue: "Open Ground" },
-        { time: "10:00", title: "Workshop — Applied AI", venue: "Seminar Hall B" },
+        { time: "11:00", title: "Workshop — Applied AI", venue: "Seminar Hall B" },
         { time: "13:00", title: "Tech Quiz Finals", venue: "Auditorium" },
-        { time: "15:00", title: "UI/UX Design Challenge", venue: "Design Studio" },
-        { time: "17:00", title: "Hackathon Demo Day", venue: "Innovation Centre" },
-      ],
-    },
-    {
-      day: "Day 3",
-      date: "Sun, March 16",
-      items: [
-        { time: "10:00", title: "Startup Pitch Fest", venue: "Auditorium" },
-        { time: "12:00", title: "Gaming Championship Finals", venue: "Lab Block 1" },
-        { time: "15:00", title: "Cultural Night", venue: "Open Air Theatre" },
-        { time: "18:00", title: "Prize Distribution & Valedictory", venue: "Auditorium" },
+        { time: "15:00", title: "Hackathon Demo Day", venue: "Innovation Centre" },
+        { time: "17:30", title: "Prize Distribution & Valedictory", venue: "Auditorium" },
       ],
     },
   ],
@@ -92,11 +76,36 @@ export const fest = {
     { q: "Will I get a certificate?", a: "All participants receive a digital participation certificate. Winners receive merit certificates and cash prizes." },
   ],
 
+  // Placeholder partner wordmarks for the hero LogoLoop — swap for real
+  // sponsors (or { src, alt } image entries) when you have them.
+  partners: [
+    "Acme Technologies",
+    "Northwind Cloud",
+    "Globex Systems",
+    "Initech Labs",
+    "Umbrella Software",
+    "Stark Digital",
+    "Wayne Analytics",
+    "Hooli Cloud",
+  ],
+
   contacts: [
     { role: "Student Convenor", name: "Convenor Name", phone: "+91 90000 00001", email: "convenor@example.edu" },
     { role: "Faculty Coordinator", name: "Coordinator Name", phone: "+91 90000 00002", email: "faculty@example.edu" },
     { role: "Registrations", name: "Registration Desk", phone: "+91 90000 00003", email: "register@example.edu" },
   ],
+
+  // Mock contact details — swap for the real ones.
+  contact: {
+    person: "Aarthi Ramesh",
+    role: "Student Convenor",
+    email: "springfest@example.edu",
+    phone: "+91 90000 00001",
+    location: "Department of CSE, Main Campus, Chennai, Tamil Nadu 600001",
+    mapEmbed:
+      "https://www.google.com/maps?q=Chennai%2C%20Tamil%20Nadu&output=embed",
+    mapLink: "https://www.google.com/maps/search/?api=1&query=Chennai,Tamil+Nadu",
+  },
 
   social: {
     instagram: "https://instagram.com/",
@@ -107,10 +116,9 @@ export const fest = {
 
 export const navLinks = [
   { label: "Home", href: "/" },
-  { label: "About", href: "/#about" },
   { label: "Events", href: "/#events" },
   { label: "Schedule", href: "/#schedule" },
-  { label: "FAQ", href: "/#faq" },
+  { label: "Contact", href: "/#contact" },
 ];
 
 // BubbleMenu (mobile) needs rotation + hover colours per item.
@@ -127,3 +135,12 @@ export const bubbleNavItems = navLinks.map((link, i) => ({
   rotation: i % 2 === 0 ? -8 : 8,
   hoverStyles: BUBBLE_HOVERS[i % BUBBLE_HOVERS.length],
 }));
+
+// Event-track picker (BubbleMenu inside the Events section). Decorative for
+// now — the items open/close the overlay but don't filter the grid.
+export const eventTrackItems = [
+  { label: "Technical",     href: "#events", ariaLabel: "Technical events",     rotation: -8, hoverStyles: { bgColor: "#f87b1b", textColor: "#ffffff" } },
+  { label: "Non-Technical", href: "#events", ariaLabel: "Non-technical events", rotation:  8, hoverStyles: { bgColor: "#11224e", textColor: "#eeeeee" } },
+  { label: "Hackathon",     href: "#events", ariaLabel: "Hackathon",            rotation:  8, hoverStyles: { bgColor: "#cbd99b", textColor: "#11224e" } },
+  { label: "Workshop",      href: "#events", ariaLabel: "Workshops",            rotation: -8, hoverStyles: { bgColor: "#f5a55c", textColor: "#11224e" } },
+];
