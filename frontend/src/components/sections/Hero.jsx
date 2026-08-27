@@ -1,7 +1,5 @@
-import { useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import Aurora from "../reactbits/Aurora.jsx";
-import Crosshair from "../reactbits/Crosshair.jsx";
 import SplitText from "../reactbits/SplitText.jsx";
 import BlurText from "../reactbits/BlurText.jsx";
 import GradientText from "../reactbits/GradientText.jsx";
@@ -11,16 +9,10 @@ import HeroShowcase from "./HeroShowcase.jsx";
 import { useAuth } from "../../auth/AuthContext.jsx";
 import { fest } from "../../content/fest.js";
 
-const finePointer =
-  typeof window !== "undefined" && window.matchMedia
-    ? window.matchMedia("(pointer: fine)").matches
-    : false;
-
 // Placeholder filters — no navigation yet.
 const DUMMY_ACTIONS = ["Technical", "Non-Technical", "Schedule"];
 
 export default function Hero() {
-  const heroRef = useRef(null);
   const navigate = useNavigate();
   const { user, loginWithGoogle } = useAuth();
 
@@ -38,7 +30,7 @@ export default function Hero() {
   };
 
   return (
-    <section className="hero" ref={heroRef}>
+    <section className="hero">
       {/* CSS blobs — always painted, so the hero still reads
           correctly if WebGL is unavailable. */}
       <div className="hero-blobs" aria-hidden="true">
@@ -52,8 +44,6 @@ export default function Hero() {
         <Aurora colorStops={["#f5a55c", "#f87b1b", "#cbd99b"]} blend={0.35} amplitude={0.8} speed={0.4} />
       </div>
       <div className="hero-veil" aria-hidden="true" />
-
-      {finePointer && <Crosshair containerRef={heroRef} color="#f87b1b" />}
 
       <div className="container hero-grid">
         <div className="hero-copy">
