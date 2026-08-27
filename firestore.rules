@@ -1,0 +1,14 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Events are public read-only; writes only via Admin SDK (backend).
+    match /events/{eventId} {
+      allow read: if true;
+      allow write: if false;
+    }
+    // Registrations handled entirely by the backend Admin SDK.
+    match /registrations/{regId} {
+      allow read, write: if false;
+    }
+  }
+}
