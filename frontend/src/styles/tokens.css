@@ -1,36 +1,49 @@
 :root {
-  /* ── Spring pastel palette ───────────────────────────────── */
-  --cream: #fffaf5;
-  --cream-2: #fff4ec;
-  --ink: #2b2440;
-  --ink-soft: #6d6484;
-  --ink-faint: #9a92ad;
+  /* ── Palette — navy / orange / sage / grey ───────────────── */
+  /* #11224E navy · #F87B1B orange · #CBD99B sage · #EEEEEE grey */
 
-  --pink: #ffb3c9;
-  --pink-deep: #f2789f;
-  --peach: #ffd4b2;
-  --peach-deep: #f7a072;
-  --mint: #b9ecd8;
-  --mint-deep: #4fbf9b;
-  --lilac: #d6c7f5;
-  --lilac-deep: #8b6fd4;
-  --sky: #bcdcff;
+  /* Page + text.  --cream/--cream-2 keep their names (referenced
+     in ~40 places) but now hold the grey background scale. */
+  --cream: #eeeeee;
+  --cream-2: #f6f6f7;
+  --ink: #11224e;
+  --ink-soft: #3d5182;
+  --ink-faint: #7286ab;
 
-  --accent: #f2789f;
-  --accent-hover: #e35d88;
-  --accent-soft: #ffe4ed;
+  /* Accent scale */
+  --accent: #f87b1b;
+  --accent-hover: #e06a0c;
+  --accent-soft: #fdecdc;
 
+  /* Named hues.  Kept under the old names so existing selectors
+     (hero blobs, footer, CTA band) need no renaming. */
+  --pink: #f87b1b;        /* was pink  → orange     */
+  --pink-deep: #e06a0c;
+  --peach: #f5a55c;       /* was peach → light orange */
+  --peach-deep: #e08a35;
+  --mint: #cbd99b;        /* was mint  → sage       */
+  --mint-deep: #9bb15f;
+  --lilac: #11224e;       /* was lilac → navy       */
+  --lilac-deep: #24386b;
+  --sky: #c6d2e8;
+
+  --sage: #cbd99b;
+  --sage-deep: #9bb15f;
+  --navy-soft: #24386b;
+
+  /* Surfaces */
   --surface: #ffffff;
-  --surface-2: #fff7f1;
-  --border: #f1e4e8;
-  --border-strong: #e5d3d9;
+  --surface-2: #f7f8f4;
+  --border: #dfe1e6;
+  --border-strong: #c9ccd4;
 
-  --ok: #3aa981;
-  --ok-bg: #e4f6ee;
-  --warn: #d99511;
-  --warn-bg: #fdf2dc;
-  --bad: #d3596a;
-  --bad-bg: #fdeaec;
+  /* Semantic — kept green/amber/red so status stays readable */
+  --ok: #2f8f6b;
+  --ok-bg: #e3f3ec;
+  --warn: #b8770f;
+  --warn-bg: #fbf0da;
+  --bad: #c0483f;
+  --bad-bg: #fbe9e7;
 
   /* ── Type ────────────────────────────────────────────────── */
   --font-display: "Fraunces", Georgia, "Times New Roman", serif;
@@ -42,10 +55,10 @@
   --r-lg: 24px;
   --r-full: 999px;
 
-  --shadow-sm: 0 1px 3px rgba(110, 80, 95, 0.06);
-  --shadow-md: 0 6px 20px rgba(110, 80, 95, 0.08);
-  --shadow-lg: 0 18px 50px rgba(110, 80, 95, 0.12);
-  --shadow-glow: 0 10px 30px rgba(242, 120, 159, 0.22);
+  --shadow-sm: 0 1px 3px rgba(17, 34, 78, 0.07);
+  --shadow-md: 0 6px 20px rgba(17, 34, 78, 0.10);
+  --shadow-lg: 0 18px 50px rgba(17, 34, 78, 0.14);
+  --shadow-glow: 0 10px 30px rgba(248, 123, 27, 0.28);
 
   --nav-h: 68px;
   --page-w: 1140px;

@@ -112,3 +112,18 @@ export const navLinks = [
   { label: "Schedule", href: "/#schedule" },
   { label: "FAQ", href: "/#faq" },
 ];
+
+// BubbleMenu (mobile) needs rotation + hover colours per item.
+const BUBBLE_HOVERS = [
+  { bgColor: "#f87b1b", textColor: "#ffffff" },  // orange
+  { bgColor: "#11224e", textColor: "#eeeeee" },  // navy
+  { bgColor: "#cbd99b", textColor: "#11224e" },  // sage
+];
+
+export const bubbleNavItems = navLinks.map((link, i) => ({
+  label: link.label,
+  href: link.href,
+  ariaLabel: link.label,
+  rotation: i % 2 === 0 ? -8 : 8,
+  hoverStyles: BUBBLE_HOVERS[i % BUBBLE_HOVERS.length],
+}));

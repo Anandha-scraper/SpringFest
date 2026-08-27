@@ -17,8 +17,8 @@
 .blob {
   position: absolute;
   border-radius: 50%;
-  filter: blur(70px);
-  opacity: 0.55;
+  filter: blur(90px);
+  opacity: 0.28;
   animation: float 18s ease-in-out infinite;
 }
 .blob-pink   { width: 420px; height: 420px; background: var(--pink);  top: -60px;  left: -80px; }
@@ -34,11 +34,13 @@
 
 /* Aurora is an additive glow built for dark backgrounds — soften it
    heavily and wash it out with a cream veil so it reads as pastel. */
+/* Aurora is an additive glow built for dark backgrounds. On the light grey
+   theme it has to stay faint or it floods the page with orange. */
 .hero-aurora {
   position: absolute;
   inset: 0;
   z-index: 1;
-  opacity: 0.42;
+  opacity: 0.18;
   mix-blend-mode: multiply;
   pointer-events: none;
 }
@@ -48,18 +50,20 @@
   z-index: 2;
   pointer-events: none;
   background:
-    radial-gradient(ellipse 70% 55% at 50% 45%, rgba(255, 250, 245, 0.86) 0%, rgba(255, 250, 245, 0.35) 55%, transparent 100%),
-    linear-gradient(180deg, transparent 55%, var(--cream) 100%);
+    radial-gradient(ellipse 75% 60% at 50% 45%, rgba(238, 238, 238, 0.92) 0%, rgba(238, 238, 238, 0.55) 58%, rgba(238, 238, 238, 0.15) 100%),
+    linear-gradient(180deg, transparent 48%, var(--cream) 100%);
 }
 
 /* Two-column hero: copy left, PixelSwap right */
+.hero .container { padding-right: 16px; }
+
 .hero-grid {
   position: relative;
   z-index: 3;
   width: 100%;
   display: grid;
-  grid-template-columns: 1.05fr 0.95fr;
-  gap: 56px;
+  grid-template-columns: 1fr 1fr;
+  gap: 40px;
   align-items: center;
 }
 .hero-copy {
@@ -70,11 +74,12 @@
 }
 .hero-visual {
   display: flex;
-  justify-content: center;
+  justify-content: flex-end;
 }
+/* Fill the right half — only the container's own (reduced) padding remains. */
 .hero-pixelswap {
   width: 100%;
-  max-width: 420px;
+  max-width: none;
   border-radius: 24px;
   overflow: hidden;
   box-shadow: var(--shadow-lg);
@@ -103,7 +108,7 @@
   background: linear-gradient(150deg, var(--pink) 0%, var(--peach) 52%, var(--mint) 100%);
   color: var(--ink);
 }
-.ps-poster .ps-kicker { color: rgba(43, 36, 64, 0.6); }
+.ps-poster .ps-kicker { color: rgba(17, 34, 78, 0.62); }
 .ps-title {
   display: flex;
   flex-direction: column;
@@ -115,7 +120,7 @@
 .ps-title strong {
   font-size: 3.4rem;
   font-weight: 600;
-  background: linear-gradient(90deg, #f2789f, #8b6fd4);
+  background: linear-gradient(90deg, #f87b1b, #11224e);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -134,7 +139,7 @@
 .ps-tags span {
   font-size: 0.72rem;
   font-weight: 600;
-  background: rgba(255, 255, 255, 0.55);
+  background: rgba(255, 255, 255, 0.62);
   border-radius: var(--r-full);
   padding: 3px 10px;
   color: var(--ink-soft);
@@ -144,7 +149,7 @@
   font-size: 0.7rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: rgba(43, 36, 64, 0.45);
+  color: rgba(17, 34, 78, 0.48);
 }
 .ps-register {
   background: var(--surface);
@@ -214,13 +219,47 @@
   margin-bottom: 34px;
 }
 
+/* Hero button row: Register (live) + dummy filter chips */
+.hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  margin-bottom: 40px;
+}
+.hero-register {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+}
+.hero-chip {
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-full);
+  padding: 11px 22px;
+  cursor: pointer;
+  transition: border-color 0.16s ease, color 0.16s ease, transform 0.16s ease;
+}
+.hero-chip:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  transform: translateY(-2px);
+}
+
+/* Success page reuses this row for its two links */
 .hero-cta {
   display: flex;
   align-items: center;
   gap: 16px;
   flex-wrap: wrap;
-  justify-content: flex-start;
-  margin-bottom: 44px;
+  justify-content: center;
 }
 
 .hero-inst {
@@ -269,8 +308,10 @@
   .hero-tagline { justify-content: center; }
   .hero-cta { justify-content: center; }
   .hero-blurb { margin-left: auto; margin-right: auto; }
-  .hero-visual { order: 2; }
-  .hero-pixelswap { max-width: 340px; }
+  .hero-visual { order: 2; justify-content: center; }
+  .hero-pixelswap { max-width: 360px; }
+  .hero-actions { justify-content: center; }
+  .hero .container { padding-right: 24px; }
 }
 
 /* ── React Bits light-theme overrides ─────────────────────── */
@@ -352,6 +393,8 @@
   font-weight: 600;
   letter-spacing: -0.02em;
 }
+
+.about-placeholder { min-height: 320px; }
 
 .about-copy {
   max-width: 720px;

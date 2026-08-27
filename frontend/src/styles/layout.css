@@ -1,11 +1,19 @@
 /* ═══════════════════════════════════════════════════════════
-   NAVBAR  —  React Bits <PillNav /> floats freely (its own
-   absolute/fixed positioning); the account control is a
-   separate fixed element top-right.
+   NAVBAR  —  React Bits <PillNav /> on desktop (floats free,
+   pinned centred at the top) and <BubbleMenu /> below 900px.
+   The account control lives inside the pill bar, signed in only.
    ═══════════════════════════════════════════════════════════ */
 
-/* The app has a single PillNav — pin it centred at the top and keep it
-   there while scrolling. (className lands on .pill-nav, not the container.) */
+/* PillNav on desktop, BubbleMenu below 900px. */
+.nav-mobile { display: none; }
+
+@media (max-width: 899px) {
+  .nav-desktop { display: none; }
+  .nav-mobile { display: block; }
+}
+
+/* Pin the pill bar centred at the top and keep it there while scrolling.
+   (className lands on .pill-nav, not the container.) */
 .pill-nav-container {
   position: fixed;
   top: 1rem;
@@ -41,7 +49,7 @@
   }
 }
 
-/* ── Account control — lives INSIDE the PillNav bar ───────── */
+/* ── Account control — signed-in only, inside the PillNav bar ── */
 .pill-trailing {
   display: flex;
   align-items: center;
@@ -50,42 +58,24 @@
   padding-right: 4px;
 }
 
-.account-pill {
+.nav-user-pill {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
   height: calc(var(--nav-h, 58px) - 8px);
-  padding: 0 20px;
+  padding: 0 14px 0 5px;
   border: none;
   border-radius: 9999px;
-  background: var(--accent);
-  color: #fff;
+  background: var(--pill-bg, #eeeeee);
+  color: var(--ink);
   font-family: var(--font-body);
   font-size: 14px;
   font-weight: 700;
-  letter-spacing: 0.4px;
   white-space: nowrap;
   cursor: pointer;
-  transition: background 0.16s ease, transform 0.16s ease;
+  transition: background 0.16s ease;
 }
-.account-pill:hover:not(:disabled) { background: var(--accent-hover); }
-.account-pill:disabled { opacity: 0.6; cursor: not-allowed; }
-.account-pill svg { flex-shrink: 0; }
-
-.account-pill--user {
-  background: var(--pill-bg, #fffaf5);
-  color: var(--ink);
-  padding: 0 14px 0 5px;
-  gap: 7px;
-}
-.account-pill--user:hover:not(:disabled) { background: #fff; }
-
-.account-pill--block {
-  width: 100%;
-  justify-content: center;
-  height: 44px;
-  font-size: 15px;
-}
+.nav-user-pill:hover { background: #fff; }
 
 .nav-user { position: relative; display: flex; align-items: center; height: 100%; }
 .nav-avatar {
@@ -157,35 +147,25 @@
 
 .app-main { min-height: 60vh; }
 
-@media (max-width: 768px) {
-  /* Account control moves into PillNav's popover on mobile — nothing to pin. */
-  .site-pillnav .pill-trailing { display: none; }
+/* BubbleMenu owns mobile — PillNav's own popover/hamburger never show. */
+.site-pillnav .mobile-only,
+.mobile-menu-popover { display: none !important; }
+
+.bubble-wordmark {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--ink);
 }
 
-/* ── Mobile popover: account block ────────────────────────── */
-.mobile-menu-trailing {
-  border-top: 1px solid rgba(255, 255, 255, 0.14);
-  margin-top: 4px;
-  padding: 8px 3px 3px;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-.mobile-menu-trailing .account-pill { margin-bottom: 2px; }
-.mobile-menu-popover button.mobile-menu-link {
-  width: 100%;
-  text-align: left;
-  border: none;
-  font-family: var(--font-body);
-  cursor: pointer;
-}
 
 /* ═══════════════════════════════════════════════════════════
    FOOTER  (compact)
    ═══════════════════════════════════════════════════════════ */
 .footer {
   background: var(--ink);
-  color: #cfc9dc;
+  color: #c8d0e0;
   font-size: 0.86rem;
 }
 .footer-inner {
@@ -208,12 +188,12 @@
   font-weight: 600;
 }
 .footer-id em { font-style: normal; color: var(--pink); }
-.footer-sub { color: #8d85a0; font-size: 0.8rem; }
+.footer-sub { color: #8f9db8; font-size: 0.8rem; }
 
 .footer-links,
 .footer-social { display: flex; gap: 18px; flex-wrap: wrap; }
 .footer-links a,
-.footer-social a { color: #b5aec4; transition: color 0.16s ease; }
+.footer-social a { color: #b3bed3; transition: color 0.16s ease; }
 .footer-links a:hover,
 .footer-social a:hover { color: var(--pink); }
 
@@ -221,7 +201,7 @@
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   padding: 12px 24px;
   font-size: 0.76rem;
-  color: #7d7591;
+  color: #7e8ca8;
   text-align: center;
 }
 

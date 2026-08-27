@@ -29,7 +29,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
     <ErrorBoundary>
       <AuthProvider>
       <BrowserRouter>
-        <ClickSpark sparkColor="#f2789f" sparkSize={9} sparkRadius={16} sparkCount={7} duration={420}>
+        <ClickSpark sparkColor="#f87b1b" sparkSize={9} sparkRadius={16} sparkCount={7} duration={420}>
           <Routes>
             <Route element={<Layout />}>
               <Route path="/" element={<Landing />} />

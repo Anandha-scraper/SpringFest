@@ -68,7 +68,7 @@ export default function EventsPreview() {
               ? shown.map((ev, i) => (
                   <AnimatedContent key={ev.id} distance={50} duration={0.7} delay={0.05 * (i % 6)}>
                     <Link to={`/events/${ev.id}`} className="event-link">
-                      <SpotlightCard className="event-card" spotlightColor="rgba(242, 120, 159, 0.18)">
+                      <SpotlightCard className="event-card" spotlightColor="rgba(248, 123, 27, 0.20)">
                         {ev.category && <span className="tag">{ev.category}</span>}
                         <h3>{ev.name}</h3>
                         <p>{ev.description}</p>
@@ -82,7 +82,7 @@ export default function EventsPreview() {
                 ))
               : fest.eventCategories.map((c, i) => (
                   <AnimatedContent key={c.name} distance={50} duration={0.7} delay={0.08 * i}>
-                    <SpotlightCard className="event-card" spotlightColor="rgba(242, 120, 159, 0.18)">
+                    <SpotlightCard className="event-card" spotlightColor="rgba(248, 123, 27, 0.20)">
                       <h3>{c.name}</h3>
                       <p>{c.description}</p>
                       <div className="card-meta">

@@ -1,15 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext.jsx";
-import GoogleIcon from "../GoogleIcon.jsx";
 
 /**
- * Sign-in / account control that lives INSIDE the PillNav bar.
- *   variant="bar"  → desktop: a pill button (Sign in) or avatar + dropdown
- *   variant="menu" → mobile popover: full-width button / stacked links
+ * Account control inside the PillNav bar.
+ *
+ * Renders NOTHING when signed out — the hero's Register button is the sign-in
+ * entry point. When signed in it shows the avatar + dropdown so users can still
+ * reach My Registrations / Admin / Log out.
  */
-export default function AccountControl({ variant = "bar" }) {
-  const { user, isAdmin, loginWithGoogle, logout, isFirebaseConfigured } = useAuth();
+export default function AccountControl() {
+  const { user, isAdmin, logout } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const ref = useRef(null);
   const navigate = useNavigate();
@@ -25,13 +26,7 @@ export default function AccountControl({ variant = "bar" }) {
 
   useEffect(() => setMenuOpen(false), [pathname, hash]);
 
-  const handleLogin = async () => {
-    try {
-      await loginWithGoogle();
-    } catch {
-      navigate("/login");
-    }
-  };
+  if (!user) return null;
 
   const handleLogout = async () => {
     setMenuOpen(false);
@@ -39,50 +34,10 @@ export default function AccountControl({ variant = "bar" }) {
     navigate("/");
   };
 
-  // ── Mobile popover ──────────────────────────────────────────
-  if (variant === "menu") {
-    if (!user) {
-      return (
-        <button
-          className="account-pill account-pill--block"
-          onClick={handleLogin}
-          disabled={!isFirebaseConfigured}
-        >
-          <GoogleIcon size={16} />
-          Sign in with Google
-        </button>
-      );
-    }
-    return (
-      <>
-        <Link to="/my-registrations" className="mobile-menu-link">My Registrations</Link>
-        {isAdmin && (
-          <Link to="/admin" className="mobile-menu-link">Admin Dashboard</Link>
-        )}
-        <button className="mobile-menu-link" onClick={handleLogout}>Log out</button>
-      </>
-    );
-  }
-
-  // ── Desktop, inside the pill bar ────────────────────────────
-  if (!user) {
-    return (
-      <button
-        className="account-pill"
-        onClick={handleLogin}
-        disabled={!isFirebaseConfigured}
-        title={isFirebaseConfigured ? undefined : "Sign-in is disabled until Firebase is configured"}
-      >
-        <GoogleIcon size={15} />
-        <span className="account-pill-label">Sign in</span>
-      </button>
-    );
-  }
-
   return (
     <div className="nav-user" ref={ref}>
       <button
-        className="account-pill account-pill--user"
+        className="nav-user-pill"
         onClick={() => setMenuOpen((o) => !o)}
         aria-haspopup="menu"
         aria-expanded={menuOpen}
@@ -94,9 +49,7 @@ export default function AccountControl({ variant = "bar" }) {
             {(user.displayName || user.email || "?")[0].toUpperCase()}
           </span>
         )}
-        <span className="account-pill-label nav-username">
-          {user.displayName?.split(" ")[0] || "Account"}
-        </span>
+        <span className="nav-username">{user.displayName?.split(" ")[0] || "Account"}</span>
         <span className="nav-caret" aria-hidden="true">▾</span>
       </button>
 

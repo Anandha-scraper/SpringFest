@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import Aurora from "../reactbits/Aurora.jsx";
 import Crosshair from "../reactbits/Crosshair.jsx";
 import SplitText from "../reactbits/SplitText.jsx";
@@ -8,6 +8,7 @@ import GradientText from "../reactbits/GradientText.jsx";
 import StarBorder from "../reactbits/StarBorder.jsx";
 import Magnet from "../reactbits/Magnet.jsx";
 import HeroShowcase from "./HeroShowcase.jsx";
+import { useAuth } from "../../auth/AuthContext.jsx";
 import { fest } from "../../content/fest.js";
 
 const finePointer =
@@ -15,12 +16,30 @@ const finePointer =
     ? window.matchMedia("(pointer: fine)").matches
     : false;
 
+// Placeholder filters — no navigation yet.
+const DUMMY_ACTIONS = ["Technical", "Non-Technical", "Schedule"];
+
 export default function Hero() {
   const heroRef = useRef(null);
+  const navigate = useNavigate();
+  const { user, loginWithGoogle } = useAuth();
+
+  // Register is the sign-in entry point now that the navbar has no button.
+  const handleRegister = async () => {
+    if (user) {
+      document.querySelector("#events")?.scrollIntoView({ behavior: "smooth" });
+      return;
+    }
+    try {
+      await loginWithGoogle();
+    } catch {
+      navigate("/login");
+    }
+  };
 
   return (
     <section className="hero" ref={heroRef}>
-      {/* CSS pastel blobs — always painted, so the hero still reads
+      {/* CSS blobs — always painted, so the hero still reads
           correctly if WebGL is unavailable. */}
       <div className="hero-blobs" aria-hidden="true">
         <span className="blob blob-pink" />
@@ -30,11 +49,11 @@ export default function Hero() {
       </div>
 
       <div className="hero-aurora" aria-hidden="true">
-        <Aurora colorStops={["#ffd4b2", "#ffb3c9", "#b9ecd8"]} blend={0.35} amplitude={0.8} speed={0.4} />
+        <Aurora colorStops={["#f5a55c", "#f87b1b", "#cbd99b"]} blend={0.35} amplitude={0.8} speed={0.4} />
       </div>
       <div className="hero-veil" aria-hidden="true" />
 
-      {finePointer && <Crosshair containerRef={heroRef} color="#f2789f" />}
+      {finePointer && <Crosshair containerRef={heroRef} color="#f87b1b" />}
 
       <div className="container hero-grid">
         <div className="hero-copy">
@@ -57,7 +76,7 @@ export default function Hero() {
             />
             <GradientText
               className="hero-title-year"
-              colors={["#f2789f", "#f7a072", "#8b6fd4", "#4fbf9b", "#f2789f"]}
+              colors={["#f87b1b", "#11224e", "#9bb15f", "#f5a55c", "#f87b1b"]}
               animationSpeed={6}
             >
               {fest.year}
@@ -74,15 +93,20 @@ export default function Hero() {
 
           <p className="hero-blurb">{fest.blurb}</p>
 
-          <div className="hero-cta">
+          <div className="hero-actions">
             <Magnet padding={80} magnetStrength={6}>
-              <Link to="/#events">
-                <StarBorder as="div" color="#f2789f" speed="4s" className="hero-star-btn">
+              <button type="button" className="hero-register" onClick={handleRegister}>
+                <StarBorder as="div" color="#f87b1b" speed="4s" className="hero-star-btn">
                   Register Now →
                 </StarBorder>
-              </Link>
+              </button>
             </Magnet>
-            <a href="#schedule" className="btn btn-ghost">View Schedule</a>
+
+            {DUMMY_ACTIONS.map((label) => (
+              <button key={label} type="button" className="hero-chip">
+                {label}
+              </button>
+            ))}
           </div>
 
           <div className="hero-inst">

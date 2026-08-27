@@ -23,7 +23,7 @@ function PosterCard() {
           <span key={t}>{t}</span>
         ))}
       </div>
-      <span className="ps-hint">click to flip ⟳</span>
+      <span className="ps-hint">hover to flip ⟳</span>
     </div>
   );
 }
@@ -34,11 +34,7 @@ function RegisterCard() {
       <span className="ps-kicker">Ready to compete?</span>
       <h3>Grab your slot</h3>
       <p>24 events · ₹1 Lakh prize pool · 30+ colleges</p>
-      <Link
-        to="/#events"
-        className="btn"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <Link to="/#events" className="btn">
         Register Now →
       </Link>
     </div>
@@ -50,7 +46,7 @@ export default function HeroShowcase() {
     <PixelSwap
       className="hero-pixelswap"
       aspectRatio="4 / 5"
-      trigger="click"
+      trigger="hover"
       pattern="random"
       pixelSize={40}
       duration={1100}

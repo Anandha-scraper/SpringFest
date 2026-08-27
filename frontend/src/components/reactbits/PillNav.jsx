@@ -16,8 +16,7 @@ const PillNav = ({
   pillTextColor,
   onMobileMenuClick,
   initialLoadAnimation = true,
-  trailing,
-  mobileTrailing
+  trailing
 }) => {
   const resolvedPillTextColor = pillTextColor ?? baseColor;
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -227,7 +226,7 @@ const PillNav = ({
   return (
     <div className="pill-nav-container">
       <nav className={`pill-nav ${className}`} aria-label="Primary" style={cssVars}>
-        {isRouterLink(items?.[0]?.href) ? (
+        {logo && (isRouterLink(items?.[0]?.href) ? (
           <Link
             className="pill-logo"
             to={items[0].href}
@@ -252,7 +251,7 @@ const PillNav = ({
           >
             <img src={logo} alt={logoAlt} ref={logoImgRef} />
           </a>
-        )}
+        ))}
 
         <div className="pill-nav-items desktop-only" ref={navItemsRef}>
           <ul className="pill-list" role="menubar">
@@ -346,7 +345,6 @@ const PillNav = ({
             </li>
           ))}
         </ul>
-        {mobileTrailing && <div className="mobile-menu-trailing">{mobileTrailing}</div>}
       </div>
     </div>
   );
