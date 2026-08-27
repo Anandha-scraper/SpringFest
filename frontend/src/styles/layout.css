@@ -1,45 +1,45 @@
 /* ═══════════════════════════════════════════════════════════
-   NAVBAR  (wraps React Bits <PillNav />)
+   NAVBAR  —  React Bits <PillNav /> floats freely (its own
+   absolute/fixed positioning); the account control is a
+   separate fixed element top-right.
    ═══════════════════════════════════════════════════════════ */
-.nav {
+
+/* The app has a single PillNav — pin it centred at the top and keep it
+   there while scrolling. (className lands on .pill-nav, not the container.) */
+.pill-nav-container {
   position: fixed;
-  top: 0; left: 0; right: 0;
+  top: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
   z-index: 100;
-  height: var(--nav-h);
-  display: flex;
-  align-items: center;
-  transition: background 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
-  border-bottom: 1px solid transparent;
 }
-.nav-scrolled {
-  background: rgba(255, 250, 245, 0.82);
-  backdrop-filter: blur(14px);
-  border-bottom-color: var(--border);
-  box-shadow: var(--shadow-sm);
-}
-.nav-inner {
-  width: 100%;
-  max-width: var(--page-w);
-  margin: 0 auto;
-  padding: 0 24px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
+.pill-nav-items,
+.pill-logo { box-shadow: var(--shadow-md); }
+.site-pillnav .pill {
+  font-size: 14px;
+  letter-spacing: 0.4px;
 }
 
-/* Neutralise PillNav's own absolute positioning — it lives inline here. */
-.nav-inner .pill-nav-container {
-  position: static;
-  top: auto;
-  flex: 1 1 auto;
-  min-width: 0;
+@media (max-width: 768px) {
+  .pill-nav-container {
+    left: 0;
+    transform: none;
+    width: 100%;
+    padding: 0 0.75rem;
+  }
 }
-.nav-inner .pill-nav { width: 100%; }
-.nav-inner .pill-nav-items { margin-left: 12px; }
 
-.nav-right { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
-.nav-signin { box-shadow: none; }
+/* ── Account control (sign-in / avatar menu) ──────────────── */
+.nav-account {
+  position: fixed;
+  top: 1rem;
+  right: 1.5rem;
+  z-index: 101;
+  height: 42px;
+  display: flex;
+  align-items: center;
+}
+.nav-signin { box-shadow: var(--shadow-md); }
 
 .nav-user { position: relative; }
 .nav-avatar-btn {
@@ -49,15 +49,16 @@
   background: var(--surface);
   border: 1px solid var(--border-strong);
   border-radius: var(--r-full);
-  padding: 5px 12px 5px 5px;
+  padding: 4px 12px 4px 4px;
   cursor: pointer;
   font-family: var(--font-body);
-  font-size: 0.88rem;
+  font-size: 0.86rem;
   font-weight: 600;
   color: var(--ink);
-  transition: border-color 0.16s ease, box-shadow 0.16s ease;
+  box-shadow: var(--shadow-md);
+  transition: border-color 0.16s ease;
 }
-.nav-avatar-btn:hover { border-color: var(--accent); box-shadow: var(--shadow-sm); }
+.nav-avatar-btn:hover { border-color: var(--accent); }
 .nav-avatar {
   width: 28px; height: 28px;
   border-radius: 50%;
@@ -128,9 +129,7 @@
 .app-main { min-height: 60vh; }
 
 @media (max-width: 768px) {
-  .nav { height: auto; padding: 10px 0; }
-  .nav-inner { padding: 0 16px; }
-  .nav-inner .pill-nav-items { margin-left: 0; }
+  .nav-account { right: 4.25rem; }        /* clear PillNav's hamburger */
   .nav-signin-label { display: none; }
   .nav-username { display: none; }
 }
@@ -150,6 +149,8 @@
   gap: 20px 32px;
   flex-wrap: wrap;
   padding: 22px 24px;
+  max-width: var(--page-w);
+  margin: 0 auto;
 }
 .footer-id { display: flex; align-items: center; gap: 12px; }
 .footer-mark { font-size: 1.5rem; }

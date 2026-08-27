@@ -4,22 +4,16 @@ import PillNav from "../reactbits/PillNav.jsx";
 import GoogleIcon from "../GoogleIcon.jsx";
 import { useAuth } from "../../auth/AuthContext.jsx";
 import { navLinks } from "../../content/fest.js";
-import logo from "/logo.svg";
+
+// Files in public/ are served from the site root — reference by URL, never import.
+const LOGO_URL = "/logo.png";
 
 export default function Navbar() {
   const { user, isAdmin, loginWithGoogle, logout } = useAuth();
-  const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
   const navigate = useNavigate();
   const { pathname, hash } = useLocation();
-
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 20);
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
 
   useEffect(() => {
     const onClick = (e) => {
@@ -30,6 +24,8 @@ export default function Navbar() {
   }, []);
 
   useEffect(() => setMenuOpen(false), [pathname, hash]);
+
+  const activeHref = pathname === "/" ? (hash ? `/${hash}` : "/") : pathname;
 
   const handleLogin = async () => {
     try {
@@ -46,65 +42,64 @@ export default function Navbar() {
   };
 
   return (
-    <header className={`nav ${scrolled ? "nav-scrolled" : ""}`}>
-      <div className="nav-inner">
-        <PillNav
-          logo={logo}
-          logoAlt="Spring Fest"
-          items={navLinks}
-          activeHref={pathname === "/" ? `/${hash}` : pathname}
-          baseColor="#2b2440"
-          pillColor="#fffaf5"
-          hoveredPillTextColor="#fffaf5"
-          pillTextColor="#2b2440"
-          ease="power3.easeOut"
-          initialLoadAnimation
-        />
+    <>
+      <PillNav
+        logo={LOGO_URL}
+        logoAlt="Spring Fest"
+        items={navLinks}
+        activeHref={activeHref}
+        className="site-pillnav"
+        baseColor="#2b2440"
+        pillColor="#fffaf5"
+        hoveredPillTextColor="#fffaf5"
+        pillTextColor="#2b2440"
+        ease="power3.easeOut"
+        initialLoadAnimation={false}
+      />
 
-        <div className="nav-right">
-          {user ? (
-            <div className="nav-user" ref={menuRef}>
-              <button
-                className="nav-avatar-btn"
-                onClick={() => setMenuOpen((o) => !o)}
-                aria-haspopup="menu"
-                aria-expanded={menuOpen}
-              >
-                {user.photoURL ? (
-                  <img src={user.photoURL} alt="" className="nav-avatar" referrerPolicy="no-referrer" />
-                ) : (
-                  <span className="nav-avatar nav-avatar-fallback">
-                    {(user.displayName || user.email || "?")[0].toUpperCase()}
-                  </span>
-                )}
-                <span className="nav-username">{user.displayName?.split(" ")[0] || "Account"}</span>
-                <span className="nav-caret" aria-hidden="true">▾</span>
-              </button>
-
-              {menuOpen && (
-                <div className="nav-menu" role="menu">
-                  <div className="nav-menu-head">
-                    <strong>{user.displayName || "Signed in"}</strong>
-                    <span>{user.email}</span>
-                  </div>
-                  <Link to="/my-registrations" role="menuitem">My Registrations</Link>
-                  {isAdmin && (
-                    <Link to="/admin" role="menuitem" className="nav-menu-admin">
-                      Admin Dashboard
-                    </Link>
-                  )}
-                  <button onClick={handleLogout} role="menuitem">Log out</button>
-                </div>
+      <div className="nav-account">
+        {user ? (
+          <div className="nav-user" ref={menuRef}>
+            <button
+              className="nav-avatar-btn"
+              onClick={() => setMenuOpen((o) => !o)}
+              aria-haspopup="menu"
+              aria-expanded={menuOpen}
+            >
+              {user.photoURL ? (
+                <img src={user.photoURL} alt="" className="nav-avatar" referrerPolicy="no-referrer" />
+              ) : (
+                <span className="nav-avatar nav-avatar-fallback">
+                  {(user.displayName || user.email || "?")[0].toUpperCase()}
+                </span>
               )}
-            </div>
-          ) : (
-            <button className="btn btn-sm nav-signin" onClick={handleLogin}>
-              <GoogleIcon size={16} />
-              <span className="nav-signin-label">Sign in</span>
+              <span className="nav-username">{user.displayName?.split(" ")[0] || "Account"}</span>
+              <span className="nav-caret" aria-hidden="true">▾</span>
             </button>
-          )}
-        </div>
+
+            {menuOpen && (
+              <div className="nav-menu" role="menu">
+                <div className="nav-menu-head">
+                  <strong>{user.displayName || "Signed in"}</strong>
+                  <span>{user.email}</span>
+                </div>
+                <Link to="/my-registrations" role="menuitem">My Registrations</Link>
+                {isAdmin && (
+                  <Link to="/admin" role="menuitem" className="nav-menu-admin">
+                    Admin Dashboard
+                  </Link>
+                )}
+                <button onClick={handleLogout} role="menuitem">Log out</button>
+              </div>
+            )}
+          </div>
+        ) : (
+          <button className="btn btn-sm nav-signin" onClick={handleLogin}>
+            <GoogleIcon size={16} />
+            <span className="nav-signin-label">Sign in</span>
+          </button>
+        )}
       </div>
-    </header>
+    </>
   );
 }

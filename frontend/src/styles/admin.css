@@ -325,27 +325,7 @@
   word-break: break-all;
 }
 
-/* ── Config notice / crash screen ──────────────────────────── */
-.config-notice {
-  position: relative;
-  z-index: 90;
-  margin-top: var(--nav-h);
-  background: var(--warn-bg);
-  border-bottom: 1px solid #f0dcae;
-  color: #8a6410;
-  font-size: 0.87rem;
-  text-align: center;
-  padding: 11px 20px;
-  line-height: 1.6;
-}
-.config-notice code {
-  background: rgba(255, 255, 255, 0.7);
-  padding: 1px 6px;
-  border-radius: 5px;
-  font-size: 0.85em;
-}
-/* The notice pushes content down, so cancel the hero's own nav offset. */
-.config-notice ~ .app-main .hero { padding-top: 40px; min-height: calc(100svh - var(--nav-h)); }
+/* ── Crash screen ─────────────────────────────────────────── */
 
 .crash {
   min-height: 100svh;
