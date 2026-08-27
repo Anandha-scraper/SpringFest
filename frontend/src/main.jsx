@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import { AuthProvider } from "./auth/AuthContext.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
+import ErrorBoundary from "./components/ErrorBoundary.jsx";
 import Layout from "./components/layout/Layout.jsx";
 import ClickSpark from "./components/reactbits/ClickSpark.jsx";
 
@@ -25,7 +26,8 @@ import "./styles/admin.css";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    <AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
       <BrowserRouter>
         <ClickSpark sparkColor="#f2789f" sparkSize={9} sparkRadius={16} sparkCount={7} duration={420}>
           <Routes>
@@ -75,6 +77,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
           </Routes>
         </ClickSpark>
       </BrowserRouter>
-    </AuthProvider>
+      </AuthProvider>
+    </ErrorBoundary>
   </React.StrictMode>
 );

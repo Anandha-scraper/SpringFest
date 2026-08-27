@@ -324,3 +324,57 @@
   margin-top: 8px;
   word-break: break-all;
 }
+
+/* ── Config notice / crash screen ──────────────────────────── */
+.config-notice {
+  position: relative;
+  z-index: 90;
+  margin-top: var(--nav-h);
+  background: var(--warn-bg);
+  border-bottom: 1px solid #f0dcae;
+  color: #8a6410;
+  font-size: 0.87rem;
+  text-align: center;
+  padding: 11px 20px;
+  line-height: 1.6;
+}
+.config-notice code {
+  background: rgba(255, 255, 255, 0.7);
+  padding: 1px 6px;
+  border-radius: 5px;
+  font-size: 0.85em;
+}
+/* The notice pushes content down, so cancel the hero's own nav offset. */
+.config-notice ~ .app-main .hero { padding-top: 40px; min-height: calc(100svh - var(--nav-h)); }
+
+.crash {
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  padding: 40px 24px;
+  background: var(--cream);
+}
+.crash-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-lg);
+  padding: 40px 34px;
+  max-width: 560px;
+  text-align: center;
+}
+.crash-mark { font-size: 2.8rem; display: block; margin-bottom: 12px; }
+.crash-card h1 { font-size: 1.5rem; margin-bottom: 10px; }
+.crash-trace {
+  text-align: left;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 14px 16px;
+  margin: 20px 0 24px;
+  font-size: 0.82rem;
+  color: var(--bad);
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}

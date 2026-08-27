@@ -9,5 +9,31 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
-export const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
+const PLACEHOLDER = /^(your-|xxx|<)/i;
+const filled = (v) => Boolean(v) && !PLACEHOLDER.test(v);
+
+// Without real credentials getAuth() throws at import time, which blanks the
+// whole page. Detect that up front so the site still renders and tells the
+// developer what to fix, instead of white-screening.
+export const isFirebaseConfigured =
+  filled(firebaseConfig.apiKey) && filled(firebaseConfig.authDomain);
+
+export const firebaseConfigError = isFirebaseConfigured
+  ? ""
+  : "Firebase is not configured. Fill VITE_FIREBASE_* in frontend/.env and restart the dev server.";
+
+let app = null;
+let auth = null;
+
+if (isFirebaseConfigured) {
+  try {
+    app = initializeApp(firebaseConfig);
+    auth = getAuth(app);
+  } catch (e) {
+    console.error("[firebase] init failed:", e);
+  }
+} else {
+  console.warn(`[firebase] ${firebaseConfigError}`);
+}
+
+export { app, auth };

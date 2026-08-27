@@ -3,7 +3,7 @@ import { auth } from "../auth/firebase.js";
 const BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000/api";
 
 async function authHeader() {
-  const token = await auth.currentUser?.getIdToken();
+  const token = await auth?.currentUser?.getIdToken();
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 

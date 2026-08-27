@@ -5,7 +5,7 @@ import GoogleIcon from "../components/GoogleIcon.jsx";
 import { fest } from "../content/fest.js";
 
 export default function Login() {
-  const { user, loading, loginWithGoogle } = useAuth();
+  const { user, loading, loginWithGoogle, isFirebaseConfigured, firebaseConfigError } = useAuth();
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const navigate = useNavigate();
@@ -45,9 +45,10 @@ export default function Login() {
           Sign in to register for events and track your participation.
         </p>
 
+        {!isFirebaseConfigured && <p className="error">{firebaseConfigError}</p>}
         {error && <p className="error">{error}</p>}
 
-        <button className="google-btn" onClick={signIn} disabled={busy}>
+        <button className="google-btn" onClick={signIn} disabled={busy || !isFirebaseConfigured}>
           <GoogleIcon size={20} />
           {busy ? "Signing in…" : "Continue with Google"}
         </button>
