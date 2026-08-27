@@ -47,10 +47,6 @@ export default function Hero() {
 
       <div className="container hero-grid">
         <div className="hero-copy">
-          <span className="hero-pill">
-            {fest.dates} · {fest.institution.city}
-          </span>
-
           <h1 className="hero-title">
             <SplitText
               text={fest.name}

@@ -167,21 +167,6 @@
 }
 .ps-register .btn { margin-top: 6px; }
 
-.hero-pill {
-  display: inline-block;
-  background: rgba(255, 255, 255, 0.75);
-  backdrop-filter: blur(8px);
-  border: 1px solid var(--border-strong);
-  color: var(--ink-soft);
-  font-size: 0.84rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  padding: 8px 18px;
-  border-radius: var(--r-full);
-  margin-bottom: 26px;
-  box-shadow: var(--shadow-sm);
-}
-
 .hero-title {
   display: flex;
   flex-direction: column;
