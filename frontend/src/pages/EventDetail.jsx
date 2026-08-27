@@ -45,7 +45,7 @@ export default function EventDetail() {
     return (
       <div className="container narrow page-pad">
         <p className="error">{error}</p>
-        <Link to="/events" className="btn btn-ghost">← All events</Link>
+        <Link to="/#events" className="btn btn-ghost">← All events</Link>
       </div>
     );
   }
@@ -53,7 +53,7 @@ export default function EventDetail() {
 
   return (
     <div className="container narrow page-pad">
-      <Link to="/events" className="back-link">← All events</Link>
+      <Link to="/#events" className="back-link">← All events</Link>
 
       <div className="detail-head">
         {event.category && <span className="tag">{event.category}</span>}

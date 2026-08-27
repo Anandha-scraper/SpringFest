@@ -31,7 +31,7 @@ export default function MyRegistrations() {
       ) : items.length === 0 ? (
         <div className="empty-state">
           <p style={{ marginBottom: 20 }}>You haven't registered for any events yet.</p>
-          <Link to="/events" className="btn">Browse events</Link>
+          <Link to="/#events" className="btn">Browse events</Link>
         </div>
       ) : (
         <div className="grid">

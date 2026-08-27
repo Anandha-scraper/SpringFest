@@ -1,17 +1,18 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { fest, navLinks } from "../../content/fest.js";
-import { useAuth } from "../../auth/AuthContext.jsx";
+import PillNav from "../reactbits/PillNav.jsx";
 import GoogleIcon from "../GoogleIcon.jsx";
+import { useAuth } from "../../auth/AuthContext.jsx";
+import { navLinks } from "../../content/fest.js";
+import logo from "/logo.svg";
 
 export default function Navbar() {
   const { user, isAdmin, loginWithGoogle, logout } = useAuth();
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [navOpen, setNavOpen] = useState(false);
   const menuRef = useRef(null);
   const navigate = useNavigate();
-  const { pathname } = useLocation();
+  const { pathname, hash } = useLocation();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -20,7 +21,6 @@ export default function Navbar() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Close the avatar dropdown on any outside click
   useEffect(() => {
     const onClick = (e) => {
       if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false);
@@ -29,10 +29,7 @@ export default function Navbar() {
     return () => document.removeEventListener("mousedown", onClick);
   }, []);
 
-  useEffect(() => {
-    setNavOpen(false);
-    setMenuOpen(false);
-  }, [pathname]);
+  useEffect(() => setMenuOpen(false), [pathname, hash]);
 
   const handleLogin = async () => {
     try {
@@ -50,21 +47,19 @@ export default function Navbar() {
 
   return (
     <header className={`nav ${scrolled ? "nav-scrolled" : ""}`}>
-      <div className="nav-inner container">
-        <Link to="/" className="nav-brand">
-          <span className="nav-mark">🌸</span>
-          <span>
-            {fest.name} <em>{fest.year}</em>
-          </span>
-        </Link>
-
-        <nav className={`nav-links ${navOpen ? "open" : ""}`}>
-          {navLinks.map((l) => (
-            <a key={l.label} href={l.href} onClick={() => setNavOpen(false)}>
-              {l.label}
-            </a>
-          ))}
-        </nav>
+      <div className="nav-inner">
+        <PillNav
+          logo={logo}
+          logoAlt="Spring Fest"
+          items={navLinks}
+          activeHref={pathname === "/" ? `/${hash}` : pathname}
+          baseColor="#2b2440"
+          pillColor="#fffaf5"
+          hoveredPillTextColor="#fffaf5"
+          pillTextColor="#2b2440"
+          ease="power3.easeOut"
+          initialLoadAnimation
+        />
 
         <div className="nav-right">
           {user ? (
@@ -105,17 +100,9 @@ export default function Navbar() {
           ) : (
             <button className="btn btn-sm nav-signin" onClick={handleLogin}>
               <GoogleIcon size={16} />
-              Sign in
+              <span className="nav-signin-label">Sign in</span>
             </button>
           )}
-
-          <button
-            className="nav-burger"
-            onClick={() => setNavOpen((o) => !o)}
-            aria-label="Toggle navigation"
-          >
-            <span /><span /><span />
-          </button>
         </div>
       </div>
     </header>

@@ -63,7 +63,7 @@ export default function Hero() {
 
         <div className="hero-cta">
           <Magnet padding={80} magnetStrength={6}>
-            <Link to="/events">
+            <Link to="/#events">
               <StarBorder as="div" color="#f2789f" speed="4s" className="hero-star-btn">
                 Register Now →
               </StarBorder>

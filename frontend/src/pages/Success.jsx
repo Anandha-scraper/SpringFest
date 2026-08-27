@@ -25,7 +25,7 @@ export default function Success() {
 
       <div className="hero-cta" style={{ marginTop: 32, marginBottom: 0 }}>
         <Link className="btn" to="/my-registrations">My Registrations</Link>
-        <Link className="btn btn-ghost" to="/events">Register for more</Link>
+        <Link className="btn btn-ghost" to="/#events">Register for more</Link>
       </div>
     </div>
   );

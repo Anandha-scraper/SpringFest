@@ -82,12 +82,6 @@ export const fest = {
     },
   ],
 
-  sponsors: [
-    { tier: "Title Sponsor", names: ["Acme Technologies"] },
-    { tier: "Gold", names: ["Northwind Cloud", "Globex Systems", "Initech Labs"] },
-    { tier: "Silver", names: ["Umbrella Software", "Stark Digital", "Wayne Analytics", "Hooli Cloud"] },
-    { tier: "Community", names: ["Local Dev Circle", "OSS Chapter", "GDG Campus", "Coding Club"] },
-  ],
 
   faqs: [
     { q: "Who can participate?", a: "Any student currently enrolled in an undergraduate or postgraduate programme. Carry your college ID to the venue." },
@@ -112,9 +106,9 @@ export const fest = {
 };
 
 export const navLinks = [
+  { label: "Home", href: "/" },
   { label: "About", href: "/#about" },
-  { label: "Events", href: "/events" },
+  { label: "Events", href: "/#events" },
   { label: "Schedule", href: "/#schedule" },
-  { label: "Sponsors", href: "/#sponsors" },
   { label: "FAQ", href: "/#faq" },
 ];

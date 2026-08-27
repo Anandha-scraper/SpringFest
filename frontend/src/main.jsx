@@ -9,7 +9,6 @@ import Layout from "./components/layout/Layout.jsx";
 import ClickSpark from "./components/reactbits/ClickSpark.jsx";
 
 import Landing from "./pages/Landing.jsx";
-import Events from "./pages/Events.jsx";
 import EventDetail from "./pages/EventDetail.jsx";
 import Login from "./pages/Login.jsx";
 import MyRegistrations from "./pages/MyRegistrations.jsx";
@@ -18,6 +17,7 @@ import NotFound from "./pages/NotFound.jsx";
 import AdminDashboard from "./pages/admin/AdminDashboard.jsx";
 import EventParticipants from "./pages/admin/EventParticipants.jsx";
 
+import "./components/reactbits/PillNav.css";
 import "./styles/tokens.css";
 import "./styles/base.css";
 import "./styles/layout.css";
@@ -33,7 +33,6 @@ ReactDOM.createRoot(document.getElementById("root")).render(
           <Routes>
             <Route element={<Layout />}>
               <Route path="/" element={<Landing />} />
-              <Route path="/events" element={<Events />} />
               <Route path="/success" element={<Success />} />
 
               <Route

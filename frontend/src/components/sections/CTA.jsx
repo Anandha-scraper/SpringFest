@@ -7,7 +7,7 @@ export default function CTA() {
       <div className="container center">
         <h2>Ready to join {fest.name} {fest.year}?</h2>
         <p>Registrations close a week before the fest. Sign in with Google and grab your slot.</p>
-        <Link to="/events" className="btn">Register Now →</Link>
+        <Link to="/#events" className="btn">Register Now →</Link>
       </div>
     </section>
   );
