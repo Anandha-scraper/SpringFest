@@ -15,10 +15,22 @@
 }
 .pill-nav-items,
 .pill-logo { box-shadow: var(--shadow-md); }
-.site-pillnav .pill {
-  font-size: 14px;
-  letter-spacing: 0.4px;
+
+/* Bigger bar + taller pills. React Bits centres the label via the pill's
+   own inline-flex + align-items:center + line-height:0 — leave that intact. */
+.site-pillnav .pill-nav {
+  --nav-h: 58px;
+  --logo: 48px;
+  --pill-pad-x: 30px;
+  --pill-gap: 4px;
 }
+.site-pillnav .pill {
+  font-size: 16px;
+  letter-spacing: 0.6px;
+}
+.site-pillnav .pill-list { padding: 4px; gap: 4px; }
+/* a touch of separation so the logo doesn't crowd the first pill */
+.site-pillnav .pill-logo { margin-right: 6px; }
 
 @media (max-width: 768px) {
   .pill-nav-container {
@@ -35,7 +47,7 @@
   top: 1rem;
   right: 1.5rem;
   z-index: 101;
-  height: 42px;
+  height: 58px;
   display: flex;
   align-items: center;
 }
