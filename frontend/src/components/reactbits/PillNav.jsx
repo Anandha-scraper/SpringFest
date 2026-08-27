@@ -15,7 +15,9 @@ const PillNav = ({
   hoveredPillTextColor = '#120F17',
   pillTextColor,
   onMobileMenuClick,
-  initialLoadAnimation = true
+  initialLoadAnimation = true,
+  trailing,
+  mobileTrailing
 }) => {
   const resolvedPillTextColor = pillTextColor ?? baseColor;
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -306,6 +308,7 @@ const PillNav = ({
               </li>
             ))}
           </ul>
+          {trailing && <div className="pill-trailing">{trailing}</div>}
         </div>
 
         <button
@@ -343,6 +346,7 @@ const PillNav = ({
             </li>
           ))}
         </ul>
+        {mobileTrailing && <div className="mobile-menu-trailing">{mobileTrailing}</div>}
       </div>
     </div>
   );

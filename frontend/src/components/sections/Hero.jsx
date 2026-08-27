@@ -1,15 +1,25 @@
+import { useRef } from "react";
 import { Link } from "react-router-dom";
 import Aurora from "../reactbits/Aurora.jsx";
+import Crosshair from "../reactbits/Crosshair.jsx";
 import SplitText from "../reactbits/SplitText.jsx";
 import BlurText from "../reactbits/BlurText.jsx";
 import GradientText from "../reactbits/GradientText.jsx";
 import StarBorder from "../reactbits/StarBorder.jsx";
 import Magnet from "../reactbits/Magnet.jsx";
+import HeroShowcase from "./HeroShowcase.jsx";
 import { fest } from "../../content/fest.js";
 
+const finePointer =
+  typeof window !== "undefined" && window.matchMedia
+    ? window.matchMedia("(pointer: fine)").matches
+    : false;
+
 export default function Hero() {
+  const heroRef = useRef(null);
+
   return (
-    <section className="hero">
+    <section className="hero" ref={heroRef}>
       {/* CSS pastel blobs — always painted, so the hero still reads
           correctly if WebGL is unavailable. */}
       <div className="hero-blobs" aria-hidden="true">
@@ -24,58 +34,66 @@ export default function Hero() {
       </div>
       <div className="hero-veil" aria-hidden="true" />
 
-      <div className="container hero-content">
-        <span className="hero-pill">
-          {fest.dates} · {fest.institution.city}
-        </span>
+      {finePointer && <Crosshair containerRef={heroRef} color="#f2789f" />}
 
-        <h1 className="hero-title">
-          <SplitText
-            text={fest.name}
-            className="hero-title-main"
-            delay={60}
-            duration={0.8}
-            ease="power3.out"
-            splitType="chars"
-            from={{ opacity: 0, y: 60 }}
-            to={{ opacity: 1, y: 0 }}
-            threshold={0.1}
-            textAlign="center"
+      <div className="container hero-grid">
+        <div className="hero-copy">
+          <span className="hero-pill">
+            {fest.dates} · {fest.institution.city}
+          </span>
+
+          <h1 className="hero-title">
+            <SplitText
+              text={fest.name}
+              className="hero-title-main"
+              delay={60}
+              duration={0.8}
+              ease="power3.out"
+              splitType="chars"
+              from={{ opacity: 0, y: 60 }}
+              to={{ opacity: 1, y: 0 }}
+              threshold={0.1}
+              textAlign="left"
+            />
+            <GradientText
+              className="hero-title-year"
+              colors={["#f2789f", "#f7a072", "#8b6fd4", "#4fbf9b", "#f2789f"]}
+              animationSpeed={6}
+            >
+              {fest.year}
+            </GradientText>
+          </h1>
+
+          <BlurText
+            text={fest.tagline}
+            className="hero-tagline"
+            delay={40}
+            animateBy="words"
+            direction="bottom"
           />
-          <GradientText
-            className="hero-title-year"
-            colors={["#f2789f", "#f7a072", "#8b6fd4", "#4fbf9b", "#f2789f"]}
-            animationSpeed={6}
-          >
-            {fest.year}
-          </GradientText>
-        </h1>
 
-        <BlurText
-          text={fest.tagline}
-          className="hero-tagline"
-          delay={40}
-          animateBy="words"
-          direction="bottom"
-        />
+          <p className="hero-blurb">{fest.blurb}</p>
 
-        <p className="hero-blurb">{fest.blurb}</p>
+          <div className="hero-cta">
+            <Magnet padding={80} magnetStrength={6}>
+              <Link to="/#events">
+                <StarBorder as="div" color="#f2789f" speed="4s" className="hero-star-btn">
+                  Register Now →
+                </StarBorder>
+              </Link>
+            </Magnet>
+            <a href="#schedule" className="btn btn-ghost">View Schedule</a>
+          </div>
 
-        <div className="hero-cta">
-          <Magnet padding={80} magnetStrength={6}>
-            <Link to="/#events">
-              <StarBorder as="div" color="#f2789f" speed="4s" className="hero-star-btn">
-                Register Now →
-              </StarBorder>
-            </Link>
-          </Magnet>
-          <a href="#schedule" className="btn btn-ghost">View Schedule</a>
+          <div className="hero-inst">
+            Presented by {fest.institution.department}
+            <br />
+            <strong>{fest.institution.name}</strong>
+          </div>
         </div>
 
-        <div className="hero-inst">
-          Presented by {fest.institution.department}
-          <br />
-          <strong>{fest.institution.name}</strong>
+        <div className="hero-visual">
+          <HeroShowcase />
         </div>
       </div>
 

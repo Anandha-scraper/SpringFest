@@ -41,38 +41,55 @@
   }
 }
 
-/* ── Account control (sign-in / avatar menu) ──────────────── */
-.nav-account {
-  position: fixed;
-  top: 1rem;
-  right: 1.5rem;
-  z-index: 101;
-  height: 58px;
+/* ── Account control — lives INSIDE the PillNav bar ───────── */
+.pill-trailing {
   display: flex;
   align-items: center;
+  height: 100%;
+  margin-left: 4px;
+  padding-right: 4px;
 }
-.nav-signin { box-shadow: var(--shadow-md); }
 
-.nav-user { position: relative; }
-.nav-avatar-btn {
-  display: flex;
+.account-pill {
+  display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: var(--surface);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--r-full);
-  padding: 4px 12px 4px 4px;
-  cursor: pointer;
+  height: calc(var(--nav-h, 58px) - 8px);
+  padding: 0 20px;
+  border: none;
+  border-radius: 9999px;
+  background: var(--accent);
+  color: #fff;
   font-family: var(--font-body);
-  font-size: 0.86rem;
-  font-weight: 600;
-  color: var(--ink);
-  box-shadow: var(--shadow-md);
-  transition: border-color 0.16s ease;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.16s ease, transform 0.16s ease;
 }
-.nav-avatar-btn:hover { border-color: var(--accent); }
+.account-pill:hover:not(:disabled) { background: var(--accent-hover); }
+.account-pill:disabled { opacity: 0.6; cursor: not-allowed; }
+.account-pill svg { flex-shrink: 0; }
+
+.account-pill--user {
+  background: var(--pill-bg, #fffaf5);
+  color: var(--ink);
+  padding: 0 14px 0 5px;
+  gap: 7px;
+}
+.account-pill--user:hover:not(:disabled) { background: #fff; }
+
+.account-pill--block {
+  width: 100%;
+  justify-content: center;
+  height: 44px;
+  font-size: 15px;
+}
+
+.nav-user { position: relative; display: flex; align-items: center; height: 100%; }
 .nav-avatar {
-  width: 28px; height: 28px;
+  width: 26px; height: 26px;
   border-radius: 50%;
   object-fit: cover;
   flex-shrink: 0;
@@ -141,9 +158,26 @@
 .app-main { min-height: 60vh; }
 
 @media (max-width: 768px) {
-  .nav-account { right: 4.25rem; }        /* clear PillNav's hamburger */
-  .nav-signin-label { display: none; }
-  .nav-username { display: none; }
+  /* Account control moves into PillNav's popover on mobile — nothing to pin. */
+  .site-pillnav .pill-trailing { display: none; }
+}
+
+/* ── Mobile popover: account block ────────────────────────── */
+.mobile-menu-trailing {
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  margin-top: 4px;
+  padding: 8px 3px 3px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.mobile-menu-trailing .account-pill { margin-bottom: 2px; }
+.mobile-menu-popover button.mobile-menu-link {
+  width: 100%;
+  text-align: left;
+  border: none;
+  font-family: var(--font-body);
+  cursor: pointer;
 }
 
 /* ═══════════════════════════════════════════════════════════
