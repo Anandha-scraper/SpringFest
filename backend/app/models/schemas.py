@@ -5,6 +5,7 @@ class Event(BaseModel):
     id: str
     name: str
     description: str = ""
+    category: str = ""
     fee: int = 0  # INR
     date: str = ""
 

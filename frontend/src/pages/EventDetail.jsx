@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { getEvent, createRegistration } from "../api/client.js";
 import { openCheckout } from "../api/payment.js";
 import RegistrationForm from "../components/RegistrationForm.jsx";
@@ -41,16 +41,41 @@ export default function EventDetail() {
     }
   };
 
-  if (error && !event) return <p className="error container">{error}</p>;
-  if (!event) return <p className="container">Loading...</p>;
+  if (error && !event) {
+    return (
+      <div className="container narrow page-pad">
+        <p className="error">{error}</p>
+        <Link to="/events" className="btn btn-ghost">← All events</Link>
+      </div>
+    );
+  }
+  if (!event) return <div className="spinner" />;
 
   return (
-    <main className="container narrow">
-      <h1>{event.name}</h1>
-      <p>{event.description}</p>
-      <p className="price">{event.fee > 0 ? `Fee: ₹${event.fee}` : "Free entry"}</p>
+    <div className="container narrow page-pad">
+      <Link to="/events" className="back-link">← All events</Link>
+
+      <div className="detail-head">
+        {event.category && <span className="tag">{event.category}</span>}
+        <h1>{event.name}</h1>
+        <p className="muted">{event.description}</p>
+        <div className="detail-meta">
+          <span>📅 {event.date || "Date to be announced"}</span>
+          <span className="price">{event.fee > 0 ? `₹${event.fee}` : "Free entry"}</span>
+        </div>
+      </div>
+
       {error && <p className="error">{error}</p>}
-      <RegistrationForm onSubmit={handleSubmit} submitting={submitting} />
-    </main>
+
+      <div className="detail-card">
+        <h2>Your details</h2>
+        <p className="muted" style={{ fontSize: "0.9rem" }}>
+          {event.fee > 0
+            ? "You'll be taken to secure payment after this step."
+            : "This event is free — you'll be confirmed instantly."}
+        </p>
+        <RegistrationForm onSubmit={handleSubmit} submitting={submitting} fee={event.fee} />
+      </div>
+    </div>
   );
 }

@@ -1,37 +1,61 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext.jsx";
+import GoogleIcon from "../components/GoogleIcon.jsx";
+import { fest } from "../content/fest.js";
 
 export default function Login() {
-  const { login } = useAuth();
-  const navigate = useNavigate();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const { user, loading, loginWithGoogle } = useAuth();
   const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const navigate = useNavigate();
+  const { state } = useLocation();
 
-  const submit = async (e) => {
-    e.preventDefault();
+  if (loading) return <div className="spinner" />;
+  if (user) return <Navigate to={state?.from || "/"} replace />;
+
+  const signIn = async () => {
     setError("");
+    setBusy(true);
     try {
-      await login(email, password);
-      navigate("/");
+      await loginWithGoogle();
+      navigate(state?.from || "/", { replace: true });
     } catch (err) {
-      setError(err.message);
+      if (err.code === "auth/popup-closed-by-user") setError("Sign-in was cancelled.");
+      else if (err.code === "auth/popup-blocked") setError("Your browser blocked the popup. Allow popups and try again.");
+      else setError(err.message || "Could not sign in. Please try again.");
+    } finally {
+      setBusy(false);
     }
   };
 
   return (
-    <main className="container narrow">
-      <h1>Log in</h1>
-      {error && <p className="error">{error}</p>}
-      <form className="form" onSubmit={submit}>
-        <input type="email" placeholder="Email" value={email}
-          onChange={(e) => setEmail(e.target.value)} required />
-        <input type="password" placeholder="Password" value={password}
-          onChange={(e) => setPassword(e.target.value)} required />
-        <button className="btn" type="submit">Log in</button>
-      </form>
-      <p>No account? <Link to="/signup">Sign up</Link></p>
-    </main>
+    <div className="auth-page">
+      <div className="auth-blobs" aria-hidden="true">
+        <span className="blob blob-pink" />
+        <span className="blob blob-mint" />
+      </div>
+
+      <div className="auth-card">
+        <span className="auth-mark">🌸</span>
+        <h1>
+          {fest.name} <em>{fest.year}</em>
+        </h1>
+        <p className="muted">
+          Sign in to register for events and track your participation.
+        </p>
+
+        {error && <p className="error">{error}</p>}
+
+        <button className="google-btn" onClick={signIn} disabled={busy}>
+          <GoogleIcon size={20} />
+          {busy ? "Signing in…" : "Continue with Google"}
+        </button>
+
+        <p className="auth-note">
+          We only read your name, email and profile photo — nothing else.
+        </p>
+      </div>
+    </div>
   );
 }
