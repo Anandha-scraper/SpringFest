@@ -55,7 +55,13 @@
 }
 
 /* Two-column hero: copy left, PixelSwap right */
-.hero .container { padding-right: 16px; }
+/* Hero runs full-bleed — the shared .container caps at --page-w and centres,
+   which left a wide gutter on both sides. */
+.hero .container {
+  max-width: none;
+  padding-left: clamp(24px, 3vw, 48px);
+  padding-right: clamp(16px, 2vw, 32px);
+}
 
 .hero-grid {
   position: relative;
@@ -296,7 +302,7 @@
   .hero-visual { order: 2; justify-content: center; }
   .hero-pixelswap { max-width: 360px; }
   .hero-actions { justify-content: center; }
-  .hero .container { padding-right: 24px; }
+  .hero .container { padding-left: 24px; padding-right: 24px; }
 }
 
 /* ── React Bits light-theme overrides ─────────────────────── */
