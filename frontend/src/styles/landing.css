@@ -1,0 +1,850 @@
+/* ═══════════════════════════════════════════════════════════
+   HERO
+   ═══════════════════════════════════════════════════════════ */
+.hero {
+  position: relative;
+  min-height: 100svh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: calc(var(--nav-h) + 74px) 0 118px;
+  background: linear-gradient(180deg, rgba(246, 246, 247, 0.82) 0%, rgba(238, 238, 238, 0.86) 100%);
+}
+
+/* CSS blob fallback — always painted, sits under the WebGL canvas */
+.hero-blobs { position: absolute; inset: 0; z-index: 0; }
+.blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(90px);
+  opacity: 0.28;
+  animation: float 18s ease-in-out infinite;
+}
+.blob-pink   { width: 420px; height: 420px; background: var(--pink);  top: -60px;  left: -80px; }
+.blob-peach  { width: 380px; height: 380px; background: var(--peach); top: 10%;    right: -60px; animation-delay: -4s; }
+.blob-mint   { width: 340px; height: 340px; background: var(--mint);  bottom: -60px; left: 18%;  animation-delay: -8s; }
+.blob-lilac  { width: 300px; height: 300px; background: var(--lilac); bottom: 8%;  right: 14%;  animation-delay: -12s; }
+
+@keyframes float {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33%      { transform: translate(28px, -32px) scale(1.06); }
+  66%      { transform: translate(-24px, 22px) scale(0.96); }
+}
+
+/* Aurora is an additive glow built for dark backgrounds — soften it
+   heavily and wash it out with a cream veil so it reads as pastel. */
+/* Aurora is an additive glow built for dark backgrounds. On the light grey
+   theme it has to stay faint or it floods the page with orange. */
+.hero-aurora {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  opacity: 0.18;
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
+.hero-veil {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 75% 60% at 50% 45%, rgba(238, 238, 238, 0.92) 0%, rgba(238, 238, 238, 0.55) 58%, rgba(238, 238, 238, 0.15) 100%),
+    linear-gradient(180deg, transparent 48%, var(--cream) 100%);
+}
+
+/* Partner loop: a thin strip between the pill nav and the hero cards.
+   Absolutely placed so the hero's centred grid isn't pushed around. */
+.hero-logoloop {
+  position: absolute;
+  top: calc(var(--nav-h) + 16px);
+  left: 0;
+  right: 0;
+  z-index: 3;
+}
+.loop-wordmark {
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  white-space: nowrap;
+  transition: color 0.2s ease;
+}
+.hero-logoloop .logoloop__item:hover .loop-wordmark { color: var(--accent); }
+
+/* Marquee pinned to the bottom of the hero — absolute so it can't change the
+   hero's height or shift the centred grid. */
+.hero-marquee {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 3;
+  padding-bottom: 14px;
+  pointer-events: none;
+  mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+}
+.hero-marquee .parallax + .parallax { margin-top: 2px; }
+.hero-marquee .scroller {
+  font-family: var(--font-display);
+  font-size: clamp(1.4rem, 3.4vw, 2.6rem);
+  line-height: 1.15;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  filter: none;
+}
+.hero-marquee-text { color: var(--ink); opacity: 0.14; }
+.hero-marquee .parallax:nth-child(2) .hero-marquee-text {
+  color: var(--accent);
+  opacity: 0.3;
+}
+
+/* ── Events: split-flap heading + BubbleMenu track picker ── */
+/* .section centres its children; the events header should sit at the top.
+   .section's default top pad is nav-h + 48px; drop the 48 so the split-flap
+   sits higher, keeping only the fixed-navbar clearance the /#events anchor
+   needs. */
+#events.section {
+  justify-content: flex-start;
+  padding-top: calc(var(--nav-h) + 8px);
+}
+/* Let the two columns absorb the section's leftover height instead of leaving
+   a void under them — .container is the section's flex item.
+   Full-bleed like the hero: .container caps at --page-w and centres, which
+   parked the split-flap heading behind a wide gutter instead of hard left.
+   The left pad is the minimum gap the title keeps from the viewport edge. */
+#events .container {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  width: 100%;
+  max-width: none;
+  padding-left: clamp(12px, 1.4vw, 22px);
+  padding-right: clamp(16px, 2vw, 32px);
+}
+
+/* Two columns: title + track picker on the left, the lanyard on the right.
+   The left column is the substantial one — the split-flap heading and the 2x2
+   track grid need the room — so it takes ~2/3. `stretch` (not `center`) so
+   each half is full height; minmax(0, …) keeps the flap's horizontal overflow
+   from inflating the track. */
+.events-top {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1.9fr) minmax(0, 1fr);
+  gap: 40px;
+  align-items: stretch;
+  margin-bottom: clamp(32px, 5vh, 64px);
+}
+.events-left {
+  min-width: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: stretch;
+  /* The auto margin on .events-bubble opens the gap before the track pills. */
+  gap: clamp(10px, 1.4vw, 22px);
+}
+.events-right {
+  position: relative;
+  min-width: 0;
+  min-height: 420px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+/* Lanyard ships `height: 100vh`. A percentage height here resolves against a
+   grid row that the canvas itself helps size, so the section grew every frame;
+   r3f also can't measure the box if it's taken out of flow. A definite,
+   viewport-relative height avoids both. */
+.events-right .lanyard-wrapper {
+  height: clamp(420px, 64vh, 700px);
+}
+
+/* The container is full-bleed for the header's sake; cap the card grid back to
+   the page width so auto-fill doesn't spread into 6–7 narrow columns. It stays
+   flush left, aligned with the heading above it. */
+#events .grid { max-width: var(--page-w); }
+
+.events-flap {
+  display: flex;
+  justify-content: flex-start;
+  max-width: 100%;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: none;
+}
+.events-flap::-webkit-scrollbar { display: none; }
+
+/* BubbleMenu returns <nav> + overlay as siblings; this wrapper scopes both.
+   `margin-top: auto` drops the pills to the bottom of the left column instead
+   of letting them stretch to fill it — the .events-left gap is now just the
+   floor, the auto margin absorbs whatever height is left over. */
+.events-bubble { margin: auto 0 0; flex: 0 0 auto; display: flex; min-height: 0; }
+
+/* The logo bubble and the hamburger/X are dropped here — the pills are the
+   whole control, and the bar would otherwise float over the heading. */
+.events-bubble .bubble-menu { display: none; }
+
+/* In-flow instead of an absolute inset:0 overlay, so the pills sit under the
+   heading and take real layout space rather than covering the section. */
+.events-bubble .bubble-menu-items,
+.events-bubble .bubble-menu-items.absolute {
+  position: static;
+  inset: auto;
+  padding: 0;
+  background: none;
+  backdrop-filter: none;
+  pointer-events: auto;
+  align-items: flex-end;
+  flex: 0 0 auto;
+  width: 100%;
+  min-height: 0;
+}
+
+.events-bubble .bubble-list {
+  padding: 0;
+  /* The pills are rotated +/-8deg, so their corners swing ~40px past the box.
+     The row gap has to clear that or the two rows visually collide. */
+  row-gap: clamp(32px, 8vh, 82px);
+  flex: 0 0 auto;
+  align-content: flex-end;
+  margin: 0 -18px;
+  width: calc(100% + 36px);
+  max-width: none;
+}
+/* A 2x2 block with breathing room. The component's default is 3-across
+   (100%/3) with the 4th offset, and columns that touch edge to edge. Its rule
+   is `.bubble-menu-items .bubble-list .bubble-col`, so the override has to
+   match that depth or flex-basis loses on specificity and stays at 33%. */
+.events-bubble .bubble-list .bubble-col {
+  flex: 0 0 50%;
+  padding: 0 18px;
+  margin-left: 0 !important;
+}
+
+/* The component's default pill is 160px tall with up to 8rem of padding. Here
+   the 2x2 block has a tall column to fill, so the pills scale with viewport
+   height rather than sitting at a fixed height. */
+.events-bubble .bubble-list .bubble-link {
+  --bubble-min-h: clamp(120px, 23vh, 215px);
+  min-height: var(--bubble-min-h);
+  height: auto;
+  padding: 0 24px;
+  font-family: var(--font-display);
+  font-size: clamp(1.4rem, 2.6vw, 2.6rem);
+  font-weight: 600;
+  color: var(--ink);
+  box-shadow: var(--shadow-md);
+}
+
+@media (max-width: 899px) {
+  .events-top {
+    grid-template-columns: 1fr;
+    gap: 32px;
+    margin-bottom: 44px;
+  }
+  .events-flap { justify-content: center; }
+  .events-bubble .bubble-menu-items,
+  .events-bubble .bubble-menu-items.absolute {
+    padding-top: 0;
+  }
+  .events-bubble .bubble-list .bubble-col { flex: 0 0 50%; padding: 0 8px; }
+  .events-bubble .bubble-list .bubble-link { --bubble-min-h: 88px; }
+}
+
+@media (max-width: 560px) {
+  .events-bubble .bubble-list .bubble-col { flex: 0 0 100%; padding: 0; }
+}
+
+/* Two-column hero: copy left, PixelSwap right */
+/* Hero runs full-bleed — the shared .container caps at --page-w and centres,
+   which left a wide gutter on both sides. */
+.hero .container {
+  max-width: none;
+  padding-left: clamp(24px, 3vw, 48px);
+  padding-right: clamp(16px, 2vw, 32px);
+}
+
+.hero-grid {
+  position: relative;
+  z-index: 3;
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1.18fr;
+  gap: 36px;
+  align-items: center;
+}
+.hero-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+}
+.hero-visual {
+  display: flex;
+  justify-content: flex-end;
+}
+/* Width-driven sizing blew past the viewport once the hero went full-bleed
+   (a 4/5 card in a ~740px column is ~925px tall). Drive it off height so the
+   hero always fits one screen. */
+.hero-pixelswap {
+  height: min(calc(100svh - 230px), 440px);
+  width: auto;
+  max-width: 100%;
+  margin-left: auto;
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+  background: var(--surface);
+}
+
+/* PixelSwap faces */
+.ps-face {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 34px 30px;
+  text-align: center;
+}
+.ps-kicker {
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.ps-poster {
+  background: linear-gradient(150deg, var(--pink) 0%, var(--peach) 52%, var(--mint) 100%);
+  color: var(--ink);
+}
+.ps-poster .ps-kicker { color: rgba(17, 34, 78, 0.62); }
+.ps-title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-family: var(--font-display);
+  line-height: 0.95;
+}
+.ps-title span { font-size: 1.9rem; font-weight: 600; }
+.ps-title strong {
+  font-size: 3.4rem;
+  font-weight: 600;
+  background: linear-gradient(90deg, #f87b1b, #11224e);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.ps-dates {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+.ps-tags {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.ps-tags span {
+  font-size: 0.72rem;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.62);
+  border-radius: var(--r-full);
+  padding: 3px 10px;
+  color: var(--ink-soft);
+}
+.ps-hint {
+  margin-top: 4px;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(17, 34, 78, 0.48);
+}
+.ps-register {
+  background: var(--surface);
+}
+.ps-register .ps-kicker { color: var(--accent); }
+.ps-register h3 {
+  font-family: var(--font-display);
+  font-size: 1.7rem;
+  font-weight: 600;
+}
+.ps-register p {
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+  max-width: 320px;
+}
+.ps-register .btn { margin-top: 6px; }
+
+/* Title and the Register button share a row; the button's corner brackets
+   fly ~36px outward on hover, hence the generous gap and padding. */
+.hero-headline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
+  flex-wrap: wrap;
+  width: 100%;
+  margin-bottom: 18px;
+  padding-right: 44px;
+}
+
+.hero-title {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  margin-bottom: 0;
+}
+.hero-title-main {
+  font-family: var(--font-display);
+  font-size: clamp(2.6rem, 6vw, 4.6rem);
+  font-weight: 600;
+  line-height: 0.95;
+  letter-spacing: -0.03em;
+  color: var(--ink);
+}
+.hero-title-year {
+  font-family: var(--font-display);
+  font-size: clamp(2.2rem, 5vw, 3.8rem);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+
+.hero-tagline {
+  font-size: clamp(1.05rem, 2.4vw, 1.45rem);
+  font-weight: 500;
+  color: var(--ink-soft);
+  justify-content: flex-start;
+  margin-bottom: 10px;
+}
+.hero-blurb {
+  max-width: 540px;
+  color: var(--ink-faint);
+  font-size: 0.98rem;
+  margin-bottom: 20px;
+}
+
+/* Hero button row: Register (live) + dummy filter chips */
+.hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  margin: 0 0 30px;
+}
+.hero-chip {
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-full);
+  padding: 11px 22px;
+  cursor: pointer;
+  transition: border-color 0.16s ease, color 0.16s ease, transform 0.16s ease;
+}
+.hero-chip:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  transform: translateY(-2px);
+}
+
+/* Success page reuses this row for its two links */
+.hero-cta {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.hero-inst {
+  font-size: 0.86rem;
+  color: var(--ink-faint);
+  line-height: 1.7;
+}
+.hero-inst strong { color: var(--ink-soft); }
+
+
+@media (max-width: 900px) {
+  /* BubbleMenu floats at top:2em and its bubble is 56px tall — the hero has to
+     start below that, not below the (desktop) --nav-h. */
+  .hero {
+    min-height: auto;
+    padding: 168px 0 104px;
+  }
+  .hero-logoloop { top: 108px; }
+  .hero-grid {
+    grid-template-columns: 1fr;
+    gap: 36px;
+  }
+  .hero-copy {
+    align-items: center;
+    text-align: center;
+  }
+  .hero-title { align-items: center; }
+  .hero-headline {
+    flex-direction: column;
+    justify-content: center;
+    gap: 26px;
+    padding-right: 0;
+    margin-bottom: 16px;
+  }
+  .hero-tagline { justify-content: center; }
+  .hero-cta { justify-content: center; }
+  .hero-blurb { margin-left: auto; margin-right: auto; }
+  .hero-visual { order: 2; justify-content: center; }
+  /* Width-driven again: 16/9 across the column, capped so it stays readable. */
+  .hero-pixelswap {
+    height: auto;
+    width: 100%;
+    max-width: 520px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .hero-actions { justify-content: center; }
+  .hero .container { padding-left: 24px; padding-right: 24px; }
+}
+
+@media (max-width: 560px) {
+  .hero { padding: 154px 0 92px; }
+  .hero-logoloop { top: 96px; }
+  .hero-pixelswap { max-width: 100%; border-radius: 18px; }
+  .ps-face { padding: 24px 20px; gap: 10px; }
+  .ps-title span { font-size: 1.45rem; }
+  .ps-title strong { font-size: 2.5rem; }
+  .ps-register h3 { font-size: 1.35rem; }
+  .ps-register p { font-size: 0.84rem; }
+  .hero-actions { gap: 10px; }
+  .hero-chip { padding: 9px 18px; font-size: 0.85rem; }
+}
+
+/* ── React Bits light-theme overrides ─────────────────────── */
+/* SpotlightCard ships dark by default. */
+
+.card-spotlight.event-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.card-spotlight.event-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md);
+}
+.event-card h3 { font-size: 1.15rem; }
+.event-card p { color: var(--ink-soft); font-size: 0.92rem; flex: 1; }
+.event-link { display: block; height: 100%; }
+
+
+/* ═══════════════════════════════════════════════════════════
+   ABOUT
+   ═══════════════════════════════════════════════════════════ */
+.section-tint { background: rgba(247, 248, 244, 0.84); }
+.section-title {
+  font-family: var(--font-display);
+  font-size: clamp(1.9rem, 4vw, 2.8rem);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+
+
+
+/* ═══════════════════════════════════════════════════════════
+   SCHEDULE
+   ═══════════════════════════════════════════════════════════ */
+.day-tabs {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 48px;
+}
+.day-tab {
+  font-family: var(--font-body);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-md);
+  padding: 14px 26px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  color: var(--ink-soft);
+  transition: all 0.18s ease;
+}
+.day-tab strong { font-size: 1rem; color: var(--ink); }
+.day-tab span { font-size: 0.8rem; }
+.day-tab:hover { border-color: var(--pink-deep); }
+.day-tab.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  box-shadow: var(--shadow-glow);
+}
+.day-tab.active strong { color: #fff; }
+
+.timeline {
+  list-style: none;
+  max-width: 720px;
+  margin: 0 auto;
+  position: relative;
+  padding-left: 8px;
+}
+.timeline::before {
+  content: "";
+  position: absolute;
+  left: 91px;
+  top: 12px;
+  bottom: 12px;
+  width: 2px;
+  background: linear-gradient(180deg, var(--pink), var(--peach), var(--mint));
+  border-radius: 2px;
+}
+.timeline-item {
+  display: grid;
+  grid-template-columns: 76px 24px 1fr;
+  align-items: start;
+  gap: 0;
+  padding: 14px 0;
+}
+.timeline-time {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+  text-align: right;
+  padding-top: 3px;
+  font-variant-numeric: tabular-nums;
+}
+.timeline-dot {
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 3px solid var(--cream);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+  margin: 7px auto 0;
+  position: relative;
+  z-index: 1;
+}
+.timeline-body { padding-left: 18px; }
+.timeline-body h3 { font-size: 1.02rem; margin-bottom: 2px; }
+.timeline-body p { font-size: 0.86rem; }
+
+/* ═══════════════════════════════════════════════════════════
+   SPONSORS
+   ═══════════════════════════════════════════════════════════ */
+.sponsor-tier { margin-bottom: 40px; }
+.sponsor-tier-name {
+  text-align: center;
+  font-family: var(--font-body);
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: 18px;
+}
+.sponsor-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  justify-content: center;
+}
+.sponsor-logo {
+  background: var(--surface);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--r-md);
+  padding: 22px 34px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  font-size: 0.94rem;
+  min-width: 180px;
+  text-align: center;
+  transition: all 0.2s ease;
+}
+.sponsor-logo:hover { border-color: var(--accent); color: var(--accent); }
+.title-tier .sponsor-logo {
+  padding: 34px 60px;
+  font-size: 1.3rem;
+  font-family: var(--font-display);
+  color: var(--ink);
+  border-style: solid;
+  box-shadow: var(--shadow-md);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   FAQ
+   ═══════════════════════════════════════════════════════════ */
+.faq-list { display: flex; flex-direction: column; gap: 12px; }
+.faq-item {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  overflow: hidden;
+  transition: border-color 0.2s ease;
+}
+.faq-item.open { border-color: var(--pink-deep); box-shadow: var(--shadow-sm); }
+.faq-q {
+  width: 100%;
+  background: none;
+  border: none;
+  font-family: var(--font-body);
+  font-size: 0.98rem;
+  font-weight: 600;
+  color: var(--ink);
+  text-align: left;
+  padding: 18px 22px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+.faq-toggle {
+  color: var(--accent);
+  font-size: 1.3rem;
+  line-height: 1;
+  transition: transform 0.25s ease;
+  flex-shrink: 0;
+}
+.faq-item.open .faq-toggle { transform: rotate(45deg); }
+.faq-a {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.28s ease;
+}
+.faq-item.open .faq-a { grid-template-rows: 1fr; }
+.faq-a > p {
+  overflow: hidden;
+  color: var(--ink-soft);
+  font-size: 0.94rem;
+  padding: 0 22px;
+}
+.faq-item.open .faq-a > p { padding-bottom: 20px; }
+
+/* ═══════════════════════════════════════════════════════════
+   CTA BAND
+   ═══════════════════════════════════════════════════════════ */
+.cta-band {
+  padding: 80px 0;
+  background: linear-gradient(120deg, var(--pink) 0%, var(--peach) 45%, var(--mint) 100%);
+  position: relative;
+}
+.cta-band h2 { font-size: clamp(1.7rem, 4vw, 2.6rem); margin-bottom: 12px; }
+.cta-band p { color: var(--ink-soft); margin-bottom: 28px; }
+
+@media (max-width: 640px) {
+  .timeline::before { left: 15px; }
+  .timeline-item { grid-template-columns: 24px 1fr; gap: 0; }
+  .timeline-time {
+    grid-column: 1 / -1;
+    text-align: left;
+    padding-left: 42px;
+    margin-bottom: -4px;
+  }
+  .timeline-dot { margin-top: 6px; }
+  .title-tier .sponsor-logo { padding: 24px 30px; font-size: 1.1rem; }
+}
+
+
+/* ── Schedule: Shuffle heading, top-left like the events title ── */
+/* Same treatment as #events: the shared .container caps at --page-w and
+   centres, which would park the heading behind a wide gutter. */
+#schedule.section {
+  justify-content: flex-start;
+  padding-top: calc(var(--nav-h) + 8px);
+}
+#schedule .container {
+  max-width: none;
+  padding-left: clamp(12px, 1.4vw, 22px);
+  padding-right: clamp(16px, 2vw, 32px);
+}
+.schedule-head {
+  display: flex;
+  justify-content: flex-start;
+}
+/* The component ships a fixed 4rem; scale it to the viewport like the
+   split-flap next door. Press Start 2P is a pixel face — it needs a little
+   letter-spacing at size and sits on the ink colour. */
+.schedule-head .shuffle-parent {
+  font-size: clamp(1.5rem, 4.4vw, 3.4rem);
+  letter-spacing: 0.02em;
+  color: var(--ink);
+}
+
+
+/* ── Schedule: React Flow timeline ─────────────────────────── */
+.schedule-flow {
+  width: 100%;
+  height: clamp(380px, 52vh, 560px);
+  margin-top: clamp(20px, 3vh, 40px);
+  border: 1px solid rgba(17, 34, 78, 0.1);
+  border-radius: var(--r-lg, 18px);
+  background: rgba(255, 255, 255, 0.55);
+  overflow: hidden;
+}
+/* React Flow paints its own surface; let the section's backdrop through. */
+.schedule-flow .react-flow__renderer,
+.schedule-flow .react-flow { background: transparent; }
+
+.flow-day,
+.flow-slot {
+  font-family: var(--font-body);
+  border-radius: 14px;
+  padding: 12px 16px;
+  width: 200px;
+  box-shadow: var(--shadow-md);
+}
+.flow-day {
+  background: var(--ink);
+  color: var(--cream);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.flow-day strong { font-family: var(--font-display); font-size: 1.15rem; }
+.flow-day span { font-size: 0.78rem; color: #b3bed3; }
+
+.flow-slot { background: #fff; border: 1px solid rgba(17, 34, 78, 0.08); }
+.flow-time {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+.flow-slot h4 { font-size: 0.92rem; line-height: 1.25; margin: 0 0 4px; }
+.flow-slot p { font-size: 0.76rem; color: var(--ink-faint); margin: 0; }
+
+.schedule-flow .react-flow__handle {
+  width: 7px;
+  height: 7px;
+  background: var(--accent);
+  border: none;
+}
+.schedule-flow .react-flow__edge-path { stroke: var(--ink-faint); stroke-width: 1.6; }
+
+@media (max-width: 899px) {
+  .schedule-flow { height: clamp(340px, 60vh, 460px); }
+}

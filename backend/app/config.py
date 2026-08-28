@@ -11,6 +11,13 @@ class Settings:
     CORS_ORIGINS = [
         o.strip() for o in os.getenv("CORS_ORIGINS", "http://localhost:5173").split(",")
     ]
+    # Seeded organiser accounts — any Google login with one of these emails
+    # gets admin access. Comma separated, case-insensitive.
+    ADMIN_EMAILS = {
+        e.strip().lower()
+        for e in os.getenv("ADMIN_EMAILS", "").split(",")
+        if e.strip()
+    }
 
 
 settings = Settings()

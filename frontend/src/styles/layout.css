@@ -1,0 +1,307 @@
+/* ═══════════════════════════════════════════════════════════
+   NAVBAR  —  React Bits <PillNav /> on desktop (floats free,
+   pinned centred at the top) and <StaggeredMenu /> below 900px.
+   The account control sits in the pill bar on desktop and in the
+   staggered panel on mobile; signed in only.
+   ═══════════════════════════════════════════════════════════ */
+
+.nav-mobile { display: none; }
+
+@media (max-width: 899px) {
+  .nav-desktop { display: none; }
+  .nav-mobile { display: block; }
+}
+
+/* Pin the pill bar centred at the top and keep it there while scrolling.
+   (className lands on .pill-nav, not the container.) */
+.pill-nav-container {
+  position: fixed;
+  top: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+}
+.pill-nav-items,
+.pill-logo { box-shadow: var(--shadow-md); }
+
+/* Bigger bar + taller pills. React Bits centres the label via the pill's
+   own inline-flex + align-items:center + line-height:0 — leave that intact. */
+.site-pillnav .pill-nav {
+  --nav-h: 58px;
+  --logo: 48px;
+  --pill-pad-x: 30px;
+  --pill-gap: 4px;
+}
+.site-pillnav .pill {
+  font-size: 16px;
+  letter-spacing: 0.6px;
+}
+.site-pillnav .pill-list { padding: 4px; gap: 4px; }
+/* a touch of separation so the logo doesn't crowd the first pill */
+.site-pillnav .pill-logo { margin-right: 6px; }
+
+/* Just above the BubbleMenu breakpoint the bar can get wider than the
+   viewport — step it down rather than let it clip. */
+@media (max-width: 1080px) {
+  .site-pillnav .pill-nav {
+    --nav-h: 50px;
+    --pill-pad-x: 20px;
+  }
+  .site-pillnav .pill { font-size: 14px; }
+  .nav-user-pill { font-size: 13px; padding: 0 12px 0 4px; }
+}
+
+
+/* ── Account control — signed-in only, inside the PillNav bar ── */
+.pill-trailing {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  margin-left: 4px;
+  padding-right: 4px;
+}
+
+.nav-user-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: calc(var(--nav-h, 58px) - 8px);
+  padding: 0 14px 0 5px;
+  border: none;
+  border-radius: 9999px;
+  background: var(--pill-bg, #eeeeee);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.16s ease;
+}
+.nav-user-pill:hover { background: #fff; }
+
+.nav-user { position: relative; display: flex; align-items: center; height: 100%; }
+.nav-avatar {
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.nav-avatar-fallback {
+  display: grid;
+  place-items: center;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+.nav-caret { font-size: 0.7rem; color: var(--ink-faint); }
+
+.nav-menu {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  min-width: 230px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-lg);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  animation: menu-in 0.16s ease;
+}
+@keyframes menu-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.nav-menu-head {
+  padding: 10px 12px 12px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  overflow: hidden;
+}
+.nav-menu-head strong { font-size: 0.9rem; }
+.nav-menu-head span {
+  font-size: 0.78rem;
+  color: var(--ink-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.nav-menu a,
+.nav-menu button {
+  text-align: left;
+  background: none;
+  border: none;
+  font-family: var(--font-body);
+  font-size: 0.89rem;
+  color: var(--ink-soft);
+  padding: 9px 12px;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  transition: background 0.14s ease, color 0.14s ease;
+}
+.nav-menu a:hover,
+.nav-menu button:hover { background: var(--surface-2); color: var(--ink); }
+.nav-menu-admin { color: var(--accent) !important; font-weight: 600; }
+
+.app-main { min-height: 60vh; }
+
+/* BubbleMenu owns mobile — PillNav's own popover/hamburger never show. */
+.site-pillnav .mobile-only,
+.mobile-menu-popover { display: none !important; }
+
+.bubble-wordmark {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--ink);
+}
+
+/* ── BubbleMenu (mobile) ──────────────────────────────────── */
+@media (max-width: 560px) {
+        }
+
+
+/* ═══════════════════════════════════════════════════════════
+   FOOTER  (compact)
+   ═══════════════════════════════════════════════════════════ */
+.footer {
+  background: var(--ink);
+  color: #c8d0e0;
+  font-size: 0.86rem;
+}
+.footer-inner {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px 32px;
+  flex-wrap: wrap;
+  padding: 22px 24px;
+  max-width: var(--page-w);
+  margin: 0 auto;
+}
+.footer-inner strong {
+  display: block;
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+.footer-sub { display: block; color: #8f9db8; font-size: 0.8rem; }
+
+.footer-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 2px;
+}
+.footer-social { display: flex; gap: 18px; flex-wrap: wrap; }
+.footer-social a { color: #b3bed3; transition: color 0.16s ease; }
+.footer-social a:hover { color: var(--accent); }
+
+/* ── Contact block, merged into the top of the footer ──────── */
+.footer-contact {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+  gap: clamp(28px, 4vw, 56px);
+  align-items: start;
+  max-width: var(--page-w);
+  margin: 0 auto;
+  padding: clamp(40px, 6vh, 72px) 24px clamp(28px, 4vh, 44px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.footer-contact h2 {
+  font-family: var(--font-display);
+  font-size: clamp(1.8rem, 3.4vw, 2.6rem);
+  color: #fff;
+  margin: 6px 0 8px;
+}
+.footer-lede { color: #9fadc6; max-width: 46ch; margin-bottom: 26px; }
+
+.contact-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 18px; }
+.contact-list li { display: flex; flex-direction: column; gap: 2px; }
+.contact-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.contact-list strong { font-family: var(--font-display); font-size: 1.1rem; color: #fff; }
+.contact-list .muted { color: #8f9db8; font-size: 0.8rem; }
+.contact-list a { color: #cdd6e6; transition: color 0.16s ease; }
+.contact-list a:hover { color: var(--accent); }
+
+.contact-map {
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  aspect-ratio: 16 / 11;
+}
+.contact-map iframe { width: 100%; height: 100%; border: 0; display: block; }
+
+.footer-base {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 12px 24px;
+  font-size: 0.76rem;
+  color: #7e8ca8;
+  text-align: center;
+}
+
+@media (max-width: 899px) {
+  .footer-contact { grid-template-columns: 1fr; padding-top: 40px; }
+}
+
+@media (max-width: 640px) {
+  .footer-inner { flex-direction: column; align-items: flex-start; gap: 14px; padding: 20px 18px; }
+}
+
+
+/* Mobile popover: the trailing slot (AccountControl) is a list row of its own. */
+.mobile-menu-trailing {
+  display: flex;
+  justify-content: center;
+  padding: 6px 4px 2px;
+  border-top: 1px solid rgba(238, 238, 238, 0.18);
+  margin-top: 3px;
+}
+
+
+/* ── StaggeredMenu (mobile nav) ─────────────────────────────── */
+/* The wrapper is fixed and full-viewport but click-through; only the header
+   and the open panel take pointer events, so the page stays usable. */
+.nav-mobile .staggered-menu-header { padding: 1.15em 1.25em; }
+.nav-mobile .sm-logo-img { height: 30px; }
+.nav-mobile .sm-toggle {
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 0.95rem;
+  letter-spacing: 0.02em;
+}
+
+/* The panel is white; match the site's type instead of the component's. */
+.nav-mobile .staggered-menu-panel { background: var(--cream); }
+.nav-mobile .sm-panel-item {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(2.4rem, 11vw, 3.5rem);
+  letter-spacing: -0.01em;
+  text-transform: none;
+  color: var(--ink);
+}
+.nav-mobile .sm-socials-title,
+.nav-mobile .sm-socials-link { font-family: var(--font-body); }
+.nav-mobile .sm-socials-link { color: var(--ink); font-size: 1rem; }
+
+/* Account control row, between the links and the socials. */
+.sm-panel-trailing {
+  padding-top: 1.25rem;
+  border-top: 1px solid rgba(17, 34, 78, 0.12);
+}

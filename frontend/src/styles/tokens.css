@@ -1,0 +1,65 @@
+:root {
+  /* ── Palette — navy / orange / sage / grey ───────────────── */
+  /* #11224E navy · #F87B1B orange · #CBD99B sage · #EEEEEE grey */
+
+  /* Page + text.  --cream/--cream-2 keep their names (referenced
+     in ~40 places) but now hold the grey background scale. */
+  --cream: #eeeeee;
+  --cream-2: #f6f6f7;
+  --ink: #11224e;
+  --ink-soft: #3d5182;
+  --ink-faint: #7286ab;
+
+  /* Accent scale */
+  --accent: #f87b1b;
+  --accent-hover: #e06a0c;
+  --accent-soft: #fdecdc;
+
+  /* Named hues.  Kept under the old names so existing selectors
+     (hero blobs, footer, CTA band) need no renaming. */
+  --pink: #f87b1b;        /* was pink  → orange     */
+  --pink-deep: #e06a0c;
+  --peach: #f5a55c;       /* was peach → light orange */
+  --peach-deep: #e08a35;
+  --mint: #cbd99b;        /* was mint  → sage       */
+  --mint-deep: #9bb15f;
+  --lilac: #11224e;       /* was lilac → navy       */
+  --lilac-deep: #24386b;
+  --sky: #c6d2e8;
+
+  --sage: #cbd99b;
+  --sage-deep: #9bb15f;
+  --navy-soft: #24386b;
+
+  /* Surfaces */
+  --surface: #ffffff;
+  --surface-2: #f7f8f4;
+  --border: #dfe1e6;
+  --border-strong: #c9ccd4;
+
+  /* Semantic — kept green/amber/red so status stays readable */
+  --ok: #2f8f6b;
+  --ok-bg: #e3f3ec;
+  --warn: #b8770f;
+  --warn-bg: #fbf0da;
+  --bad: #c0483f;
+  --bad-bg: #fbe9e7;
+
+  /* ── Type ────────────────────────────────────────────────── */
+  --font-display: "Fraunces", Georgia, "Times New Roman", serif;
+  --font-body: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  /* ── Space / shape ───────────────────────────────────────── */
+  --r-sm: 10px;
+  --r-md: 16px;
+  --r-lg: 24px;
+  --r-full: 999px;
+
+  --shadow-sm: 0 1px 3px rgba(17, 34, 78, 0.07);
+  --shadow-md: 0 6px 20px rgba(17, 34, 78, 0.10);
+  --shadow-lg: 0 18px 50px rgba(17, 34, 78, 0.14);
+  --shadow-glow: 0 10px 30px rgba(248, 123, 27, 0.28);
+
+  --nav-h: 68px;
+  --page-w: 1140px;
+}
