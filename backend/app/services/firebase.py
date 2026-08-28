@@ -24,5 +24,5 @@ def get_db():
     global _db
     if _db is None:
         _init_app()
-        _db = firestore.client()
+        _db = firestore.client(database_id=settings.FIRESTORE_DATABASE_ID)
     return _db

@@ -6,6 +6,8 @@ load_dotenv()
 
 class Settings:
     FIREBASE_CREDENTIALS = os.getenv("FIREBASE_CREDENTIALS", "./serviceAccountKey.json")
+    # Firestore database id; "(default)" unless a named database was created.
+    FIRESTORE_DATABASE_ID = os.getenv("FIRESTORE_DATABASE_ID", "(default)")
     RAZORPAY_KEY_ID = os.getenv("RAZORPAY_KEY_ID", "")
     RAZORPAY_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET", "")
     CORS_ORIGINS = [
