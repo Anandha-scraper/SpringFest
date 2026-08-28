@@ -1,6 +1,5 @@
-import { useState } from "react";
+import { Suspense, lazy, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Aurora from "../reactbits/Aurora.jsx";
 import SplitText from "../reactbits/SplitText.jsx";
 import BlurText from "../reactbits/BlurText.jsx";
 import GradientText from "../reactbits/GradientText.jsx";
@@ -12,6 +11,11 @@ import SignInModal from "../SignInModal.jsx";
 import { useAuth } from "../../auth/AuthContext.jsx";
 import { fest } from "../../content/fest.js";
 import { homeForRole } from "../../content/roles.js";
+
+// ogl (WebGL) only loads once this chunk resolves. The CSS blobs rendered
+// alongside it below are the "WebGL unavailable" fallback and are always
+// painted regardless, so there's no visible gap while this streams in.
+const Aurora = lazy(() => import("../reactbits/Aurora.jsx"));
 
 // Placeholder filters — no navigation yet.
 const DUMMY_ACTIONS = ["Technical", "Non-Technical", "Schedule"];
@@ -49,7 +53,9 @@ export default function Hero() {
       </div>
 
       <div className="hero-aurora" aria-hidden="true">
-        <Aurora colorStops={["#f5a55c", "#f87b1b", "#cbd99b"]} blend={0.35} amplitude={0.8} speed={0.4} />
+        <Suspense fallback={null}>
+          <Aurora colorStops={["#f5a55c", "#f87b1b", "#cbd99b"]} blend={0.35} amplitude={0.8} speed={0.4} />
+        </Suspense>
       </div>
       <div className="hero-veil" aria-hidden="true" />
 

@@ -13,13 +13,20 @@ version and until now unused by any screen).
 """
 
 from app.models.schemas import STATUS_COMPLETED
+from app.services import cache
 from app.services.firebase import get_db
 from app.services.roles import ROLE_JUDGE, ROLE_VOLUNTEER, list_people
 
+# Short TTL: just long enough to collapse the near-simultaneous calls one
+# page load makes (the admin dashboard's own Promise.all, ManageRoles'
+# Promise.all) into a single real scan. Every write path that touches
+# registrations/events/venues/roles calls invalidate_load_all(), so this is
+# a backstop, not the primary way admin screens stay fresh.
+_CACHE_KEY = "aggregate:load_all"
+_TTL_SECONDS = 20
 
-def load_all() -> dict:
-    """One trip for everything the rollups need, so an endpoint that wants two
-    of them doesn't re-read the same collections."""
+
+def _scan_all() -> dict:
     db = get_db()
     registrations = [{"id": d.id, **d.to_dict()} for d in db.collection("registrations").stream()]
     events = {d.id: {"id": d.id, **d.to_dict()} for d in db.collection("events").stream()}
@@ -30,6 +37,19 @@ def load_all() -> dict:
         "venues": venues,
         "people": list_people(),
     }
+
+
+def load_all() -> dict:
+    """One trip for everything the rollups need, so an endpoint that wants two
+    of them doesn't re-read the same collections — and, within the TTL below,
+    so two endpoints in the same page load don't either."""
+    return cache.cached(_CACHE_KEY, _TTL_SECONDS, _scan_all)
+
+
+def invalidate_load_all() -> None:
+    """Call after any write to registrations/events/venues/roles so admin
+    screens reflect it immediately instead of waiting out the TTL."""
+    cache.invalidate(_CACHE_KEY)
 
 
 def event_name(events: dict, event_id: str) -> str:

@@ -36,26 +36,39 @@ def normalize_email(email: str) -> str:
     return (email or "").strip().lower()
 
 
-def resolve_role(email: str) -> str:
-    """The caller's role.
+def resolve_role_and_assignments(email: str) -> tuple[str, dict]:
+    """The caller's role, plus whatever they've been assigned (`event_ids` for
+    a judge, `venue_id` for a volunteer) — one Firestore read instead of the
+    two `GET /me` used to do (resolve_role, then a second doc read for the
+    assignments it had already fetched and thrown away).
 
     Raises whatever Firestore raises if the lookup fails — deliberately. Quietly
     returning "participant" on an outage would demote real judges and admins
     with no signal; deps.py turns the failure into a 503 instead. Seeded env
-    admins never reach Firestore, so they stay usable during an outage.
+    admins never reach Firestore, so they stay usable during an outage — and
+    have no assignments, same as before.
     """
     key = normalize_email(email)
     if not key:
-        return ROLE_PARTICIPANT
+        return ROLE_PARTICIPANT, {}
     if key in settings.ADMIN_EMAILS:
-        return ROLE_ADMIN
+        return ROLE_ADMIN, {}
 
     doc = get_db().collection(COLLECTION).document(key).get()
     if doc.exists:
-        role = (doc.to_dict() or {}).get("role")
+        record = doc.to_dict() or {}
+        role = record.get("role")
+        assignments = {"event_ids": record.get("event_ids", []), "venue_id": record.get("venue_id", "")}
         if role in KNOWN_ROLES:
-            return role
-    return ROLE_PARTICIPANT
+            return role, assignments
+        return ROLE_PARTICIPANT, assignments
+    return ROLE_PARTICIPANT, {}
+
+
+def resolve_role(email: str) -> str:
+    """The caller's role. Thin wrapper for callers that don't need assignments."""
+    role, _ = resolve_role_and_assignments(email)
+    return role
 
 
 def list_people(role: str | None = None) -> list[dict]:

@@ -6,7 +6,7 @@ from app.services.roles import (
     ROLE_ADMIN,
     ROLE_JUDGE,
     ROLE_VOLUNTEER,
-    resolve_role,
+    resolve_role_and_assignments,
 )
 
 
@@ -31,7 +31,7 @@ def get_current_user(authorization: str = Header(default="")) -> dict:
 
     email = decoded.get("email", "")
     try:
-        role = resolve_role(email)
+        role, assignments = resolve_role_and_assignments(email)
     except Exception:
         # Failing closed: better a clear 503 than silently demoting a judge or
         # admin to participant because Firestore blinked.
@@ -43,6 +43,8 @@ def get_current_user(authorization: str = Header(default="")) -> dict:
         "picture": decoded.get("picture", ""),
         "role": role,
         "is_admin": role == ROLE_ADMIN,
+        "event_ids": assignments.get("event_ids", []),
+        "venue_id": assignments.get("venue_id", ""),
     }
 
 

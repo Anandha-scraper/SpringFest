@@ -16,6 +16,7 @@ from app.models.schemas import (
     Venue,
     VenueCreate,
 )
+from app.routers import events as events_router
 from app.services import aggregate
 from app.services import roles as roles_service
 from app.services.firebase import get_db
@@ -27,11 +28,6 @@ CSV_COLUMNS = [
     "status", "checked_in", "fee", "team_name", "team_size",
     "order_id", "payment_id", "payment_method", "created_at", "paid_at",
 ]
-
-
-def _all_registrations() -> list[dict]:
-    docs = get_db().collection("registrations").stream()
-    return [{"id": d.id, **d.to_dict()} for d in docs]
 
 
 def _apply_filters(rows: list[dict], event_id: str | None, status: str | None) -> list[dict]:
@@ -150,6 +146,8 @@ def add_venue(payload: VenueCreate, user=AdminUser):
 
     data = {"name": payload.name.strip(), "created_at": datetime.now(timezone.utc).isoformat()}
     ref.set(data)
+    events_router.invalidate_venue_names()
+    aggregate.invalidate_load_all()
     return Venue(id=venue_id, **data)
 
 
@@ -169,6 +167,8 @@ def delete_venue(venue_id: str, user=AdminUser):
         raise HTTPException(409, f'"{name}" is held at this venue — reassign it first')
 
     ref.delete()
+    events_router.invalidate_venue_names()
+    aggregate.invalidate_load_all()
     return None
 
 
@@ -195,6 +195,7 @@ def add_person(payload: PersonCreate, user=AdminUser):
         name=payload.name,
         added_by=user["email"],
     )
+    aggregate.invalidate_load_all()
     return Person(**row)
 
 
@@ -234,6 +235,7 @@ def set_assignments(email: str, payload: Assignments, user=AdminUser):
             raise HTTPException(404, "Venue not found")
 
     row = roles_service.set_assignments(key, event_ids=event_ids, venue_id=payload.venue_id)
+    aggregate.invalidate_load_all()
     return Person(**row)
 
 
@@ -248,4 +250,5 @@ def delete_person(email: str, user=AdminUser):
 
     if not roles_service.remove_person(key):
         raise HTTPException(404, "No role record for that address")
+    aggregate.invalidate_load_all()
     return None

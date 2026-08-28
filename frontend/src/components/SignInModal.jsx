@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import styled from "styled-components";
 import { useAuth } from "../auth/AuthContext.jsx";
 import { homeForRole } from "../content/roles.js";
 
@@ -52,7 +51,7 @@ export default function SignInModal({ open, onClose, onSignedIn }) {
   };
 
   return (
-    <StyledWrapper
+    <div
       className="signin-overlay"
       onClick={onClose}
       role="dialog"
@@ -91,151 +90,6 @@ export default function SignInModal({ open, onClose, onSignedIn }) {
           We only read your name, email and profile photo.
         </span>
       </div>
-    </StyledWrapper>
+    </div>
   );
 }
-
-const StyledWrapper = styled.div`
-  /* DEOXY Was Here */
-  position: fixed;
-  inset: 0;
-  z-index: 200;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-  background: rgba(17, 34, 78, 0.45);
-  backdrop-filter: blur(3px);
-  animation: signin-fade 180ms ease;
-
-  .form {
-    --background: #d3d3d3;
-    --input-focus: #2d8cf0;
-    --font-color: #323232;
-    --font-color-sub: #666;
-    --bg-color: #fff;
-    --main-color: #323232;
-    position: relative;
-    padding: 24px;
-    background: var(--background);
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    justify-content: center;
-    gap: 16px;
-    border-radius: 5px;
-    border: 2px solid var(--main-color);
-    box-shadow: 4px 4px var(--main-color);
-    animation: signin-pop 200ms cubic-bezier(0.2, 0.9, 0.3, 1.3);
-  }
-
-  .form > p {
-    font-family: var(--font-display);
-    color: var(--font-color);
-    font-weight: 700;
-    font-size: 20px;
-    margin-bottom: 6px;
-    display: flex;
-    flex-direction: column;
-  }
-
-  .form > p > span {
-    font-family: var(--font-body);
-    color: var(--font-color-sub);
-    font-weight: 600;
-    font-size: 17px;
-  }
-
-  .closeButton {
-    position: absolute;
-    top: 6px;
-    right: 10px;
-    background: none;
-    border: none;
-    font-size: 26px;
-    line-height: 1;
-    color: var(--font-color-sub);
-    cursor: pointer;
-    padding: 0;
-  }
-  .closeButton:hover { color: var(--font-color); }
-
-  .oauthButton {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 8px;
-    width: 250px;
-    height: 40px;
-    border-radius: 5px;
-    border: 2px solid var(--main-color);
-    background-color: var(--bg-color);
-    box-shadow: 4px 4px var(--main-color);
-    font-size: 16px;
-    font-weight: 600;
-    font-family: var(--font-body);
-    color: var(--font-color);
-    cursor: pointer;
-    transition: all 250ms;
-    position: relative;
-    overflow: hidden;
-    z-index: 1;
-  }
-
-  .oauthButton::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    height: 100%;
-    width: 0;
-    background-color: #212121;
-    z-index: -1;
-    box-shadow: 4px 8px 19px -3px rgba(0, 0, 0, 0.27);
-    transition: all 250ms;
-  }
-
-  .oauthButton:hover { color: #e8e8e8; }
-  .oauthButton:hover::before { width: 100%; }
-
-  .oauthButton:disabled {
-    cursor: not-allowed;
-    opacity: 0.6;
-  }
-  .oauthButton:disabled::before { width: 0; }
-
-  .formError {
-    font-family: var(--font-body);
-    font-size: 13px;
-    font-weight: 600;
-    color: #b3261e;
-    max-width: 250px;
-    margin: 0;
-  }
-
-  .formNote {
-    font-family: var(--font-body);
-    font-size: 12px;
-    color: var(--font-color-sub);
-    max-width: 250px;
-  }
-
-  .icon {
-    width: 1.5rem;
-    height: 1.5rem;
-  }
-
-  @keyframes signin-fade {
-    from { opacity: 0; }
-    to { opacity: 1; }
-  }
-  @keyframes signin-pop {
-    from { transform: translateY(8px) scale(0.98); opacity: 0; }
-    to { transform: none; opacity: 1; }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    animation: none;
-    .form { animation: none; }
-  }
-`;

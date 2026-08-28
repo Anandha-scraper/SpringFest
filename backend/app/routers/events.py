@@ -6,17 +6,33 @@ from google.cloud.firestore_v1.base_query import FieldFilter
 
 from app.deps import AdminUser
 from app.models.schemas import LOCKED_FIELDS, Event, EventCreate, EventUpdate
+from app.services import aggregate, cache
 from app.services.firebase import get_db
 
 router = APIRouter(prefix="/events", tags=["events"])
+
+# venues rarely change, but this scan runs on every public GET /events hit
+# (the most-visited endpoint in the app), so it's worth a longer TTL than
+# aggregate.load_all()'s.
+_VENUE_NAMES_KEY = "events:venue_names"
+_VENUE_NAMES_TTL_SECONDS = 60
 
 
 def slugify(value: str) -> str:
     return re.sub(r"^-|-$", "", re.sub(r"[^a-z0-9]+", "-", value.strip().lower()))
 
 
-def _venue_names() -> dict[str, str]:
+def _scan_venue_names() -> dict[str, str]:
     return {d.id: d.to_dict().get("name", d.id) for d in get_db().collection("venues").stream()}
+
+
+def _venue_names() -> dict[str, str]:
+    return cache.cached(_VENUE_NAMES_KEY, _VENUE_NAMES_TTL_SECONDS, _scan_venue_names)
+
+
+def invalidate_venue_names() -> None:
+    """Call after any venue create/rename/delete."""
+    cache.invalidate(_VENUE_NAMES_KEY)
 
 
 def _has_registrations(event_id: str) -> bool:
@@ -93,6 +109,7 @@ def create_event(payload: EventCreate, user=AdminUser):
     now = datetime.now(timezone.utc).isoformat()
     data = {**payload.model_dump(), "created_at": now, "updated_at": now}
     db.collection("events").document(event_id).set(data)
+    aggregate.invalidate_load_all()
     return _to_event(event_id, data, _venue_names())
 
 
@@ -133,6 +150,7 @@ def update_event(event_id: str, payload: EventUpdate, user=AdminUser):
 
     changes["updated_at"] = datetime.now(timezone.utc).isoformat()
     ref.set(changes, merge=True)
+    aggregate.invalidate_load_all()
     return _to_event(event_id, {**current, **changes}, _venue_names(), locked)
 
 
@@ -147,4 +165,5 @@ def delete_event(event_id: str, user=AdminUser):
             409, "This event has registrations and can't be deleted. Ask an organiser first."
         )
     ref.delete()
+    aggregate.invalidate_load_all()
     return None

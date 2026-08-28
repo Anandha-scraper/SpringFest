@@ -3,8 +3,6 @@ from google.cloud.firestore_v1.base_query import FieldFilter
 
 from app.deps import CurrentUser
 from app.services.firebase import get_db
-from app.services.roles import COLLECTION as ROLES_COLLECTION
-from app.services.roles import normalize_email
 
 router = APIRouter(prefix="/me", tags=["me"])
 
@@ -15,14 +13,10 @@ def profile(user=CurrentUser):
 
     A judge's own dashboard needs their event_ids and a volunteer's needs their
     venue_id, and neither should have to hit an admin-only endpoint to get it.
+    Both already come off `user` — deps.get_current_user's role lookup reads
+    the same roles doc, so there's no second Firestore read here.
     """
-    doc = get_db().collection(ROLES_COLLECTION).document(normalize_email(user["email"])).get()
-    record = doc.to_dict() if doc.exists else {}
-    return {
-        **user,
-        "event_ids": record.get("event_ids", []),
-        "venue_id": record.get("venue_id", ""),
-    }
+    return user
 
 
 @router.get("/registrations")

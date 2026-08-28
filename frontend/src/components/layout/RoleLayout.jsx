@@ -1,5 +1,5 @@
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { ArrowLeft, LogOut } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { useAuth } from "../../auth/AuthContext.jsx";
 import { ROLE_NAV, ROLE_TITLE } from "../../content/roles.js";
 import {
@@ -102,13 +102,8 @@ export default function RoleLayout({ role }) {
               <span className="truncate text-xs text-muted-foreground">{user?.email}</span>
             </span>
           </div>
-          <Link
-            to="/"
-            className="flex h-9 items-center gap-2 rounded-md px-3 text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
-          >
-            <ArrowLeft className="h-4 w-4 shrink-0" />
-            <span className="group-data-[collapsible=icon]:hidden">Back to site</span>
-          </Link>
+          {/* No "back to site" link — leaving a role dashboard means signing
+              out. Getting back in goes through the hero's Register button. */}
           <button
             type="button"
             onClick={handleLogout}

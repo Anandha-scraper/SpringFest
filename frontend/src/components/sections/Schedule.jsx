@@ -1,5 +1,9 @@
+import { Suspense, lazy } from "react";
 import Shuffle from "../reactbits/Shuffle.jsx";
-import ScheduleFlow from "./ScheduleFlow.jsx";
+
+// @xyflow/react (+ its CSS) only loads once this section mounts, instead of
+// shipping in the initial bundle for every visitor.
+const ScheduleFlow = lazy(() => import("./ScheduleFlow.jsx"));
 
 export default function Schedule() {
   return (
@@ -23,7 +27,9 @@ export default function Schedule() {
           />
         </div>
 
-        <ScheduleFlow />
+        <Suspense fallback={<div className="spinner" />}>
+          <ScheduleFlow />
+        </Suspense>
       </div>
     </section>
   );

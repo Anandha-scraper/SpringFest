@@ -13,6 +13,7 @@ from app.models.schemas import (
     PaymentVerify,
     RegistrationCreate,
 )
+from app.services import aggregate
 from app.services.firebase import get_db
 from app.services.payment import create_order, fetch_payment_method, verify_signature
 
@@ -94,6 +95,7 @@ def register(payload: RegistrationCreate, user=CurrentUser):
             "created_at": datetime.now(timezone.utc).isoformat(),
         }
     )
+    aggregate.invalidate_load_all()
 
     if fee <= 0:
         reg_ref.update({"status": STATUS_COMPLETED})
@@ -137,6 +139,7 @@ def verify(payload: PaymentVerify, user=CurrentUser):
     )
     if not ok:
         reg_ref.update({"status": STATUS_FAILED})
+        aggregate.invalidate_load_all()
         raise HTTPException(400, "Payment verification failed")
 
     reg_ref.update(
@@ -147,4 +150,5 @@ def verify(payload: PaymentVerify, user=CurrentUser):
             "paid_at": datetime.now(timezone.utc).isoformat(),
         }
     )
+    aggregate.invalidate_load_all()
     return {"status": STATUS_COMPLETED, "registration_id": payload.registration_id}

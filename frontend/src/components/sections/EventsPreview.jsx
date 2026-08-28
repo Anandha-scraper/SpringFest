@@ -1,13 +1,17 @@
-import { Suspense, useEffect, useRef, useState } from "react";
+import { Suspense, lazy, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import SpotlightCard from "../reactbits/SpotlightCard.jsx";
 import AnimatedContent from "../reactbits/AnimatedContent.jsx";
 import SplitFlapText from "../reactbits/SplitFlapText.jsx";
 import BubbleMenu from "../reactbits/BubbleMenu.jsx";
-import Lanyard from "../reactbits/lanyard/Lanyard.jsx";
 
 import { getEvents } from "../../api/client.js";
 import { eventTrackItems } from "../../content/fest.js";
+
+// three.js/fiber/drei/rapier/meshline + the 2.4MB card.glb only load once
+// this section actually mounts, not as part of the initial bundle. The
+// Suspense boundary below already covers it — nothing else changes.
+const Lanyard = lazy(() => import("../reactbits/lanyard/Lanyard.jsx"));
 
 
 export default function EventsPreview() {

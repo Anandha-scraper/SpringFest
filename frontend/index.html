@@ -14,7 +14,9 @@
       rel="stylesheet"
     />
 
-    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <!-- Loaded on demand by src/api/payment.js right before checkout opens,
+         not here — it's a render-blocking third-party script that anonymous
+         landing-page visitors who never pay shouldn't have to fetch. -->
   </head>
   <body>
     <div id="root"></div>

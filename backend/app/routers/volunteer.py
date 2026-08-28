@@ -12,6 +12,7 @@ from fastapi import APIRouter, HTTPException
 
 from app.deps import VolunteerUser
 from app.models.schemas import CheckIn
+from app.services import aggregate
 from app.services.firebase import get_db
 
 router = APIRouter(prefix="/volunteer", tags=["volunteer"])
@@ -36,4 +37,5 @@ def check_in(payload: CheckIn, user=VolunteerUser):
         update |= {"checked_in_at": "", "checked_in_by": ""}
 
     ref.set(update, merge=True)
+    aggregate.invalidate_load_all()
     return {"registration_id": payload.registration_id, **update}
