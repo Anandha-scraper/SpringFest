@@ -21,16 +21,18 @@ npm run preview
 Backend (`backend/`, venv at `backend/.venv`):
 ```bash
 source .venv/bin/activate
-pip install -r requirements.txt
 uvicorn app.main:app --reload --port 8000   # docs at /docs
 python seed_events.py                       # (re)populate the Firestore `events` collection
 python seed_roles.py                        # (re)populate the Firestore `roles` collection
 ```
 
-Deploy (frontend only — `firebase.json` serves `frontend/dist` as an SPA):
-```bash
-npm --prefix frontend run build && firebase deploy --only hosting
-```
+There is **no `requirements.txt`** — the venv is the only record of the dependency set:
+`fastapi`, `uvicorn`, `firebase-admin`, `razorpay`, `python-dotenv`, `pydantic[email]`. Install those
+directly when rebuilding the venv, or `pip freeze > requirements.txt` first if you're about to deploy.
+
+There is no deploy configuration in the repo. Firebase Hosting was removed; `npm run build` produces
+`frontend/dist`, and where that gets served is not decided here. Don't reintroduce `firebase.json` or
+`.firebaserc` unless asked.
 
 There is no test suite, linter, or formatter configured. Don't invent commands for them.
 
@@ -38,9 +40,9 @@ There is no test suite, linter, or formatter configured. Don't invent commands f
 
 **Two independent halves.** The frontend talks to the backend only through `frontend/src/api/client.js`,
 which prefixes every path with `VITE_API_BASE` (default `http://localhost:8000/api`). All backend routers
-are mounted under `/api` because the intended production topology is a Firebase Hosting rewrite
-`/api/**` → Cloud Run. **That rewrite does not exist in `firebase.json` yet and the backend is not
-deployed** — the live site is currently the static landing page only.
+are mounted under `/api`, and `VITE_API_BASE` is the single knob that points the browser at them. **The
+backend is not deployed anywhere** — it runs locally on :8000, so anything past the public landing page
+only works against a local API.
 
 **Auth is Firebase ID tokens, end to end.** The browser signs in with Google
 (`frontend/src/auth/AuthContext.jsx`), and `client.js` attaches
@@ -73,6 +75,18 @@ checkout via `frontend/src/api/payment.js`, then `POST /api/registrations/verify
 server-side and flips the doc to `confirmed` (or `failed`). Never mark a registration confirmed from the
 client.
 
+**API surface** (all under `/api`): `GET /events`, `GET /events/{id}` (public); `GET /me`,
+`GET /me/registrations`, `POST /registrations`, `POST /registrations/verify` (authenticated);
+`GET /admin/stats`, `/admin/registrations`, `/admin/registrations.csv`,
+`/admin/events/{id}/participants`, and `GET|POST|DELETE /admin/people` (admin). Every one of these has
+a matching wrapper in `frontend/src/api/client.js` — add both halves together or the frontend can't
+reach it.
+
+**Only the admin dashboard is wired to the backend.** The judge, volunteer and participant sections
+under `frontend/src/pages/roles/` are presentational stubs ("Scoring goes here") with no API behind
+them; the routing, guards and role resolution around them are real. `/participant/registrations` and
+the top-level `/my-registrations` render the same `MyRegistrations` component.
+
 **Firestore collections:** `events` (doc id is the slug, e.g. `hackathon-24h`), `registrations`, and
 `roles` (doc id is the lowercased email).
 There are no migrations — shape is defined by `backend/app/models/schemas.py` and `seed_events.py`.
@@ -91,7 +105,12 @@ still render instead of white-screening. Any new code touching `auth` must toler
 - `src/components/reactbits/` holds vendored ReactBits animation components (GSAP / motion / ogl).
   Treat them as third-party: prefer configuring via props over rewriting internals.
 - `src/components/sections/` are the landing-page sections; `Landing.jsx` composes them in order and
-  handles `/#events`-style hash scrolling.
+  handles `/#events`-style hash scrolling. It currently renders only `Hero`, `EventsPreview` and
+  `Schedule` — `HeroShowcase.jsx`, `ScheduleFlow.jsx` and `pages/Home.jsx` are earlier versions that
+  nothing imports. Check `Landing.jsx` before editing a section, so you don't fix the unrouted one.
+- The role dashboards reuse the admin stylesheet: `admin.css` classes (`admin-panel`, `panel-head`,
+  `empty-state`) are the shared vocabulary for every `/admin`, `/judge`, `/volunteer`, `/participant`
+  page, not admin-only styling.
 - Styling is plain CSS in `src/styles/`, all imported once in `main.jsx`. Colors come from CSS custom
   properties in `tokens.css`. The token *names* are historical (`--pink`, `--mint`, `--lilac`) and no
   longer match their values (orange / sage / navy) — reuse the existing names rather than renaming, since
@@ -105,7 +124,11 @@ still render instead of white-screening. Any new code touching `auth` must toler
 
 ## Environment
 
-`.env` files are gitignored and already exist locally.
+`.gitignore` lists `CLAUDE.md`, but this file was committed before that entry was added, so it *is*
+tracked and edits to it do show up in diffs — `.gitignore` never untracks. `frontend/package-lock.json`
+is genuinely ignored, so npm dependency changes leave no lockfile in the diff.
+
+`.env` files already exist locally.
 - `frontend/.env`: `VITE_API_BASE`, `VITE_FIREBASE_API_KEY|AUTH_DOMAIN|PROJECT_ID|APP_ID`
 - `backend/.env`: `FIREBASE_CREDENTIALS` (path to a service-account JSON; falls back to Application
   Default Credentials on Cloud Run), `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `CORS_ORIGINS`

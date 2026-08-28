@@ -5,6 +5,6 @@ __pycache__/
 .venv/
 .env
 serviceAccountKey.json
-.firebase/
 package-lock.json
-requirements.txt
+CLAUDE.md
+
