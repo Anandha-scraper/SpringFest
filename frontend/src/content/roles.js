@@ -8,6 +8,18 @@
 //  goes and what its sidebar looks like.
 // ─────────────────────────────────────────────────────────────
 
+import {
+  LayoutDashboard,
+  ClipboardList,
+  CalendarDays,
+  UserPlus,
+  Users,
+  ListChecks,
+  Star,
+  UserCheck,
+  Ticket,
+} from "lucide-react";
+
 export const ROLES = {
   ADMIN: "admin",
   JUDGE: "judge",
@@ -29,26 +41,30 @@ export const HOME_FOR_ROLE = {
 export const homeForRole = (role) => HOME_FOR_ROLE[role] ?? "/";
 
 // Sidebar nav per role. `end` marks the index route so NavLink doesn't
-// stay active on every child path.
+// stay active on every child path. `icon` is a lucide-react component,
+// shown beside the label and alone when the sidebar is collapsed.
 export const ROLE_NAV = {
   [ROLES.ADMIN]: [
-    { label: "Overview", to: "/admin", end: true },
-    { label: "Manage People", to: "/admin/people" },
+    { label: "Overview", to: "/admin", end: true, icon: LayoutDashboard },
+    { label: "Registrations", to: "/admin/registrations", icon: ClipboardList },
+    { label: "Events", to: "/admin/events", end: true, icon: CalendarDays },
+    { label: "Add Roles", to: "/admin/roles", icon: UserPlus },
+    { label: "Manage Roles", to: "/admin/allocations", icon: Users },
   ],
   [ROLES.JUDGE]: [
-    { label: "Overview", to: "/judge", end: true },
-    { label: "Assignments", to: "/judge/assignments" },
-    { label: "Scoring", to: "/judge/scoring" },
+    { label: "Overview", to: "/judge", end: true, icon: LayoutDashboard },
+    { label: "Assignments", to: "/judge/assignments", icon: ListChecks },
+    { label: "Scoring", to: "/judge/scoring", icon: Star },
   ],
   [ROLES.VOLUNTEER]: [
-    { label: "Overview", to: "/volunteer", end: true },
-    { label: "Tasks", to: "/volunteer/tasks" },
-    { label: "Check-in", to: "/volunteer/check-in" },
+    { label: "Overview", to: "/volunteer", end: true, icon: LayoutDashboard },
+    { label: "Tasks", to: "/volunteer/tasks", icon: ListChecks },
+    { label: "Check-in", to: "/volunteer/check-in", icon: UserCheck },
   ],
   [ROLES.PARTICIPANT]: [
-    { label: "Overview", to: "/participant", end: true },
-    { label: "My Registrations", to: "/participant/registrations" },
-    { label: "Schedule", to: "/participant/schedule" },
+    { label: "Overview", to: "/participant", end: true, icon: LayoutDashboard },
+    { label: "My Registrations", to: "/participant/registrations", icon: Ticket },
+    { label: "Schedule", to: "/participant/schedule", icon: CalendarDays },
   ],
 };
 

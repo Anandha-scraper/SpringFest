@@ -63,3 +63,42 @@
   --nav-h: 68px;
   --page-w: 1140px;
 }
+
+/* ── shadcn/ui bridge ──────────────────────────────────────────
+   The ported components in components/ui/ expect these variable
+   names. Rather than a second color system, they alias straight
+   onto the tokens above so shadcn renders in the site's existing
+   palette instead of shadcn's own defaults.
+
+   --border and --accent already exist above with the values this
+   site wants (a neutral line color, and the brand orange) — they
+   are NOT redeclared here. shadcn also uses "accent" for a plain
+   neutral hover background, which is a different color from this
+   site's brand accent, so that one gets its own name (--sd-accent)
+   instead of silently overwriting the real --accent. */
+:root {
+  --background: var(--surface);
+  --foreground: var(--ink);
+  --card: var(--surface);
+  --card-foreground: var(--ink);
+  --popover: var(--surface);
+  --popover-foreground: var(--ink);
+  --input: var(--border-strong);
+  --ring: var(--accent);
+  --primary: var(--accent);
+  --primary-foreground: #ffffff;
+  --secondary: var(--surface-2);
+  --secondary-foreground: var(--ink);
+  --muted: var(--surface-2);
+  --muted-foreground: var(--ink-faint);
+  --sd-accent: var(--surface-2);
+  --sd-accent-foreground: var(--ink);
+  --destructive: var(--bad);
+  --destructive-foreground: #ffffff;
+
+  --sidebar: var(--surface);
+  --sidebar-foreground: var(--ink);
+  --sidebar-border: var(--border);
+  --sidebar-accent: var(--surface-2);
+  --sidebar-accent-foreground: var(--ink);
+}

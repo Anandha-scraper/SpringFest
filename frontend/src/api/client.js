@@ -36,6 +36,12 @@ export const getMyRegistrations = () => req("/me/registrations", {}, true);
 // ── Admin ────────────────────────────────────────────────────
 export const getAdminStats = () => req("/admin/stats", {}, true);
 
+/** One row per person, with their events rolled up. The Registrations screen. */
+export const getParticipants = () => req("/admin/participants", {}, true);
+
+/** Per venue: its event, headcount, check-ins and assigned staff. */
+export const getVenueRollup = () => req("/admin/venues/rollup", {}, true);
+
 export const getAdminRegistrations = (filters = {}) => {
   const qs = new URLSearchParams(
     Object.entries(filters).filter(([, v]) => v)
@@ -46,6 +52,25 @@ export const getAdminRegistrations = (filters = {}) => {
 export const getEventParticipants = (eventId) =>
   req(`/admin/events/${eventId}/participants`, {}, true);
 
+// Venues — name only; the API refuses to delete one that still backs an event.
+export const getVenues = () => req("/admin/venues", {}, true);
+
+export const addVenue = (data) =>
+  req("/admin/venues", { method: "POST", body: JSON.stringify(data) }, true);
+
+export const removeVenue = (id) =>
+  req(`/admin/venues/${encodeURIComponent(id)}`, { method: "DELETE" }, true);
+
+// Events — reads are public, writes are admin-only.
+export const createEvent = (data) =>
+  req("/events", { method: "POST", body: JSON.stringify(data) }, true);
+
+export const updateEvent = (id, data) =>
+  req(`/events/${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify(data) }, true);
+
+export const removeEvent = (id) =>
+  req(`/events/${encodeURIComponent(id)}`, { method: "DELETE" }, true);
+
 // People / roles
 export const getPeople = (role) =>
   req(`/admin/people${role ? `?role=${encodeURIComponent(role)}` : ""}`, {}, true);
@@ -55,6 +80,23 @@ export const addPerson = (data) =>
 
 export const removePerson = (email) =>
   req(`/admin/people/${encodeURIComponent(email)}`, { method: "DELETE" }, true);
+
+/** Judges get `event_ids`, volunteers get `venue_id`. Send only the one that
+ *  matches their role; the API rejects the mismatch and any time clash. */
+export const setAssignments = (email, data) =>
+  req(
+    `/admin/people/${encodeURIComponent(email)}/assignments`,
+    { method: "PUT", body: JSON.stringify(data) },
+    true
+  );
+
+// ── Volunteer ────────────────────────────────────────────────
+export const checkIn = (registrationId, checkedIn = true) =>
+  req(
+    "/volunteer/check-in",
+    { method: "POST", body: JSON.stringify({ registration_id: registrationId, checked_in: checkedIn }) },
+    true
+  );
 
 export async function downloadRegistrationsCsv(filters = {}) {
   const qs = new URLSearchParams(

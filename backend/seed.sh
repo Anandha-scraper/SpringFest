@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# One-off: populate events and role assignments. Safe to re-run.
+# Populate venues, events and staff roles. Safe to re-run.
+# Pass through any seed.py flag, e.g. ./seed.sh --registrations 120
 set -euo pipefail
 cd "$(dirname "$0")"
-.venv/bin/python seed_events.py
-.venv/bin/python seed_roles.py
+exec .venv/bin/python seed.py "$@"

@@ -1,43 +1,27 @@
-import { useEffect, useState } from "react";
+import { useCallback } from "react";
 import { Link, useParams } from "react-router-dom";
 import StatCard from "../../components/admin/StatCard.jsx";
-import RegistrationsTable from "../../components/admin/RegistrationsTable.jsx";
-import { getEventParticipants, downloadRegistrationsCsv } from "../../api/client.js";
+import StatusPill from "../../components/admin/StatusPill.jsx";
+import { downloadRegistrationsCsv, getEventParticipants } from "../../api/client.js";
+import { useApi } from "../../hooks/useApi.js";
+import { formatDateTime, formatEventTime, rupees } from "../../lib/format.js";
 
 export default function EventParticipants() {
   const { id } = useParams();
-  const [data, setData] = useState(null);
-  const [error, setError] = useState("");
-  const [exporting, setExporting] = useState(false);
+  const fetcher = useCallback(() => getEventParticipants(id), [id]);
+  const { data, error, loading } = useApi(fetcher);
 
-  useEffect(() => {
-    setData(null);
-    getEventParticipants(id)
-      .then(setData)
-      .catch((e) => setError(e.message));
-  }, [id]);
-
-  const handleExport = async () => {
-    setExporting(true);
-    try {
-      await downloadRegistrationsCsv({ event_id: id });
-    } catch (e) {
-      setError(e.message);
-    } finally {
-      setExporting(false);
-    }
-  };
-
+  if (loading) return <div className="spinner" />;
   if (error) {
     return (
-      <div className="container page-pad">
+      <div className="admin">
         <p className="error">{error}</p>
         <Link to="/admin" className="btn btn-ghost">← Back to dashboard</Link>
       </div>
     );
   }
 
-  if (!data) return <div className="spinner" />;
+  const { event } = data;
 
   return (
     <div className="admin">
@@ -46,26 +30,72 @@ export default function EventParticipants() {
       <div className="admin-head">
         <div>
           <span className="eyebrow">Event participants</span>
-          <h1>{data.event.name}</h1>
+          <h1>{event.name}</h1>
           <p className="muted">
-            {data.event.date}
-            {data.event.fee > 0 ? ` · ₹${data.event.fee} entry` : " · Free entry"}
+            {formatEventTime(event)} · {event.venue_name || "No venue"}
+            {event.fee > 0 ? ` · ${rupees(event.fee)} entry` : " · Free entry"}
           </p>
         </div>
-        <button className="btn btn-ghost" onClick={handleExport} disabled={exporting}>
-          {exporting ? "Preparing…" : "⤓ Export CSV"}
+        <button
+          className="btn btn-ghost"
+          type="button"
+          onClick={() => downloadRegistrationsCsv({ event_id: id })}
+        >
+          Export CSV
         </button>
       </div>
 
       <div className="stat-cards">
         <StatCard label="Registered" value={data.total} />
-        <StatCard label="Confirmed" value={data.confirmed} tone="ok" />
+        <StatCard label="Completed" value={data.completed} tone="ok" />
+        <StatCard label="Checked in" value={data.checked_in} tone="warn" />
         <StatCard label="Revenue" value={data.revenue} prefix="₹" tone="accent" />
       </div>
 
       <section className="admin-panel">
         <h2>Participants</h2>
-        <RegistrationsTable rows={data.participants} showEvent={false} />
+        {/* Per-event, so this stays one row per registration — unlike the
+            Registrations page, which pivots to one row per person. */}
+        {!data.participants.length ? (
+          <p className="empty-state">Nobody has registered for this event yet.</p>
+        ) : (
+          <div className="table-wrap">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Participant</th>
+                  <th>Contact</th>
+                  <th>College</th>
+                  <th>Team</th>
+                  <th>Status</th>
+                  <th>Checked in</th>
+                  <th className="num">Amount</th>
+                  <th>Registered</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.participants.map((r) => (
+                  <tr key={r.id}>
+                    <td>
+                      <strong>{r.name}</strong>
+                      <span className="cell-sub">{r.email}</span>
+                    </td>
+                    <td>{r.phone || "—"}</td>
+                    <td>{r.college || "—"}</td>
+                    <td>
+                      {r.team_name || "—"}
+                      {r.team_size > 1 && <span className="cell-sub">{r.team_size} members</span>}
+                    </td>
+                    <td><StatusPill status={r.status} /></td>
+                    <td>{r.checked_in ? "Yes" : "No"}</td>
+                    <td className="num">{r.fee > 0 ? rupees(r.fee) : "Free"}</td>
+                    <td className="cell-sub">{formatDateTime(r.created_at)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </section>
     </div>
   );

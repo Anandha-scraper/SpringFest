@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { getEvent, createRegistration } from "../api/client.js";
 import { openCheckout } from "../api/payment.js";
+import { formatEventTime } from "../lib/format.js";
 import RegistrationForm from "../components/RegistrationForm.jsx";
 
 export default function EventDetail() {
@@ -60,7 +61,9 @@ export default function EventDetail() {
         <h1>{event.name}</h1>
         <p className="muted">{event.description}</p>
         <div className="detail-meta">
-          <span>📅 {event.date || "Date to be announced"}</span>
+          {/* Dates are stored ISO now, so format rather than printing raw. */}
+          <span>📅 {formatEventTime(event) || "Date to be announced"}</span>
+          {event.venue_name && <span>📍 {event.venue_name}</span>}
           <span className="price">{event.fee > 0 ? `₹${event.fee}` : "Free entry"}</span>
         </div>
       </div>
@@ -74,7 +77,12 @@ export default function EventDetail() {
             ? "You'll be taken to secure payment after this step."
             : "This event is free — you'll be confirmed instantly."}
         </p>
-        <RegistrationForm onSubmit={handleSubmit} submitting={submitting} fee={event.fee} />
+        <RegistrationForm
+          onSubmit={handleSubmit}
+          submitting={submitting}
+          fee={event.fee}
+          event={event}
+        />
       </div>
     </div>
   );

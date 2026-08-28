@@ -17,7 +17,10 @@ import Success from "./pages/Success.jsx";
 import NotFound from "./pages/NotFound.jsx";
 import AdminDashboard from "./pages/admin/AdminDashboard.jsx";
 import EventParticipants from "./pages/admin/EventParticipants.jsx";
-import ManagePeople from "./pages/admin/ManagePeople.jsx";
+import Registrations from "./pages/admin/Registrations.jsx";
+import ManageEvents from "./pages/admin/ManageEvents.jsx";
+import AddRoles from "./pages/admin/AddRoles.jsx";
+import ManageRoles from "./pages/admin/ManageRoles.jsx";
 
 import RoleLayout from "./components/layout/RoleLayout.jsx";
 import { ROLES } from "./content/roles.js";
@@ -36,6 +39,8 @@ import "./styles/base.css";
 import "./styles/layout.css";
 import "./styles/landing.css";
 import "./styles/admin.css";
+// Utilities only — preflight is off, so this can't touch the reset above.
+import "./styles/tailwind.css";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
@@ -76,65 +81,68 @@ ReactDOM.createRoot(document.getElementById("root")).render(
                   </ProtectedRoute>
                 }
               />
-              {/* ── Role dashboards. Each parent renders RoleLayout (heading
-                   + sidebar + outlet); children are the sections. ───────── */}
-              <Route
-                path="/admin"
-                element={
-                  <ProtectedRoute adminOnly>
-                    <RoleLayout role={ROLES.ADMIN} />
-                  </ProtectedRoute>
-                }
-              >
-                <Route index element={<AdminDashboard />} />
-                <Route path="people" element={<ManagePeople />} />
-                <Route path="events/:id" element={<EventParticipants />} />
-              </Route>
-
-              <Route
-                path="/judge"
-                element={
-                  <ProtectedRoute roles={[ROLES.JUDGE]}>
-                    <RoleLayout role={ROLES.JUDGE} />
-                  </ProtectedRoute>
-                }
-              >
-                <Route index element={<JudgeHome />} />
-                <Route path="assignments" element={<JudgeAssignments />} />
-                <Route path="scoring" element={<JudgeScoring />} />
-              </Route>
-
-              <Route
-                path="/volunteer"
-                element={
-                  <ProtectedRoute roles={[ROLES.VOLUNTEER]}>
-                    <RoleLayout role={ROLES.VOLUNTEER} />
-                  </ProtectedRoute>
-                }
-              >
-                <Route index element={<VolunteerHome />} />
-                <Route path="tasks" element={<VolunteerTasks />} />
-                <Route path="check-in" element={<VolunteerCheckIn />} />
-              </Route>
-
-              <Route
-                path="/participant"
-                element={
-                  <ProtectedRoute roles={[ROLES.PARTICIPANT]}>
-                    <RoleLayout role={ROLES.PARTICIPANT} />
-                  </ProtectedRoute>
-                }
-              >
-                <Route index element={<ParticipantHome />} />
-                <Route path="registrations" element={<MyRegistrations />} />
-                <Route path="schedule" element={<ParticipantSchedule />} />
-              </Route>
-
               <Route path="*" element={<NotFound />} />
             </Route>
 
             {/* Full-bleed, no navbar/footer */}
             <Route path="/login" element={<Login />} />
+
+            {/* ── Role dashboards. Each parent renders RoleLayout (heading
+                 + sidebar + outlet); children are the sections. ───────── */}
+            <Route
+              path="/admin"
+              element={
+                <ProtectedRoute adminOnly>
+                  <RoleLayout role={ROLES.ADMIN} />
+                </ProtectedRoute>
+              }
+            >
+              <Route index element={<AdminDashboard />} />
+              <Route path="registrations" element={<Registrations />} />
+              <Route path="events" element={<ManageEvents />} />
+              <Route path="events/:id" element={<EventParticipants />} />
+              <Route path="roles" element={<AddRoles />} />
+              <Route path="allocations" element={<ManageRoles />} />
+            </Route>
+
+            <Route
+              path="/judge"
+              element={
+                <ProtectedRoute roles={[ROLES.JUDGE]}>
+                  <RoleLayout role={ROLES.JUDGE} />
+                </ProtectedRoute>
+              }
+            >
+              <Route index element={<JudgeHome />} />
+              <Route path="assignments" element={<JudgeAssignments />} />
+              <Route path="scoring" element={<JudgeScoring />} />
+            </Route>
+
+            <Route
+              path="/volunteer"
+              element={
+                <ProtectedRoute roles={[ROLES.VOLUNTEER]}>
+                  <RoleLayout role={ROLES.VOLUNTEER} />
+                </ProtectedRoute>
+              }
+            >
+              <Route index element={<VolunteerHome />} />
+              <Route path="tasks" element={<VolunteerTasks />} />
+              <Route path="check-in" element={<VolunteerCheckIn />} />
+            </Route>
+
+            <Route
+              path="/participant"
+              element={
+                <ProtectedRoute roles={[ROLES.PARTICIPANT]}>
+                  <RoleLayout role={ROLES.PARTICIPANT} />
+                </ProtectedRoute>
+              }
+            >
+              <Route index element={<ParticipantHome />} />
+              <Route path="registrations" element={<MyRegistrations />} />
+              <Route path="schedule" element={<ParticipantSchedule />} />
+            </Route>
           </Routes>
         </ClickSpark>
       </BrowserRouter>

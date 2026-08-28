@@ -113,3 +113,57 @@ def remove_person(email: str) -> bool:
 
 def is_seeded_admin(email: str) -> bool:
     return normalize_email(email) in settings.ADMIN_EMAILS
+
+
+# ── Assignments: judges work events, volunteers cover a venue ──
+
+
+def events_overlap(a: dict, b: dict) -> bool:
+    """Same day and overlapping [start, end). Times are "HH:MM", so a plain
+    string comparison is also a chronological one."""
+    if not a or not b or a.get("date") != b.get("date"):
+        return False
+    a_start, a_end = a.get("start_time", ""), a.get("end_time", "")
+    b_start, b_end = b.get("start_time", ""), b.get("end_time", "")
+    if not (a_start and a_end and b_start and b_end):
+        return False
+    return a_start < b_end and b_start < a_end
+
+
+def find_conflict(event_ids: list[str], events: dict) -> tuple[dict, dict] | None:
+    """The first pair of assigned events that collide in time, or None.
+
+    A judge can hold several assignments but can't be in two rooms at once, so
+    this runs before an assignment is saved rather than surfacing a
+    double-booking on the day.
+    """
+    chosen = [events[eid] for eid in event_ids if eid in events]
+    for i, first in enumerate(chosen):
+        for second in chosen[i + 1 :]:
+            if events_overlap(first, second):
+                return first, second
+    return None
+
+
+def set_assignments(
+    email: str, event_ids: list[str] | None = None, venue_id: str | None = None
+) -> dict:
+    """Write a judge's events or a volunteer's venue onto their role record.
+
+    Uses merge, so the role/name/provenance written by `upsert_person` survive,
+    and equally an assignment survives a later role edit.
+    """
+    key = normalize_email(email)
+    ref = get_db().collection(COLLECTION).document(key)
+    existing = ref.get()
+    if not existing.exists:
+        raise LookupError(f"No role record for {key}")
+
+    payload: dict = {"updated_at": datetime.now(timezone.utc).isoformat()}
+    if event_ids is not None:
+        payload["event_ids"] = event_ids
+    if venue_id is not None:
+        payload["venue_id"] = venue_id
+
+    ref.set(payload, merge=True)
+    return {"email": key, **(existing.to_dict() or {}), **payload}

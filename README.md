@@ -37,24 +37,14 @@ cd backend
 python -m venv .venv
 .venv/bin/pip install -r requirements.txt
 cp .env.example .env          # then fill it in
-.venv/bin/uvicorn app.main:app --reload --port 8000
+./run.sh
 ```
+
+`./run.sh` is a wrapper for `.venv/bin/uvicorn app.main:app --reload --port 8000`; override the port with `PORT=9000 ./run.sh`.
 
 Runs on http://localhost:8000. Check it with `curl localhost:8000/` → `{"status":"ok"}`.
 
 The virtualenv never needs activating — `.venv/bin/…` resolves its own environment.
-
-### Seed data
-
-With `.env` and the service account key in place:
-
-```bash
-cd backend
-.venv/bin/python seed_events.py    # events
-.venv/bin/python seed_roles.py     # role assignments
-```
-
-Both are safe to re-run; documents are overwritten by id.
 
 ## 3. Frontend
 
