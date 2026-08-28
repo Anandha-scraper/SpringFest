@@ -120,10 +120,23 @@ export default function GlyphMatrix({
     });
     ro.observe(canvas);
 
+    // Backgrounded tabs still burn CPU on this loop otherwise — it's purely
+    // decorative, so pausing while hidden and resuming on return is invisible.
+    const onVisibility = () => {
+      if (document.hidden) {
+        cancelAnimationFrame(raf);
+      } else {
+        last = 0;
+        raf = requestAnimationFrame(tick);
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+
     return () => {
       stopped = true;
       cancelAnimationFrame(raf);
       ro.disconnect();
+      document.removeEventListener("visibilitychange", onVisibility);
     };
   }, [glyphs, cellSize, mutationRate, interval, fadeBottom]);
 

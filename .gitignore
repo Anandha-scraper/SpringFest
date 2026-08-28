@@ -5,6 +5,7 @@ __pycache__/
 .venv/
 .env
 serviceAccountKey.json
+.firebase/
 package-lock.json
+firebase-debug.log
 CLAUDE.md
-

@@ -1,0 +1,36 @@
+import { useCallback, useEffect, useState } from "react";
+
+/**
+ * Run an API call on mount and expose { data, error, loading, reload }.
+ *
+ * Every admin page needs the same three states and a way to refetch after a
+ * write, so they share one implementation rather than six near-identical
+ * useEffects. Pass a stable `fetcher` (module-scope function or useCallback);
+ * it is the dependency that re-triggers the call.
+ */
+export function useApi(fetcher, { immediate = true } = {}) {
+  const [data, setData] = useState(null);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(immediate);
+
+  const reload = useCallback(async () => {
+    setLoading(true);
+    try {
+      const result = await fetcher();
+      setData(result);
+      setError("");
+      return result;
+    } catch (err) {
+      setError(err.message || "Something went wrong");
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, [fetcher]);
+
+  useEffect(() => {
+    if (immediate) reload();
+  }, [immediate, reload]);
+
+  return { data, error, loading, reload, setError };
+}

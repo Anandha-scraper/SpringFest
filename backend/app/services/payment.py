@@ -17,6 +17,19 @@ def create_order(amount_inr: int, receipt: str) -> dict:
     )
 
 
+def fetch_payment_method(payment_id: str) -> str:
+    """How they paid — "upi", "card", "netbanking", "wallet".
+
+    The checkout handler only hands back ids, so the method has to be fetched.
+    It's decoration on the admin's detail panel, so a failure here returns ""
+    rather than derailing a payment that has already been verified.
+    """
+    try:
+        return client.payment.fetch(payment_id).get("method", "")
+    except Exception:
+        return ""
+
+
 def verify_signature(order_id: str, payment_id: str, signature: str) -> bool:
     try:
         client.utility.verify_payment_signature(

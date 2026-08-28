@@ -1,66 +1,19 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback } from "react";
 import { Link } from "react-router-dom";
 import StatCard from "../../components/admin/StatCard.jsx";
-import RegistrationsTable from "../../components/admin/RegistrationsTable.jsx";
-import {
-  getAdminStats,
-  getAdminRegistrations,
-  downloadRegistrationsCsv,
-} from "../../api/client.js";
+import ParticipationChart from "../../components/admin/ParticipationChart.jsx";
+import { getAdminStats, getVenueRollup } from "../../api/client.js";
+import { useApi } from "../../hooks/useApi.js";
 
-const STATUSES = ["all", "confirmed", "pending", "failed"];
+const load = () => Promise.all([getAdminStats(), getVenueRollup()]);
 
 export default function AdminDashboard() {
-  const [stats, setStats] = useState(null);
-  const [rows, setRows] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [exporting, setExporting] = useState(false);
-
-  const [query, setQuery] = useState("");
-  const [status, setStatus] = useState("all");
-  const [eventId, setEventId] = useState("all");
-
-  useEffect(() => {
-    Promise.all([getAdminStats(), getAdminRegistrations()])
-      .then(([s, r]) => {
-        setStats(s);
-        setRows(r);
-      })
-      .catch((e) => setError(e.message))
-      .finally(() => setLoading(false));
-  }, []);
-
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return rows.filter((r) => {
-      if (status !== "all" && r.status !== status) return false;
-      if (eventId !== "all" && r.event_id !== eventId) return false;
-      if (!q) return true;
-      return [r.name, r.email, r.phone, r.college, r.event_name]
-        .filter(Boolean)
-        .some((v) => String(v).toLowerCase().includes(q));
-    });
-  }, [rows, query, status, eventId]);
-
-  const handleExport = async () => {
-    setExporting(true);
-    setError("");
-    try {
-      await downloadRegistrationsCsv({
-        status: status === "all" ? "" : status,
-        event_id: eventId === "all" ? "" : eventId,
-      });
-    } catch (e) {
-      setError(e.message);
-    } finally {
-      setExporting(false);
-    }
-  };
+  const fetcher = useCallback(load, []);
+  const { data, error, loading } = useApi(fetcher);
+  const [stats, venues] = data || [];
 
   if (loading) return <div className="spinner" />;
-
-  const maxCount = Math.max(1, ...(stats?.per_event || []).map((e) => e.count));
+  if (error) return <p className="error">{error}</p>;
 
   return (
     <div className="admin">
@@ -70,75 +23,73 @@ export default function AdminDashboard() {
           <h1>Admin Dashboard</h1>
           <p className="muted">Registrations, payments and participation at a glance.</p>
         </div>
-        <button className="btn btn-ghost" onClick={handleExport} disabled={exporting}>
-          {exporting ? "Preparing…" : "⤓ Export CSV"}
-        </button>
+        <Link to="/admin/registrations" className="btn btn-ghost">
+          View all registrations
+        </Link>
       </div>
 
-      {error && <p className="error">{error}</p>}
-
       <div className="stat-cards">
-        <StatCard label="Total Registrations" value={stats?.total} />
-        <StatCard label="Confirmed" value={stats?.confirmed} tone="ok" />
-        <StatCard label="Pending" value={stats?.pending} tone="warn" />
-        <StatCard label="Revenue Collected" value={stats?.revenue} prefix="₹" tone="accent" />
+        {/* People, not rows: someone who enters four events is one signed user. */}
+        <StatCard label="Signed Users" value={stats.signed_users} />
+        <StatCard label="Completed" value={stats.completed_users} tone="ok" />
+        <StatCard label="Revenue Collected" value={stats.revenue} prefix="₹" tone="accent" />
       </div>
 
       <section className="admin-panel">
-        <h2>Participation by event</h2>
-        {!stats?.per_event?.length ? (
-          <p className="empty-state">No registrations yet.</p>
+        <div className="panel-head">
+          <h2>Participation by event</h2>
+          <Link to="/admin/events" className="btn btn-ghost btn-sm">Manage events</Link>
+        </div>
+        {!stats.per_event.length ? (
+          <p className="empty-state">No events yet. Create one from the Events page.</p>
         ) : (
-          <div className="bars">
-            {stats.per_event.map((e) => (
-              <Link key={e.event_id} to={`/admin/events/${e.event_id}`} className="bar-row">
-                <span className="bar-name">{e.name}</span>
-                <span className="bar-track">
-                  <span
-                    className="bar-fill"
-                    style={{ width: `${(e.count / maxCount) * 100}%` }}
-                  />
-                </span>
-                <span className="bar-count">
-                  <strong>{e.count}</strong>
-                  <span className="cell-sub">{e.confirmed} paid · ₹{e.revenue}</span>
-                </span>
-              </Link>
-            ))}
-          </div>
+          <ParticipationChart data={stats.per_event} />
         )}
       </section>
 
       <section className="admin-panel">
         <div className="panel-head">
-          <h2>All registrations</h2>
-          <span className="muted">{filtered.length} shown</span>
+          <h2>Venues</h2>
+          <Link to="/admin/allocations" className="btn btn-ghost btn-sm">Manage allocations</Link>
         </div>
-
-        <div className="filter-bar">
-          <input
-            className="input"
-            type="search"
-            placeholder="Search name, email, phone, college…"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
-          <select className="input" value={status} onChange={(e) => setStatus(e.target.value)}>
-            {STATUSES.map((s) => (
-              <option key={s} value={s}>
-                {s === "all" ? "All statuses" : s[0].toUpperCase() + s.slice(1)}
-              </option>
-            ))}
-          </select>
-          <select className="input" value={eventId} onChange={(e) => setEventId(e.target.value)}>
-            <option value="all">All events</option>
-            {(stats?.per_event || []).map((e) => (
-              <option key={e.event_id} value={e.event_id}>{e.name}</option>
-            ))}
-          </select>
-        </div>
-
-        <RegistrationsTable rows={filtered} />
+        {!venues.length ? (
+          <p className="empty-state">No venues yet. Add one from the Events page.</p>
+        ) : (
+          <div className="table-wrap">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Venue</th>
+                  <th>Event</th>
+                  <th className="num">Registrations</th>
+                  <th className="num">Checked in</th>
+                  <th className="num">Completed</th>
+                  <th>Judge</th>
+                  <th>Volunteer</th>
+                </tr>
+              </thead>
+              <tbody>
+                {venues.map((v) => (
+                  <tr key={v.id}>
+                    <td><strong>{v.name}</strong></td>
+                    <td>
+                      {v.event_id ? (
+                        <Link to={`/admin/events/${v.event_id}`}>{v.event_name}</Link>
+                      ) : (
+                        <span className="cell-sub">No event assigned</span>
+                      )}
+                    </td>
+                    <td className="num">{v.registrations}</td>
+                    <td className="num">{v.checked_in}</td>
+                    <td className="num">{v.completed}</td>
+                    <td>{v.judges.join(", ") || <span className="cell-sub">—</span>}</td>
+                    <td>{v.volunteers.join(", ") || <span className="cell-sub">—</span>}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </section>
     </div>
   );

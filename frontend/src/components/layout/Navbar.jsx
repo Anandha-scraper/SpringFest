@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import PillNav from "../reactbits/PillNav.jsx";
 import StaggeredMenu from "../reactbits/StaggeredMenu.jsx";
-import AccountControl from "./AccountControl.jsx";
 import { navLinks, fest } from "../../content/fest.js";
 
 // StaggeredMenu takes { label, ariaLabel, link }; navLinks are { label, href }.
@@ -77,7 +76,6 @@ export default function Navbar() {
           pillTextColor="#11224e"
           ease="power3.easeOut"
           initialLoadAnimation={false}
-          trailing={<AccountControl />}
         />
       </div>
 
@@ -95,7 +93,6 @@ export default function Navbar() {
           openMenuButtonColor="#11224e"
           accentColor="#f87b1b"
           colors={["#cbd99b", "#11224e"]}
-          trailing={<AccountControl />}
         />
       </div>
     </>

@@ -187,9 +187,21 @@ export default function Aurora(props) {
 
     resize();
 
+    // A backgrounded tab has no reason to keep rendering every frame — pause
+    // the loop while hidden and pick it back up on return.
+    const onVisibility = () => {
+      if (document.hidden) {
+        cancelAnimationFrame(animateId);
+      } else {
+        animateId = requestAnimationFrame(update);
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+
     return () => {
       cancelAnimationFrame(animateId);
       window.removeEventListener('resize', resize);
+      document.removeEventListener('visibilitychange', onVisibility);
       if (ctn && gl.canvas.parentNode === ctn) {
         ctn.removeChild(gl.canvas);
       }
