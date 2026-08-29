@@ -35,6 +35,48 @@ export const verifyPayment = (data) =>
   req("/registrations/verify", { method: "POST", body: JSON.stringify(data) }, true);
 export const getMyRegistrations = () => req("/me/registrations", {}, true);
 
+/** Proof of an out-of-band payment: transaction reference + screenshot.
+ *
+ * Multipart, so it sidesteps req()'s JSON body — and deliberately sets no
+ * Content-Type, letting the browser add the boundary the server needs to
+ * parse the parts. */
+export async function submitPaymentProof(registrationId, { transactionId, file }) {
+  const body = new FormData();
+  body.append("transaction_id", transactionId);
+  body.append("screenshot", file);
+
+  const res = await fetch(`${BASE}/registrations/${encodeURIComponent(registrationId)}/proof`, {
+    method: "POST",
+    headers: await authHeader(),
+    body,
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || `Upload failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+/** The URL a QR <img> points at. Authenticated, so it's fetched as a blob
+ *  rather than being set as a plain src — see ticketObjectUrl below. */
+export const qrTicketPath = (registrationId, memberIndex) =>
+  `/me/registrations/${encodeURIComponent(registrationId)}/qr/${memberIndex}`;
+
+/** An object URL for one QR ticket, for display. Callers must revoke it. */
+export async function ticketObjectUrl(registrationId, memberIndex) {
+  const res = await fetch(`${BASE}${qrTicketPath(registrationId, memberIndex)}`, {
+    headers: await authHeader(),
+  });
+  if (!res.ok) throw new Error(`Could not load ticket: ${res.status}`);
+  return URL.createObjectURL(await res.blob());
+}
+
+export const downloadTicket = (registrationId, memberIndex, name) =>
+  downloadFile(
+    qrTicketPath(registrationId, memberIndex),
+    `ticket-${(name || `member-${memberIndex}`).replace(/[^a-z0-9]+/gi, "-").toLowerCase()}.png`
+  );
+
 // ── Admin ────────────────────────────────────────────────────
 export const getAdminStats = () => req("/admin/stats", {}, true);
 
@@ -92,7 +134,40 @@ export const setAssignments = (email, data) =>
     true
   );
 
+// Payment mode — gateway vs. collecting screenshots. Switchable mid-fest.
+export const getAppSettings = () => req("/admin/settings", {}, true);
+
+export const updateAppSettings = (data) =>
+  req("/admin/settings", { method: "PUT", body: JSON.stringify(data) }, true);
+
+// Screenshot payments waiting on an admin.
+export const getApprovals = () => req("/admin/approvals", {}, true);
+
+/** An object URL for a payment screenshot, for display. Callers must revoke
+ *  it. Fetched rather than linked because the endpoint is authenticated. */
+export async function proofObjectUrl(registrationId) {
+  const res = await fetch(`${BASE}/admin/approvals/${encodeURIComponent(registrationId)}/proof`, {
+    headers: await authHeader(),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || `Could not load the screenshot: ${res.status}`);
+  }
+  return URL.createObjectURL(await res.blob());
+}
+
+export const reviewApproval = (registrationId, decision, note = "") =>
+  req(
+    `/admin/approvals/${encodeURIComponent(registrationId)}`,
+    { method: "POST", body: JSON.stringify({ decision, note }) },
+    true
+  );
+
 // ── Volunteer ────────────────────────────────────────────────
+/** Check in one person from their scanned QR ticket. */
+export const checkInByToken = (token) =>
+  req("/volunteer/check-in/scan", { method: "POST", body: JSON.stringify({ token }) }, true);
+
 export const checkIn = (registrationId, checkedIn = true) =>
   req(
     "/volunteer/check-in",
@@ -100,22 +175,33 @@ export const checkIn = (registrationId, checkedIn = true) =>
     true
   );
 
-export async function downloadRegistrationsCsv(filters = {}) {
-  const qs = new URLSearchParams(
-    Object.entries(filters).filter(([, v]) => v)
-  ).toString();
-  const res = await fetch(`${BASE}/admin/registrations.csv${qs ? `?${qs}` : ""}`, {
-    headers: await authHeader(),
-  });
-  if (!res.ok) throw new Error(`Export failed: ${res.status}`);
+/** Fetch an authenticated binary endpoint and save it to disk.
+ *
+ * Bypasses req() because the response isn't JSON — the auth header is still
+ * needed, since neither the CSV export nor a QR ticket is public. */
+async function downloadFile(path, filename) {
+  const res = await fetch(`${BASE}${path}`, { headers: await authHeader() });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || `Download failed: ${res.status}`);
+  }
 
-  const blob = await res.blob();
-  const url = URL.createObjectURL(blob);
+  const url = URL.createObjectURL(await res.blob());
   const a = document.createElement("a");
   a.href = url;
-  a.download = `registrations-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.download = filename;
   document.body.appendChild(a);
   a.click();
   a.remove();
   URL.revokeObjectURL(url);
+}
+
+export function downloadRegistrationsCsv(filters = {}) {
+  const qs = new URLSearchParams(
+    Object.entries(filters).filter(([, v]) => v)
+  ).toString();
+  return downloadFile(
+    `/admin/registrations.csv${qs ? `?${qs}` : ""}`,
+    `registrations-${new Date().toISOString().slice(0, 10)}.csv`
+  );
 }

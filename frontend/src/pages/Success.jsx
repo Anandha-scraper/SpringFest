@@ -3,14 +3,26 @@ import { fest } from "../content/fest.js";
 
 export default function Success() {
   const { state } = useLocation();
+  // Screenshot payments aren't confirmed yet — an organiser still has to
+  // check the proof, so promising "you're in" here would be a lie.
+  const awaiting = !!state?.awaitingApproval;
 
   return (
     <div className="container narrow page-pad center">
-      <div className="success-mark">✅</div>
-      <h1>You're in!</h1>
+      <div className="success-mark">{awaiting ? "⏳" : "✅"}</div>
+      <h1>{awaiting ? "Payment submitted" : "You're in!"}</h1>
       <p className="muted" style={{ margin: "12px 0 24px" }}>
-        Your registration for {fest.name} {fest.year} is confirmed. A confirmation
-        email is on its way.
+        {awaiting ? (
+          <>
+            Your place at {fest.name} {fest.year} is held while an organiser checks your
+            payment. You'll see the result — and your entry pass — under My Registrations.
+          </>
+        ) : (
+          <>
+            Your registration for {fest.name} {fest.year} is confirmed. Your entry pass is
+            ready to download under My Registrations.
+          </>
+        )}
       </p>
 
       {state?.registrationId && (

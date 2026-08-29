@@ -40,7 +40,7 @@
 /* a touch of separation so the logo doesn't crowd the first pill */
 .site-pillnav .pill-logo { margin-right: 6px; }
 
-/* Just above the BubbleMenu breakpoint the bar can get wider than the
+/* Just above the mobile-nav breakpoint the bar can get wider than the
    viewport — step it down rather than let it clip. */
 @media (max-width: 1080px) {
   .site-pillnav .pill-nav {
@@ -150,21 +150,9 @@
 
 .app-main { min-height: 60vh; }
 
-/* BubbleMenu owns mobile — PillNav's own popover/hamburger never show. */
+/* PillNav only shows its inline bar — its own popover/hamburger never display. */
 .site-pillnav .mobile-only,
 .mobile-menu-popover { display: none !important; }
-
-.bubble-wordmark {
-  font-family: var(--font-display);
-  font-size: 1.05rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  color: var(--ink);
-}
-
-/* ── BubbleMenu (mobile) ──────────────────────────────────── */
-@media (max-width: 560px) {
-        }
 
 
 /* ═══════════════════════════════════════════════════════════

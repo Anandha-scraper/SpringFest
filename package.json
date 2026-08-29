@@ -17,8 +17,7 @@
     "build": "npm --prefix frontend install && npm --prefix frontend run build",
     "start": "node backend/server.js",
     "dev:backend": "npm --prefix backend run dev",
-    "dev:frontend": "npm --prefix frontend run dev",
-    "seed": "npm --prefix backend run seed"
+    "dev:frontend": "npm --prefix frontend run dev"
   },
   "dependencies": {
     "compression": "^1.7.5",
@@ -26,6 +25,8 @@
     "dotenv": "^16.4.5",
     "express": "^5.0.1",
     "firebase-admin": "^13.0.0",
+    "multer": "^2.3.0",
+    "qrcode": "^1.5.4",
     "razorpay": "^2.9.4"
   }
 }

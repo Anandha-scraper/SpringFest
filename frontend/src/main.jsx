@@ -25,6 +25,8 @@ const Registrations = lazy(() => import("./pages/admin/Registrations.jsx"));
 const ManageEvents = lazy(() => import("./pages/admin/ManageEvents.jsx"));
 const AddRoles = lazy(() => import("./pages/admin/AddRoles.jsx"));
 const ManageRoles = lazy(() => import("./pages/admin/ManageRoles.jsx"));
+const PaymentSettings = lazy(() => import("./pages/admin/PaymentSettings.jsx"));
+const Approvals = lazy(() => import("./pages/admin/Approvals.jsx"));
 
 import RoleLayout from "./components/layout/RoleLayout.jsx";
 import { ROLES } from "./content/roles.js";
@@ -76,14 +78,6 @@ ReactDOM.createRoot(document.getElementById("root")).render(
               <Route path="/success" element={<Success />} />
 
               <Route
-                path="/events/:id"
-                element={
-                  <ProtectedRoute>
-                    <EventDetail />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
                 path="/my-registrations"
                 element={
                   <ProtectedRoute>
@@ -97,6 +91,19 @@ ReactDOM.createRoot(document.getElementById("root")).render(
             {/* Full-bleed, no navbar/footer */}
             <Route path="/login" element={<Login />} />
 
+            {/* Event detail + registration — sidebar shell (like the role
+                dashboards) rather than the marketing navbar/footer. */}
+            <Route
+              path="/events/:id"
+              element={
+                <ProtectedRoute>
+                  <RoleLayout role={ROLES.PARTICIPANT} />
+                </ProtectedRoute>
+              }
+            >
+              <Route index element={<EventDetail />} />
+            </Route>
+
             {/* ── Role dashboards. Each parent renders RoleLayout (heading
                  + sidebar + outlet); children are the sections. ───────── */}
             <Route
@@ -109,6 +116,8 @@ ReactDOM.createRoot(document.getElementById("root")).render(
             >
               <Route index element={<AdminDashboard />} />
               <Route path="registrations" element={<Registrations />} />
+              <Route path="payment" element={<PaymentSettings />} />
+              <Route path="approvals" element={<Approvals />} />
               <Route path="events" element={<ManageEvents />} />
               <Route path="events/:id" element={<EventParticipants />} />
               <Route path="roles" element={<AddRoles />} />

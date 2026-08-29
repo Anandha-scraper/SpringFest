@@ -136,12 +136,3 @@ export const bubbleNavItems = navLinks.map((link, i) => ({
   rotation: i % 2 === 0 ? -8 : 8,
   hoverStyles: BUBBLE_HOVERS[i % BUBBLE_HOVERS.length],
 }));
-
-// Event-track picker (BubbleMenu inside the Events section). Decorative for
-// now — the items open/close the overlay but don't filter the grid.
-export const eventTrackItems = [
-  { label: "Technical",     href: "#events", ariaLabel: "Technical events",     rotation: -8, hoverStyles: { bgColor: "#f87b1b", textColor: "#ffffff" } },
-  { label: "Non-Technical", href: "#events", ariaLabel: "Non-technical events", rotation:  8, hoverStyles: { bgColor: "#11224e", textColor: "#eeeeee" } },
-  { label: "Hackathon",     href: "#events", ariaLabel: "Hackathon",            rotation:  8, hoverStyles: { bgColor: "#cbd99b", textColor: "#11224e" } },
-  { label: "Workshop",      href: "#events", ariaLabel: "Workshops",            rotation: -8, hoverStyles: { bgColor: "#f5a55c", textColor: "#11224e" } },
-];

@@ -4,17 +4,29 @@ import { ApiError } from "../errors.js";
 import { AdminUser } from "../middleware/auth.js";
 import * as aggregate from "../services/aggregate.js";
 import { getDb } from "../services/firebase.js";
+import { generateForRegistration } from "../services/qr.js";
 import * as roles from "../services/roles.js";
-import { requireEmail, requireOneOf, requireString } from "../validate.js";
+import { MODE_SCREENSHOT, PAYMENT_MODES, getAppSettings, setAppSettings } from "../services/settings.js";
+import { downloadBuffer } from "../services/storage.js";
+import { STATUS_AWAITING_APPROVAL, STATUS_COMPLETED, STATUS_REJECTED } from "../statuses.js";
+import { optionalString, requireEmail, requireOneOf, requireString } from "../validate.js";
 import { invalidateVenueNames, slugify as eventSlugify } from "./events.js";
 
 export const router = Router();
 
 export const CSV_COLUMNS = [
-  "id", "name", "email", "phone", "college", "event_id", "event_name",
-  "status", "checked_in", "fee", "team_name", "team_size",
-  "order_id", "payment_id", "payment_method", "created_at", "paid_at",
+  "id", "name", "email", "phone", "college", "department", "year", "location",
+  "event_id", "event_name", "status", "checked_in", "fee", "team_name", "team_size",
+  "payment_mode", "transaction_id", "order_id", "payment_id", "payment_method",
+  "created_at", "paid_at",
 ];
+
+/** Proof objects are stored with the extension we validated on upload, so the
+ * path is enough to name the type back — no need to store it separately. */
+function contentTypeFor(objectPath) {
+  const ext = objectPath.slice(objectPath.lastIndexOf(".") + 1).toLowerCase();
+  return { png: "image/png", jpg: "image/jpeg", webp: "image/webp" }[ext] || "application/octet-stream";
+}
 
 function applyFilters(rows, eventId, status) {
   if (eventId) rows = rows.filter((r) => r.event_id === eventId);
@@ -83,6 +95,106 @@ router.get("/registrations.csv", ...AdminUser, async (req, res) => {
   res.set("Content-Type", "text/csv");
   res.set("Content-Disposition", 'attachment; filename="registrations.csv"');
   res.send(lines.join("\r\n") + "\r\n");
+});
+
+// ── Payment mode ─────────────────────────────────────────────
+router.get("/settings", ...AdminUser, async (req, res) => {
+  res.json(await getAppSettings());
+});
+
+router.put("/settings", ...AdminUser, async (req, res) => {
+  const patch = {};
+  if (req.body?.payment_mode !== undefined) {
+    patch.payment_mode = requireOneOf(req.body.payment_mode, PAYMENT_MODES, { field: "payment_mode" });
+  }
+  if (req.body?.payment_instructions !== undefined) {
+    patch.payment_instructions = optionalString(req.body.payment_instructions);
+  }
+  if (!Object.keys(patch).length) throw new ApiError(400, "Nothing to update");
+
+  // Deliberately no lock on existing registrations: switching is the whole
+  // point (gateway goes down mid-fest). Rows already created keep the mode
+  // they were stamped with, so nothing in flight is disturbed.
+  res.json(await setAppSettings(patch, req.user.email));
+});
+
+// ── Screenshot payment approvals ─────────────────────────────
+router.get("/approvals", ...AdminUser, async (req, res) => {
+  const data = await aggregate.loadAll();
+  const rows = data.registrations.filter(
+    (r) => r.payment_mode === MODE_SCREENSHOT && r.status === STATUS_AWAITING_APPROVAL
+  );
+  // Oldest first — this is a queue, and whoever has waited longest goes next.
+  rows.sort((a, b) => (a.proof_uploaded_at || "").localeCompare(b.proof_uploaded_at || ""));
+
+  res.json(
+    rows.map((r) => ({
+      ...r,
+      event_name: aggregate.eventName(data.events, r.event_id || ""),
+      // The screenshot is fetched from the endpoint below rather than a
+      // signed URL — see there for why.
+      has_proof: Boolean(r.proof_path),
+    }))
+  );
+});
+
+/** Stream a payment screenshot to the reviewing admin.
+ *
+ * Deliberately not a signed URL: signing needs a private key, and on App
+ * Hosting the SDK runs on Application Default Credentials with none — it
+ * would need the IAM Service Account Credentials API and a
+ * serviceAccountTokenCreator grant, and would otherwise fail in production
+ * while working locally. Streaming needs neither, keeps the bucket private,
+ * and matches how QR tickets are served.
+ */
+router.get("/approvals/:registrationId/proof", ...AdminUser, async (req, res) => {
+  const doc = await getDb().collection("registrations").doc(req.params.registrationId).get();
+  if (!doc.exists) throw new ApiError(404, "Registration not found");
+  const proofPath = doc.data()?.proof_path;
+  if (!proofPath) throw new ApiError(404, "No payment screenshot on this registration");
+
+  const buffer = await downloadBuffer(proofPath);
+  res.set("Content-Type", contentTypeFor(proofPath));
+  res.send(buffer);
+});
+
+router.post("/approvals/:registrationId", ...AdminUser, async (req, res) => {
+  const decision = requireOneOf(req.body?.decision, ["approve", "reject"], { field: "decision" });
+  const regRef = getDb().collection("registrations").doc(req.params.registrationId);
+  const reg = await regRef.get();
+  if (!reg.exists) throw new ApiError(404, "Registration not found");
+  const row = reg.data() ?? {};
+  if (row.status !== STATUS_AWAITING_APPROVAL) {
+    throw new ApiError(409, "This registration is not waiting for approval");
+  }
+
+  const now = new Date().toISOString();
+  const audit = { reviewed_by: req.user.email, reviewed_at: now };
+
+  if (decision === "reject") {
+    // A rejection the participant can't act on is a dead end, so the reason
+    // is mandatory — it's shown to them next to the resubmit button.
+    const note = requireString(req.body?.note, { field: "note", minLength: 4 });
+    await regRef.update({ status: STATUS_REJECTED, review_note: note, ...audit });
+    aggregate.invalidateLoadAll();
+    return res.json({ registration_id: reg.id, status: STATUS_REJECTED, ...audit });
+  }
+
+  // Approving is the screenshot-mode equivalent of a verified signature: it
+  // confirms the row and mints the same QR tickets the gateway path does.
+  await regRef.update({
+    status: STATUS_COMPLETED,
+    paid_at: now,
+    payment_method: "manual",
+    review_note: "",
+    ...audit,
+    qr: await generateForRegistration(reg.id, row).catch((err) => {
+      console.error(`QR generation failed for ${reg.id}:`, err);
+      return [];
+    }),
+  });
+  aggregate.invalidateLoadAll();
+  res.json({ registration_id: reg.id, status: STATUS_COMPLETED, ...audit });
 });
 
 // ── Venues ───────────────────────────────────────────────────

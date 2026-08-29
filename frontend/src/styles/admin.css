@@ -714,3 +714,116 @@
   font-family: ui-monospace, "SF Mono", Menlo, monospace;
   font-size: 0.82rem;
 }
+
+/* ── Payment mode + approvals ──────────────────────────────── */
+
+/* New registration statuses. awaiting_approval reads as "in progress"
+   (warn), rejected as a stop (bad) — matching pending/failed above. */
+.pill-awaiting_approval { background: var(--warn-bg); color: var(--warn); }
+.pill-rejected          { background: var(--bad-bg);  color: var(--bad); }
+
+/* A rejection is worse news than the default .notice, so it borrows the
+   error palette rather than the warning one. */
+.notice-warn {
+  border-color: var(--bad);
+  background: var(--bad-bg);
+  color: var(--bad);
+}
+.notice strong { display: block; margin-bottom: 4px; }
+.notice p { margin: 0; }
+
+/* Payment-method chooser: two large, clickable cards. */
+.mode-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+.mode-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.mode-card:hover { border-color: var(--accent); }
+.mode-card.active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  cursor: default;
+}
+.mode-card-head { display: flex; align-items: center; gap: 8px; }
+.mode-card-head strong { font-size: 0.95rem; }
+.mode-card .muted { font-size: 0.85rem; line-height: 1.5; }
+
+/* Table cells holding a transaction reference. */
+.data-table .mono {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 0.82rem;
+}
+
+/* ── QR entry passes ───────────────────────────────────────── */
+.tickets { margin-top: 14px; }
+.ticket-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 8px;
+}
+.ticket {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+}
+/* The QR is generated on a white ground, so it keeps one in dark mode too —
+   inverting it would break scanners. */
+.ticket img {
+  background: #fff;
+  border-radius: 4px;
+  display: block;
+}
+.ticket-placeholder {
+  width: 120px;
+  height: 120px;
+  display: grid;
+  place-items: center;
+  border-radius: 4px;
+  background: var(--surface-2);
+  color: var(--ink-faint);
+}
+.ticket figcaption {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+/* Payment screenshot thumbnails in the approval queue. */
+.proof-thumb {
+  display: block;
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+}
+.proof-thumb--loading {
+  display: grid;
+  place-items: center;
+  color: var(--ink-faint);
+}

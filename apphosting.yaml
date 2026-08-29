@@ -1,5 +1,5 @@
 runConfig:
-  minInstances: 0
+  minInstances: 1
   maxInstances: 1
   concurrency: 80
   cpu: 1
@@ -7,50 +7,58 @@ runConfig:
 
 env:
   - variable: FIRESTORE_DATABASE_ID
-    value: "(default)"
+    secret: FIRESTORE_DATABASE_ID
     availability:
       - RUNTIME
 
   - variable: CORS_ORIGINS
-    value: "https://spring-fest--spring-fest-ksrce-cse.asia-southeast1.hosted.app,https://springfest2k26.live"
+    secret: CORS_ORIGINS
     availability:
       - RUNTIME
 
-  # Emails granted admin on sign-in (comma-separated, case-insensitive).
-  # Without this every login resolves as "participant" unless the person has
-  # a doc in the Firestore `roles` collection. Never leave it empty — it's
-  # the lockout-recovery path.
   - variable: ADMIN_EMAILS
-    value: "anandhakumaran.m.s@gmail.com"
+    secret: ADMIN_EMAILS
     availability:
       - RUNTIME
 
-  # - variable: PAYMENT_KEY_ID
-  #   value: "REPLACE_WITH_PAYMENT_KEY_ID"
-  #   availability:
-  #     - RUNTIME
+  # Publishable key (reaches the browser). Swap to the live key before real payments.
+  - variable: PAYMENT_KEY_ID
+    value: "rzp_test_TUmxr2bTulNHjs"
+    availability:
+      - RUNTIME
 
-  # - variable: PAYMENT_KEY_SECRET
-  #   value: "REPLACE_WITH_PAYMENT_KEY_SECRET"
-  #   availability:
-  #     - RUNTIME
+  - variable: PAYMENT_KEY_SECRET
+    secret: PAYMENT_KEY_SECRET
+    availability:
+      - RUNTIME
+
+  - variable: STORAGE_BUCKET
+    secret: STORAGE_BUCKET
+    availability:
+      - RUNTIME
+
+  - variable: QR_SECRET
+    secret: QR_SECRET
+    availability:
+      - RUNTIME
 
   - variable: VITE_FIREBASE_API_KEY
-    value: "AIzaSyCT6U15MXjOCJeOZYk4NlEtcSU01WGwA6o"
+    secret: VITE_FIREBASE_API_KEY
     availability:
       - BUILD
 
   - variable: VITE_FIREBASE_AUTH_DOMAIN
-    value: "spring-fest-ksrce-cse.firebaseapp.com"
+    secret: VITE_FIREBASE_AUTH_DOMAIN
     availability:
       - BUILD
 
   - variable: VITE_FIREBASE_PROJECT_ID
-    value: "spring-fest-ksrce-cse"
+    secret: VITE_FIREBASE_PROJECT_ID
     availability:
       - BUILD
 
   - variable: VITE_FIREBASE_APP_ID
-    value: "1:4566914711:web:3ad4ea86f435881bcabbd2"
+    secret: VITE_FIREBASE_APP_ID
     availability:
       - BUILD
+
