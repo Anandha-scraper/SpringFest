@@ -139,6 +139,27 @@ export async function participantRows(data) {
   return rows;
 }
 
+/** Registration counts per event: how many rows total, how many completed,
+ * and the revenue those brought in. Sorted by `completed` descending — the
+ * admin Overview's ranking. Shared by `buildStats()` and the participant
+ * schedule (`GET /me/schedule`), which sorts by `count` instead — see there. */
+export function perEventCounts(data) {
+  const { registrations, events } = data;
+  const rows = Object.entries(events).map(([eid, event]) => {
+    const regs = registrations.filter((r) => r.event_id === eid);
+    const done = regs.filter((r) => r.status === STATUS_COMPLETED);
+    return {
+      event_id: eid,
+      name: event.name || eid,
+      count: regs.length,
+      completed: done.length,
+      revenue: done.reduce((sum, r) => sum + (r.fee || 0), 0),
+    };
+  });
+  rows.sort((a, b) => b.completed - a.completed);
+  return rows;
+}
+
 /** Shaped for the Overview. The three headline numbers count *people*, not
  * registration rows — one person registering for four events is one signed
  * user, not four. */
@@ -149,19 +170,6 @@ export async function buildStats(data) {
   const personKey = (r) => r.uid || r.email || "unknown";
   const completed = registrations.filter((r) => r.status === STATUS_COMPLETED);
 
-  const perEvent = Object.entries(events).map(([eid, event]) => {
-    const rows = registrations.filter((r) => r.event_id === eid);
-    const done = rows.filter((r) => r.status === STATUS_COMPLETED);
-    return {
-      event_id: eid,
-      name: event.name || eid,
-      count: rows.length,
-      completed: done.length,
-      revenue: done.reduce((sum, r) => sum + (r.fee || 0), 0),
-    };
-  });
-  perEvent.sort((a, b) => b.completed - a.completed);
-
   return {
     // Everyone who signed in and registered, paid or not.
     signed_users: new Set(registrations.map(personKey)).size,
@@ -171,7 +179,7 @@ export async function buildStats(data) {
     checked_in: registrations.filter((r) => r.checked_in).length,
     total_registrations: registrations.length,
     events_count: Object.keys(events).length,
-    per_event: perEvent,
+    per_event: perEventCounts(data),
   };
 }
 

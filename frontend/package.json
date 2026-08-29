@@ -26,6 +26,7 @@
     "date-fns": "^3.6.0",
     "firebase": "^10.14.0",
     "gsap": "^3.15.0",
+    "html5-qrcode": "^2.3.8",
     "lucide-react": "^1.35.0",
     "meshline": "^3.3.1",
     "motion": "^13.1.1",

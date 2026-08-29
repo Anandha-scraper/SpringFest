@@ -4,7 +4,6 @@ import { ApiError } from "../errors.js";
 import { AdminUser } from "../middleware/auth.js";
 import * as aggregate from "../services/aggregate.js";
 import { getDb } from "../services/firebase.js";
-import { generateForRegistration } from "../services/qr.js";
 import * as roles from "../services/roles.js";
 import { MODE_SCREENSHOT, PAYMENT_MODES, getAppSettings, setAppSettings } from "../services/settings.js";
 import { downloadBuffer } from "../services/storage.js";
@@ -180,18 +179,13 @@ router.post("/approvals/:registrationId", ...AdminUser, async (req, res) => {
     return res.json({ registration_id: reg.id, status: STATUS_REJECTED, ...audit });
   }
 
-  // Approving is the screenshot-mode equivalent of a verified signature: it
-  // confirms the row and mints the same QR tickets the gateway path does.
+  // Approving is the screenshot-mode equivalent of a verified signature.
   await regRef.update({
     status: STATUS_COMPLETED,
     paid_at: now,
     payment_method: "manual",
     review_note: "",
     ...audit,
-    qr: await generateForRegistration(reg.id, row).catch((err) => {
-      console.error(`QR generation failed for ${reg.id}:`, err);
-      return [];
-    }),
   });
   aggregate.invalidateLoadAll();
   res.json({ registration_id: reg.id, status: STATUS_COMPLETED, ...audit });
