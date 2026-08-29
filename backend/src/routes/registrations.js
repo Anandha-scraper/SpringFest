@@ -83,7 +83,7 @@ router.post("/", ...CurrentUser, async (req, res) => {
         order_id: orderId,
         amount: fee * 100,
         currency: "INR",
-        key_id: settings.RAZORPAY_KEY_ID,
+        key_id: settings.PAYMENT_KEY_ID,
       });
     }
   } else {
@@ -109,7 +109,7 @@ router.post("/", ...CurrentUser, async (req, res) => {
       order_id: "",
       amount: 0,
       currency: "INR",
-      key_id: settings.RAZORPAY_KEY_ID,
+      key_id: settings.PAYMENT_KEY_ID,
     });
   }
 
@@ -120,7 +120,7 @@ router.post("/", ...CurrentUser, async (req, res) => {
     order_id: order.id,
     amount: order.amount,
     currency: order.currency,
-    key_id: settings.RAZORPAY_KEY_ID,
+    key_id: settings.PAYMENT_KEY_ID,
   });
 });
 

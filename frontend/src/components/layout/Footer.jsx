@@ -4,71 +4,46 @@ export default function Footer() {
   const c = fest.contact;
 
   return (
-    // The nav's /#contact target lives here now — the contact block and the
-    // footer are one unit at the bottom of the page, not a full-height section.
+    // The nav's /#contact target lives here — the contact block and the
+    // footer are one compact unit at the bottom of the page.
     <footer id="contact" className="footer">
-      <div className="container footer-contact">
+      <div className="footer-contact">
         <div className="footer-contact-copy">
-          <span className="footer-label">Get in touch</span>
-          <h2>Contact</h2>
-          <p className="footer-lede">
-            Questions about events, registration or travel — reach the desk below.
-          </p>
+          <div className="contact-group">
+            <span className="contact-label">Faculty Co-ordinator</span>
+            <strong>{c.faculty.name}</strong>
+            <a href={`tel:${c.faculty.phone.replace(/\s/g, "")}`}>{c.faculty.phone}</a>
+          </div>
 
-          <ul className="contact-list">
-            <li>
-              <span className="contact-label">Convenor</span>
-              <strong>{c.person}</strong>
-              <span className="muted">{c.role}</span>
-            </li>
-            <li>
-              <span className="contact-label">Email</span>
-              <a href={`mailto:${c.email}`}>{c.email}</a>
-            </li>
-            <li>
-              <span className="contact-label">Phone</span>
-              <a href={`tel:${c.phone.replace(/\s/g, "")}`}>{c.phone}</a>
-            </li>
-            <li>
-              <span className="contact-label">Location</span>
-              <span>{c.location}</span>
-              <a href={c.mapLink} target="_blank" rel="noreferrer">
-                Open in Maps →
-              </a>
-            </li>
-          </ul>
+          <div className="contact-group">
+            <span className="contact-label">Student Co-ordinators</span>
+            <ul className="contact-list">
+              {c.students.map((s) => (
+                <li key={s.name}>
+                  <strong>{s.name}</strong>
+                  <a href={`tel:${s.phone.replace(/\s/g, "")}`}>{s.phone}</a>
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
 
-        <div className="contact-map">
+        <a
+          className="contact-map"
+          href={c.mapLink}
+          target="_blank"
+          rel="noreferrer"
+          aria-label={`Open map to ${fest.institution.name} in Google Maps`}
+        >
           <iframe
             src={c.mapEmbed}
             title={`Map to ${fest.institution.name}`}
             loading="lazy"
             referrerPolicy="no-referrer-when-downgrade"
             allowFullScreen
+            tabIndex="-1"
           />
-        </div>
-      </div>
-
-      <div className="container footer-inner">
-        <div>
-          <strong>
-            {fest.name} {fest.year}
-          </strong>
-          <span className="footer-sub">
-            {fest.institution.name} · {fest.dates}
-          </span>
-        </div>
-
-        <div className="footer-social">
-          <a href={fest.social.instagram} target="_blank" rel="noreferrer">Instagram</a>
-          <a href={fest.social.linkedin} target="_blank" rel="noreferrer">LinkedIn</a>
-          <a href={fest.social.twitter} target="_blank" rel="noreferrer">X</a>
-        </div>
-      </div>
-
-      <div className="container footer-base">
-        © {new Date().getFullYear()} {fest.institution.name} · {fest.institution.department}
+        </a>
       </div>
     </footer>
   );

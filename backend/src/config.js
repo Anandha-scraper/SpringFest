@@ -13,8 +13,10 @@ export const settings = {
   FIREBASE_CREDENTIALS: process.env.FIREBASE_CREDENTIALS || "./serviceAccountKey.json",
   // Firestore database id; "(default)" unless a named database was created.
   FIRESTORE_DATABASE_ID: process.env.FIRESTORE_DATABASE_ID || "(default)",
-  RAZORPAY_KEY_ID: process.env.RAZORPAY_KEY_ID || "",
-  RAZORPAY_KEY_SECRET: process.env.RAZORPAY_KEY_SECRET || "",
+  // Payment gateway credentials. Named gateway-agnostically; the id reaches
+  // the browser to open checkout, the secret is server-only.
+  PAYMENT_KEY_ID: process.env.PAYMENT_KEY_ID || "",
+  PAYMENT_KEY_SECRET: process.env.PAYMENT_KEY_SECRET || "",
   CORS_ORIGINS: (process.env.CORS_ORIGINS || "http://localhost:5173")
     .split(",")
     .map((o) => o.trim())

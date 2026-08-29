@@ -9,7 +9,9 @@ export default defineConfig({
   plugins: [react()],
   // Lanyard imports the card model as a URL asset.
   assetsInclude: ["**/*.glb"],
-  server: { port: 5173 },
+  // `/api` -> the local Express server, so dev uses the same relative base
+  // (client.js defaults to "/api") that production serves from one origin.
+  server: { port: 5173, proxy: { "/api": "http://localhost:8000" } },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

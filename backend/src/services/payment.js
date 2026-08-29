@@ -4,7 +4,7 @@ import Razorpay from "razorpay";
 
 import { settings } from "../config.js";
 
-const client = new Razorpay({ key_id: settings.RAZORPAY_KEY_ID, key_secret: settings.RAZORPAY_KEY_SECRET });
+const client = new Razorpay({ key_id: settings.PAYMENT_KEY_ID, key_secret: settings.PAYMENT_KEY_SECRET });
 
 /** amountInr in rupees -> Razorpay order (paise). */
 export async function createOrder(amountInr, receipt) {
@@ -36,7 +36,7 @@ export async function fetchPaymentMethod(paymentId) {
  * just HMAC-SHA256("<order_id>|<payment_id>", key_secret), so it's done
  * directly with node:crypto rather than pulling in another dependency. */
 export function verifySignature(orderId, paymentId, signature) {
-  const expected = createHmac("sha256", settings.RAZORPAY_KEY_SECRET)
+  const expected = createHmac("sha256", settings.PAYMENT_KEY_SECRET)
     .update(`${orderId}|${paymentId}`)
     .digest("hex");
 

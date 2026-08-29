@@ -95,13 +95,14 @@ export const fest = {
     { role: "Registrations", name: "Registration Desk", phone: "+91 90000 00003", email: "register@example.edu" },
   ],
 
-  // Mock contact details — swap for the real ones.
   contact: {
-    person: "Aarthi Ramesh",
-    role: "Student Convenor",
-    email: "springfest@example.edu",
-    phone: "+91 90000 00001",
-    location: "Department of CSE, Main Campus, Chennai, Tamil Nadu 600001",
+    faculty: { name: "Mr. V. PRAKASHAM", phone: "99651 90985" },
+    students: [
+      { name: "DHIVAGAR P.R", phone: "7339224113" },
+      { name: "PRAVEEN K", phone: "638179634" },
+      { name: "BAARHAVI M D", phone: "6369163774" },
+      { name: "SANGAMITHA P", phone: "7010699283" },
+    ],
     mapEmbed:
       "https://www.google.com/maps?q=Chennai%2C%20Tamil%20Nadu&output=embed",
     mapLink: "https://www.google.com/maps/search/?api=1&query=Chennai,Tamil+Nadu",

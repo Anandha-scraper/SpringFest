@@ -1,11 +1,7 @@
 node_modules/
 dist/
-__pycache__/
-*.pyc
-.venv/
 .env
 serviceAccountKey.json
 .firebase/
-package-lock.json
 firebase-debug.log
 CLAUDE.md
