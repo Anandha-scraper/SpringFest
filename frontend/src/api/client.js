@@ -35,6 +35,9 @@ export const verifyPayment = (data) =>
   req("/registrations/verify", { method: "POST", body: JSON.stringify(data) }, true);
 export const getMyRegistrations = () => req("/me/registrations", {}, true);
 
+/** Events ordered by how many people have registered, most first. */
+export const getSchedule = () => req("/me/schedule", {}, true);
+
 /** Proof of an out-of-band payment: transaction reference + screenshot.
  *
  * Multipart, so it sidesteps req()'s JSON body — and deliberately sets no
@@ -57,25 +60,15 @@ export async function submitPaymentProof(registrationId, { transactionId, file }
   return res.json();
 }
 
-/** The URL a QR <img> points at. Authenticated, so it's fetched as a blob
- *  rather than being set as a plain src — see ticketObjectUrl below. */
-export const qrTicketPath = (registrationId, memberIndex) =>
-  `/me/registrations/${encodeURIComponent(registrationId)}/qr/${memberIndex}`;
-
-/** An object URL for one QR ticket, for display. Callers must revoke it. */
-export async function ticketObjectUrl(registrationId, memberIndex) {
-  const res = await fetch(`${BASE}${qrTicketPath(registrationId, memberIndex)}`, {
-    headers: await authHeader(),
-  });
-  if (!res.ok) throw new Error(`Could not load ticket: ${res.status}`);
+/** One QR per signed-in person (not per registration). Authenticated, so
+ *  it's fetched as a blob rather than being set as a plain <img src>. */
+export async function personalQrObjectUrl() {
+  const res = await fetch(`${BASE}/me/qr`, { headers: await authHeader() });
+  if (!res.ok) throw new Error(`Could not load your QR: ${res.status}`);
   return URL.createObjectURL(await res.blob());
 }
 
-export const downloadTicket = (registrationId, memberIndex, name) =>
-  downloadFile(
-    qrTicketPath(registrationId, memberIndex),
-    `ticket-${(name || `member-${memberIndex}`).replace(/[^a-z0-9]+/gi, "-").toLowerCase()}.png`
-  );
+export const downloadPersonalQr = () => downloadFile("/me/qr", "spring-fest-qr.png");
 
 // ── Admin ────────────────────────────────────────────────────
 export const getAdminStats = () => req("/admin/stats", {}, true);
@@ -164,14 +157,20 @@ export const reviewApproval = (registrationId, decision, note = "") =>
   );
 
 // ── Volunteer ────────────────────────────────────────────────
-/** Check in one person from their scanned QR ticket. */
-export const checkInByToken = (token) =>
-  req("/volunteer/check-in/scan", { method: "POST", body: JSON.stringify({ token }) }, true);
+/** Scan a person's badge: who they are, and every event they're registered
+ *  for (as lead or as a team member), each with its own check-in state. */
+export const scanPersonToken = (token) =>
+  req("/volunteer/scan", { method: "POST", body: JSON.stringify({ token }) }, true);
 
-export const checkIn = (registrationId, checkedIn = true) =>
+/** Check one member of one registration in or out. A "no ticket, just their
+ *  id" desk fallback is this same call with memberIndex 0 (the lead). */
+export const toggleCheckIn = (registrationId, memberIndex, checkedIn) =>
   req(
-    "/volunteer/check-in",
-    { method: "POST", body: JSON.stringify({ registration_id: registrationId, checked_in: checkedIn }) },
+    "/volunteer/check-in/toggle",
+    {
+      method: "POST",
+      body: JSON.stringify({ registration_id: registrationId, member_index: memberIndex, checked_in: checkedIn }),
+    },
     true
   );
 

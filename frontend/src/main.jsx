@@ -44,6 +44,7 @@ import "./styles/tokens.css";
 import "./styles/base.css";
 import "./styles/layout.css";
 import "./styles/landing.css";
+import "./styles/track-card.css";
 import "./styles/admin.css";
 import "./styles/register-button.css";
 import "./styles/sign-in-modal.css";

@@ -1,22 +1,23 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Download } from "lucide-react";
-import { downloadTicket, getMyRegistrations, ticketObjectUrl } from "../api/client.js";
+import { Download, QrCode, Ticket as TicketIcon } from "lucide-react";
+import { downloadPersonalQr, getMyRegistrations, personalQrObjectUrl } from "../api/client.js";
 import StatusPill from "../components/admin/StatusPill.jsx";
 
-/** One member's QR ticket.
+/** The signed-in person's one badge — scanning it is how a volunteer sees
+ * every event they're registered for, not just this one.
  *
- * The image is fetched rather than pointed at with a plain src because the
- * endpoint is authenticated — a bare <img src> sends no bearer token.
+ * Fetched rather than pointed at with a plain src because the endpoint is
+ * authenticated — a bare <img src> sends no bearer token.
  */
-function Ticket({ registrationId, ticket }) {
+function PersonalQr() {
   const [src, setSrc] = useState("");
   const [error, setError] = useState("");
 
   useEffect(() => {
     let url = "";
     let cancelled = false;
-    ticketObjectUrl(registrationId, ticket.member_index)
+    personalQrObjectUrl()
       .then((objectUrl) => {
         if (cancelled) return URL.revokeObjectURL(objectUrl);
         url = objectUrl;
@@ -27,26 +28,26 @@ function Ticket({ registrationId, ticket }) {
       cancelled = true;
       if (url) URL.revokeObjectURL(url);
     };
-  }, [registrationId, ticket.member_index]);
+  }, []);
 
   return (
-    <figure className="ticket">
+    <div className="card personal-qr">
+      <div className="card-meta" style={{ paddingTop: 0 }}>
+        <QrCode size={18} aria-hidden="true" />
+        <strong>Your Entry Pass</strong>
+      </div>
+      <p className="muted" style={{ fontSize: "0.85rem" }}>
+        One code for everything you're registered for — show it at the door for any event.
+      </p>
       {src ? (
-        <img src={src} alt={`Entry QR code for ${ticket.name}`} width={120} height={120} />
+        <img src={src} alt="Your Spring Fest entry QR code" width={220} height={220} />
       ) : (
         <div className="ticket-placeholder">{error ? "!" : "…"}</div>
       )}
-      <figcaption>
-        <strong>{ticket.name || `Member ${ticket.member_index + 1}`}</strong>
-        <button
-          className="btn btn-ghost btn-sm"
-          type="button"
-          onClick={() => downloadTicket(registrationId, ticket.member_index, ticket.name)}
-        >
-          <Download size={13} aria-hidden="true" /> Save
-        </button>
-      </figcaption>
-    </figure>
+      <button className="btn btn-ghost btn-sm" type="button" onClick={downloadPersonalQr}>
+        <Download size={13} aria-hidden="true" /> Save
+      </button>
+    </div>
   );
 }
 
@@ -68,7 +69,7 @@ export default function MyRegistrations() {
       <div className="section-head">
         <span className="eyebrow">Your fest</span>
         <h2>My Registrations</h2>
-        <p>Everything you've signed up for, with payment status and entry passes.</p>
+        <p>Everything you've signed up for, with payment status and your entry pass.</p>
       </div>
 
       {error && <p className="error">{error}</p>}
@@ -82,6 +83,7 @@ export default function MyRegistrations() {
         </div>
       ) : (
         <div className="grid">
+          <PersonalQr />
           {items.map((r) => (
             <div className="card" key={r.id}>
               <div className="card-meta" style={{ paddingTop: 0 }}>
@@ -127,18 +129,11 @@ export default function MyRegistrations() {
                 </>
               )}
 
-              {r.status === "completed" && !!r.qr?.length && (
-                <div className="tickets">
-                  <p className="muted" style={{ fontSize: "0.85rem" }}>
-                    Entry pass{r.qr.length === 1 ? "" : "es"} — save {r.qr.length === 1 ? "it" : "them"} before
-                    you arrive, they work offline.
-                  </p>
-                  <div className="ticket-row">
-                    {r.qr.map((t) => (
-                      <Ticket key={t.member_index} registrationId={r.id} ticket={t} />
-                    ))}
-                  </div>
-                </div>
+              {r.status === "completed" && (
+                <p className="muted" style={{ fontSize: "0.85rem" }}>
+                  <TicketIcon size={13} aria-hidden="true" style={{ verticalAlign: "-2px", marginRight: 4 }} />
+                  Show your Spring Fest QR above at the door.
+                </p>
               )}
             </div>
           ))}

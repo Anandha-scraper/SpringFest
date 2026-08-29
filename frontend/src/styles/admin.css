@@ -335,6 +335,8 @@
   .reg-toolbar { flex-wrap: wrap; }
   .reg-search { flex-basis: 100%; }
   .reg-total { flex: 1 1 auto; }
+
+  .schedule-row { flex-direction: column; align-items: flex-start; gap: 6px; }
 }
 
 /* ── Event detail / success ────────────────────────────────── */
@@ -768,48 +770,124 @@
   font-size: 0.82rem;
 }
 
-/* ── QR entry passes ───────────────────────────────────────── */
-.tickets { margin-top: 14px; }
-.ticket-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-top: 8px;
-}
-.ticket {
+/* ── Personal entry-pass QR (My Registrations) ───────────────── */
+.personal-qr {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  text-align: center;
+  gap: 10px;
+}
+.personal-qr .card-meta { justify-content: center; }
+/* The QR is generated on a white ground, so it keeps one in dark mode too —
+   inverting it would break scanners. */
+.personal-qr img {
+  background: #fff;
+  border-radius: var(--r-sm);
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+.ticket-placeholder {
+  width: 220px;
+  max-width: 100%;
+  aspect-ratio: 1 / 1;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  color: var(--ink-faint);
+}
+
+/* ── Participant schedule ────────────────────────────────────── */
+.schedule-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  list-style: none;
   margin: 0;
-  padding: 10px;
+  padding: 0;
+}
+.schedule-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 20px;
+  padding: 14px 16px;
   border: 1px solid var(--border);
   border-radius: var(--r-sm);
   background: var(--surface);
 }
-/* The QR is generated on a white ground, so it keeps one in dark mode too —
-   inverting it would break scanners. */
-.ticket img {
-  background: #fff;
-  border-radius: 4px;
-  display: block;
+.schedule-name { flex: 1 1 220px; }
+.schedule-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+  white-space: nowrap;
 }
-.ticket-placeholder {
-  width: 120px;
-  height: 120px;
-  display: grid;
-  place-items: center;
-  border-radius: 4px;
+
+/* ── Volunteer check-in ──────────────────────────────────────── */
+/* Built mobile-first: this runs on a phone at a check-in desk, not a
+   desktop shrunk down. */
+.checkin-mode-toggle { display: flex; gap: 8px; }
+.qr-scanner {
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
+  border-radius: var(--r-sm);
+  overflow: hidden;
   background: var(--surface-2);
-  color: var(--ink-faint);
 }
-.ticket figcaption {
+.checkin-manual-form { max-width: 420px; margin: 0 auto; }
+.checkin-person {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  font-size: 0.8rem;
-  text-align: center;
+  gap: 16px;
+  margin-top: 8px;
+}
+.checkin-person-head { display: flex; align-items: center; gap: 12px; }
+.checkin-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.checkin-avatar-placeholder {
+  display: grid;
+  place-items: center;
+  background: var(--surface-2);
+  color: var(--ink-soft);
+  font-weight: 700;
+}
+.checkin-row-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.checkin-row {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+}
+.checkin-row-info { display: flex; flex-direction: column; gap: 4px; }
+.checkin-row .btn { width: 100%; justify-content: center; }
+
+/* From tablet width up, the toggle can sit beside the details instead of
+   stacking under them — but the stacked layout above stays the default. */
+@media (min-width: 520px) {
+  .checkin-row { flex-direction: row; align-items: center; justify-content: space-between; }
+  .checkin-row .btn { width: auto; }
 }
 
 /* Payment screenshot thumbnails in the approval queue. */

@@ -1,10 +1,11 @@
 import { Router } from "express";
 
-import { ApiError } from "../errors.js";
 import { CurrentUser } from "../middleware/auth.js";
+import * as aggregate from "../services/aggregate.js";
 import { getDb } from "../services/firebase.js";
+import { loadPersonRegistrations } from "../services/registrationLookup.js";
+import { personalQrPng } from "../services/qr.js";
 import { getAppSettings } from "../services/settings.js";
-import { downloadBuffer } from "../services/storage.js";
 
 export const router = Router();
 
@@ -26,8 +27,10 @@ router.get("/", ...CurrentUser, async (req, res) => {
 
 router.get("/registrations", ...CurrentUser, async (req, res) => {
   const db = getDb();
-  const regsSnap = await db.collection("registrations").where("uid", "==", req.user.uid).get();
-  const rows = regsSnap.docs.map((d) => ({ id: d.id, ...(d.data() ?? {}) }));
+  // Not just "registrations I created": a team member typed into someone
+  // else's registration (matched by email — they never get a uid on the doc)
+  // sees it here too, once they sign in themselves.
+  const rows = await loadPersonRegistrations({ uid: req.user.uid, email: req.user.email });
 
   const eventsSnap = await db.collection("events").get();
   const names = Object.fromEntries(eventsSnap.docs.map((d) => [d.id, d.data()?.name || d.id]));
@@ -37,25 +40,34 @@ router.get("/registrations", ...CurrentUser, async (req, res) => {
   res.json(rows);
 });
 
-/** Stream one member's QR ticket.
- *
- * Served through the API rather than handing out a bucket URL so the bucket
- * stays private and the download stays tied to the signed-in owner — same
- * reasoning as the admin CSV export.
- */
-router.get("/registrations/:registrationId/qr/:memberIndex", ...CurrentUser, async (req, res) => {
-  const doc = await getDb().collection("registrations").doc(req.params.registrationId).get();
-  if (!doc.exists) throw new ApiError(404, "Registration not found");
-  const row = doc.data() ?? {};
-  if (row.uid !== req.user.uid) throw new ApiError(403, "Not your registration");
-
-  const memberIndex = Number(req.params.memberIndex);
-  const ticket = (row.qr || []).find((t) => t.member_index === memberIndex);
-  if (!ticket) throw new ApiError(404, "No ticket for that member");
-
-  const buffer = await downloadBuffer(ticket.path);
-  const safeName = (ticket.name || `member-${memberIndex}`).replace(/[^a-z0-9]+/gi, "-").toLowerCase();
+/** This person's personal check-in badge — one QR, not one per registration.
+ * Generated on the fly (no Cloud Storage round-trip): it's cheap, and the
+ * whole point is that it never needs to be reissued when they register for
+ * something new. */
+router.get("/qr", ...CurrentUser, async (req, res) => {
+  const png = await personalQrPng(req.user.uid);
   res.set("Content-Type", "image/png");
-  res.set("Content-Disposition", `attachment; filename="ticket-${safeName}.png"`);
-  res.send(buffer);
+  res.send(png);
+});
+
+/** Events ordered by how many people have signed up — most first. Reachable
+ * by any signed-in user (not admin-gated), unlike the admin stats this
+ * shares its count logic with. */
+router.get("/schedule", ...CurrentUser, async (req, res) => {
+  const data = await aggregate.loadAll();
+  const counts = Object.fromEntries(aggregate.perEventCounts(data).map((e) => [e.event_id, e.count]));
+
+  const rows = Object.entries(data.events).map(([id, event]) => ({
+    id,
+    name: event.name || id,
+    venue_name: data.venues[event.venue_id || ""]?.name || "",
+    date: event.date || "",
+    start_time: event.start_time || "",
+    end_time: event.end_time || "",
+    fee: event.fee ?? 0,
+    category: event.category || "",
+    registration_count: counts[id] || 0,
+  }));
+  rows.sort((a, b) => b.registration_count - a.registration_count);
+  res.json(rows);
 });

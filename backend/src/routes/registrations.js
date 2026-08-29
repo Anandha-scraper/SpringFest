@@ -7,7 +7,6 @@ import { CurrentUser } from "../middleware/auth.js";
 import * as aggregate from "../services/aggregate.js";
 import { getDb } from "../services/firebase.js";
 import { createOrder, fetchPaymentMethod, verifySignature } from "../services/payment.js";
-import { generateForRegistration } from "../services/qr.js";
 import { MODE_SCREENSHOT, getAppSettings } from "../services/settings.js";
 import { uploadBuffer } from "../services/storage.js";
 import {
@@ -256,14 +255,6 @@ router.post("/verify", ...CurrentUser, async (req, res) => {
     payment_id: razorpayPaymentId,
     payment_method: await fetchPaymentMethod(razorpayPaymentId),
     paid_at: new Date().toISOString(),
-    // Both confirmation paths mint the same tickets — see the admin approval
-    // handler for the screenshot side. Storage being down must not undo a
-    // payment that has already been verified, so a failure here is logged and
-    // swallowed; the participant's QR can be regenerated later.
-    qr: await generateForRegistration(registrationId, row).catch((err) => {
-      console.error(`QR generation failed for ${registrationId}:`, err);
-      return [];
-    }),
   });
   aggregate.invalidateLoadAll();
   res.json({ status: STATUS_COMPLETED, registration_id: registrationId });

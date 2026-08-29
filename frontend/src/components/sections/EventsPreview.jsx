@@ -1,39 +1,30 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import SplitFlapText from "../reactbits/SplitFlapText.jsx";
-import ChromaGrid from "../reactbits/ChromaGrid.jsx";
+import TrackCard from "../TrackCard.jsx";
+import SignInModal from "../SignInModal.jsx";
+import { useAuth } from "../../auth/AuthContext.jsx";
+import { homeForRole } from "../../content/roles.js";
 
-import { getEvents } from "../../api/client.js";
-
-// Card tint per grid slot until event artwork lands; gradients stay dark so
-// the white name/description text keeps contrast.
-const CARD_TONES = [
-  { border: "#f87b1b" }, // orange
-  { border: "#11224e" }, // navy
-  { border: "#9bb15f" }, // sage
-  { border: "#f5a55c" }, // peach
+// Fixed track cards — the actual per-event list lives behind registration.
+const TRACKS = [
+  { label: "Technical", image: "/events/technical.svg", accent: "#E14E1D", tint: "#f4dbda" },
+  { label: "Non-Technical", image: "/events/nontechincal.svg", accent: "#10b981", tint: "#dcf5e7" },
+  { label: "Hackathon", image: "/events/hackathon.svg", accent: "#6366f1", tint: "#e6e8fd" },
+  { label: "Workshop", image: "/events/workshop.svg", accent: "#f59e0b", tint: "#fef3d9" },
 ];
 
 export default function EventsPreview() {
-  const [events, setEvents] = useState(null);
+  const { user, role } = useAuth();
+  const navigate = useNavigate();
+  const [signInOpen, setSignInOpen] = useState(false);
 
-  useEffect(() => {
-    getEvents()
-      .then(setEvents)
-      .catch(() => setEvents([]));
-  }, []);
-
-  const items = (events ?? []).map((ev, i) => {
-    const tone = CARD_TONES[i % CARD_TONES.length];
-    return {
-      title: ev.name,
-      subtitle: ev.description,
-      borderColor: tone.border,
-      gradient: `linear-gradient(165deg, ${tone.border}, #0d1526)`,
-      url: `/events/${ev.id}`,
-    };
-  });
-
-  const hasEvents = events && events.length > 0;
+  // Same behaviour as the hero Register button: signed in go to your role
+  // dashboard, otherwise open the sign-in modal.
+  const handleTrackClick = () => {
+    if (user) navigate(homeForRole(role));
+    else setSignInOpen(true);
+  };
 
   return (
     <section id="events" className="section section-tint">
@@ -52,12 +43,14 @@ export default function EventsPreview() {
           </div>
         </div>
 
-        {events === null ? (
-          <div className="spinner" />
-        ) : hasEvents ? (
-          <ChromaGrid items={items} columns={4} radius={260} />
-        ) : null}
+        <div className="track-grid">
+          {TRACKS.map((track) => (
+            <TrackCard key={track.label} {...track} onClick={handleTrackClick} />
+          ))}
+        </div>
       </div>
+
+      <SignInModal open={signInOpen} onClose={() => setSignInOpen(false)} />
     </section>
   );
 }
