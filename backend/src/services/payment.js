@@ -4,11 +4,28 @@ import Razorpay from "razorpay";
 
 import { settings } from "../config.js";
 
-const client = new Razorpay({ key_id: settings.PAYMENT_KEY_ID, key_secret: settings.PAYMENT_KEY_SECRET });
+/** Lazily construct the Razorpay client.
+ *
+ * The SDK throws from its constructor when `key_id` is missing, so building
+ * it at module load would crash the whole server on boot with no payment
+ * credentials configured — taking down the public site and every free event
+ * along with paid checkout. Instead it's built on first use: an unconfigured
+ * deployment serves everything except a paid registration, which fails with
+ * a clear error only when someone actually tries to pay. */
+let client = null;
+function getClient() {
+  if (!settings.PAYMENT_KEY_ID || !settings.PAYMENT_KEY_SECRET) {
+    throw new Error("Payments are not configured (PAYMENT_KEY_ID / PAYMENT_KEY_SECRET)");
+  }
+  if (!client) {
+    client = new Razorpay({ key_id: settings.PAYMENT_KEY_ID, key_secret: settings.PAYMENT_KEY_SECRET });
+  }
+  return client;
+}
 
 /** amountInr in rupees -> Razorpay order (paise). */
 export async function createOrder(amountInr, receipt) {
-  return client.orders.create({
+  return getClient().orders.create({
     amount: amountInr * 100,
     currency: "INR",
     receipt,
@@ -24,7 +41,7 @@ export async function createOrder(amountInr, receipt) {
  * verified. */
 export async function fetchPaymentMethod(paymentId) {
   try {
-    const payment = await client.payments.fetch(paymentId);
+    const payment = await getClient().payments.fetch(paymentId);
     return payment.method || "";
   } catch {
     return "";
