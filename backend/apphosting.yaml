@@ -1,0 +1,56 @@
+# Firebase App Hosting build/runtime config for the Spring Fest API
+# (Express/Node). This file must live in this backend's configured root
+# directory in the connected repo — create the backend with:
+#   firebase apphosting:backends:create --root-dir backend --runtime nodejs22
+# See CLAUDE.md for the full deploy setup.
+
+runConfig:
+  minInstances: 0
+  maxInstances: 1
+  concurrency: 80
+  cpu: 1
+  memoryMiB: 512
+
+env:
+  # Firestore database id; "(default)" unless a named database was created.
+  - variable: FIRESTORE_DATABASE_ID
+    value: "(default)"
+    availability:
+      - RUNTIME
+
+  # Comma-separated allowed origins — must include the frontend's App Hosting
+  # URL and any custom domain once one exists.
+  - variable: CORS_ORIGINS
+    value: "https://spring-fest--spring-fest-ksrce-cse.asia-southeast1.hosted.app"
+    availability:
+      - RUNTIME
+
+  # Comma-separated emails granted admin on sign-in. Never let this become
+  # empty — it's the lockout recovery path.
+  - variable: ADMIN_EMAILS
+    value: "anandhakumaran.m.s@gmail.com"
+    availability:
+      - RUNTIME
+
+  # Sent to the browser to open Razorpay Checkout — not sensitive by design,
+  # but kept out of source alongside its secret counterpart for one place to
+  # look. Set with:
+  #   firebase apphosting:secrets:set RAZORPAY_KEY_ID
+  - variable: RAZORPAY_KEY_ID
+    secret: RAZORPAY_KEY_ID
+    availability:
+      - RUNTIME
+
+  # The one value here that actually must stay secret — verifies checkout
+  # signatures and signs Razorpay API calls server-side. Set with:
+  #   firebase apphosting:secrets:set RAZORPAY_KEY_SECRET
+  - variable: RAZORPAY_KEY_SECRET
+    secret: RAZORPAY_KEY_SECRET
+    availability:
+      - RUNTIME
+
+# No FIREBASE_CREDENTIALS entry: App Hosting runs this service under a
+# service account, and firebase-admin picks that up automatically via
+# Application Default Credentials (see src/services/firebase.js) — no key
+# file or secret needed. Grant that service account the same Cloud Datastore
+# User role the local dev service account has (see README.md).

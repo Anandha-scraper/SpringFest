@@ -1,0 +1,21 @@
+{
+  "name": "symposium-backend",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "node --watch server.js",
+    "start": "node server.js",
+    "seed": "node scripts/seed.js"
+  },
+  "dependencies": {
+    "compression": "^1.7.5",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^5.0.1",
+    "firebase-admin": "^13.0.0",
+    "razorpay": "^2.9.4"
+  }
+}
