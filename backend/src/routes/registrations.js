@@ -113,7 +113,15 @@ router.post("/", ...CurrentUser, async (req, res) => {
     });
   }
 
-  const order = await createOrder(fee, regRef.id);
+  let order;
+  try {
+    order = await createOrder(fee, regRef.id);
+  } catch (err) {
+    if (/not configured/i.test(err.message)) {
+      throw new ApiError(503, "Paid registrations are temporarily unavailable — payments aren't configured");
+    }
+    throw err;
+  }
   await regRef.update({ order_id: order.id });
   res.json({
     registration_id: regRef.id,
