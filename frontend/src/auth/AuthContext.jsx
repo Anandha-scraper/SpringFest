@@ -20,6 +20,10 @@ export function AuthProvider({ children }) {
   const [role, setRole] = useState(null);
   const [roleError, setRoleError] = useState("");
   const [loading, setLoading] = useState(isFirebaseConfigured);
+  // How registrations are being paid for right now. Rides along on /api/me
+  // because the registration form has to know which flow to render, and an
+  // organiser can flip it mid-fest if the gateway goes down.
+  const [payment, setPayment] = useState({ payment_mode: "", payment_instructions: "" });
 
   // Returns the role as well as storing it: the sign-in flows need the value
   // immediately and can't wait for a re-render to redirect.
@@ -33,6 +37,10 @@ export function AuthProvider({ children }) {
       ]);
       const resolved = me?.role || DEFAULT_ROLE;
       setRole(resolved);
+      setPayment({
+        payment_mode: me?.payment_mode || "",
+        payment_instructions: me?.payment_instructions || "",
+      });
       setRoleError("");
       return resolved;
     } catch (err) {
@@ -71,6 +79,8 @@ export function AuthProvider({ children }) {
     role,
     roleError,
     isAdmin: role === ROLES.ADMIN,
+    paymentMode: payment.payment_mode,
+    paymentInstructions: payment.payment_instructions,
     loading,
     isFirebaseConfigured,
     firebaseConfigError,

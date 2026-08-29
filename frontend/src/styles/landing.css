@@ -103,7 +103,7 @@
   opacity: 0.3;
 }
 
-/* ── Events: split-flap heading + BubbleMenu track picker ── */
+/* ── Events: split-flap heading + card grid ── */
 /* .section centres its children; the events header should sit at the top.
    .section's default top pad is nav-h + 48px; drop the 48 so the split-flap
    sits higher, keeping only the fixed-navbar clearance the /#events anchor
@@ -127,43 +127,11 @@
   padding-right: clamp(16px, 2vw, 32px);
 }
 
-/* Two columns: title + track picker on the left, the lanyard on the right.
-   The left column is the substantial one — the split-flap heading and the 2x2
-   track grid need the room — so it takes ~2/3. `stretch` (not `center`) so
-   each half is full height; minmax(0, …) keeps the flap's horizontal overflow
-   from inflating the track. */
+/* Events header — heading only (the track pills and the lanyard were removed).
+   The flap scrolls horizontally on very narrow screens instead of clipping. */
 .events-top {
-  flex: 1;
-  display: grid;
-  grid-template-columns: minmax(0, 1.9fr) minmax(0, 1fr);
-  gap: 40px;
-  align-items: stretch;
-  margin-bottom: clamp(32px, 5vh, 64px);
-}
-.events-left {
-  min-width: 0;
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  align-items: stretch;
-  /* The auto margin on .events-bubble opens the gap before the track pills. */
-  gap: clamp(10px, 1.4vw, 22px);
-}
-.events-right {
-  position: relative;
-  min-width: 0;
-  min-height: 420px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-/* Lanyard ships `height: 100vh`. A percentage height here resolves against a
-   grid row that the canvas itself helps size, so the section grew every frame;
-   r3f also can't measure the box if it's taken out of flow. A definite,
-   viewport-relative height avoids both. */
-.events-right .lanyard-wrapper {
-  height: clamp(420px, 64vh, 700px);
+  display: block;
+  margin-bottom: clamp(24px, 4vh, 48px);
 }
 
 /* The container is full-bleed for the header's sake; cap the card grid back to
@@ -181,85 +149,8 @@
 }
 .events-flap::-webkit-scrollbar { display: none; }
 
-/* BubbleMenu returns <nav> + overlay as siblings; this wrapper scopes both.
-   `margin-top: auto` drops the pills to the bottom of the left column instead
-   of letting them stretch to fill it — the .events-left gap is now just the
-   floor, the auto margin absorbs whatever height is left over. */
-.events-bubble { margin: auto 0 0; flex: 0 0 auto; display: flex; min-height: 0; }
-
-/* The logo bubble and the hamburger/X are dropped here — the pills are the
-   whole control, and the bar would otherwise float over the heading. */
-.events-bubble .bubble-menu { display: none; }
-
-/* In-flow instead of an absolute inset:0 overlay, so the pills sit under the
-   heading and take real layout space rather than covering the section. */
-.events-bubble .bubble-menu-items,
-.events-bubble .bubble-menu-items.absolute {
-  position: static;
-  inset: auto;
-  padding: 0;
-  background: none;
-  backdrop-filter: none;
-  pointer-events: auto;
-  align-items: flex-end;
-  flex: 0 0 auto;
-  width: 100%;
-  min-height: 0;
-}
-
-.events-bubble .bubble-list {
-  padding: 0;
-  /* The pills are rotated +/-8deg, so their corners swing ~40px past the box.
-     The row gap has to clear that or the two rows visually collide. */
-  row-gap: clamp(32px, 8vh, 82px);
-  flex: 0 0 auto;
-  align-content: flex-end;
-  margin: 0 -18px;
-  width: calc(100% + 36px);
-  max-width: none;
-}
-/* A 2x2 block with breathing room. The component's default is 3-across
-   (100%/3) with the 4th offset, and columns that touch edge to edge. Its rule
-   is `.bubble-menu-items .bubble-list .bubble-col`, so the override has to
-   match that depth or flex-basis loses on specificity and stays at 33%. */
-.events-bubble .bubble-list .bubble-col {
-  flex: 0 0 50%;
-  padding: 0 18px;
-  margin-left: 0 !important;
-}
-
-/* The component's default pill is 160px tall with up to 8rem of padding. Here
-   the 2x2 block has a tall column to fill, so the pills scale with viewport
-   height rather than sitting at a fixed height. */
-.events-bubble .bubble-list .bubble-link {
-  --bubble-min-h: clamp(120px, 23vh, 215px);
-  min-height: var(--bubble-min-h);
-  height: auto;
-  padding: 0 24px;
-  font-family: var(--font-display);
-  font-size: clamp(1.4rem, 2.6vw, 2.6rem);
-  font-weight: 600;
-  color: var(--ink);
-  box-shadow: var(--shadow-md);
-}
-
 @media (max-width: 899px) {
-  .events-top {
-    grid-template-columns: 1fr;
-    gap: 32px;
-    margin-bottom: 44px;
-  }
   .events-flap { justify-content: center; }
-  .events-bubble .bubble-menu-items,
-  .events-bubble .bubble-menu-items.absolute {
-    padding-top: 0;
-  }
-  .events-bubble .bubble-list .bubble-col { flex: 0 0 50%; padding: 0 8px; }
-  .events-bubble .bubble-list .bubble-link { --bubble-min-h: 88px; }
-}
-
-@media (max-width: 560px) {
-  .events-bubble .bubble-list .bubble-col { flex: 0 0 100%; padding: 0; }
 }
 
 /* Two-column hero: copy left, PixelSwap right */
@@ -435,33 +326,6 @@
   margin-bottom: 20px;
 }
 
-/* Hero button row: Register (live) + dummy filter chips */
-.hero-actions {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-  justify-content: flex-start;
-  margin: 0 0 30px;
-}
-.hero-chip {
-  font-family: var(--font-body);
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--ink);
-  background: var(--surface);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--r-full);
-  padding: 11px 22px;
-  cursor: pointer;
-  transition: border-color 0.16s ease, color 0.16s ease, transform 0.16s ease;
-}
-.hero-chip:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-  transform: translateY(-2px);
-}
-
 /* Success page reuses this row for its two links */
 .hero-cta {
   display: flex;
@@ -480,8 +344,8 @@
 
 
 @media (max-width: 900px) {
-  /* BubbleMenu floats at top:2em and its bubble is 56px tall — the hero has to
-     start below that, not below the (desktop) --nav-h. */
+  /* The fixed mobile nav header floats at the top — the hero has to start
+     below it, not below the (desktop) --nav-h. */
   .hero {
     min-height: auto;
     padding: 168px 0 104px;
@@ -515,7 +379,6 @@
     margin-left: auto;
     margin-right: auto;
   }
-  .hero-actions { justify-content: center; }
   .hero .container { padding-left: 24px; padding-right: 24px; }
 }
 
@@ -528,8 +391,6 @@
   .ps-title strong { font-size: 2.5rem; }
   .ps-register h3 { font-size: 1.35rem; }
   .ps-register p { font-size: 0.84rem; }
-  .hero-actions { gap: 10px; }
-  .hero-chip { padding: 9px 18px; font-size: 0.85rem; }
 }
 
 /* ── React Bits light-theme overrides ─────────────────────── */
@@ -539,11 +400,14 @@
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--r-lg);
-  padding: 24px;
+  padding: 28px 24px;
   box-shadow: var(--shadow-sm);
   height: 100%;
   display: flex;
   flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
   gap: 10px;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
@@ -551,8 +415,8 @@
   transform: translateY(-4px);
   box-shadow: var(--shadow-md);
 }
-.event-card h3 { font-size: 1.15rem; }
-.event-card p { color: var(--ink-soft); font-size: 0.92rem; flex: 1; }
+.event-card h3 { font-size: 1.2rem; margin: 0; }
+.event-card p { color: var(--ink-soft); font-size: 0.92rem; margin: 0; }
 .event-link { display: block; height: 100%; }
 
 
@@ -793,31 +657,37 @@
 }
 
 
-/* ── Schedule: React Flow timeline ─────────────────────────── */
+/* ── Schedule: fixed, no-zoom timeline ─────────────────────── */
 .schedule-flow {
   width: 100%;
-  height: clamp(380px, 52vh, 560px);
   margin-top: clamp(20px, 3vh, 40px);
   border: 1px solid rgba(17, 34, 78, 0.1);
   border-radius: var(--r-lg, 18px);
   background: rgba(255, 255, 255, 0.55);
-  overflow: hidden;
+  padding: clamp(16px, 2.4vw, 32px);
 }
-/* React Flow paints its own surface; let the section's backdrop through. */
-.schedule-flow .react-flow__renderer,
-.schedule-flow .react-flow { background: transparent; }
 
-.flow-day,
-.flow-slot {
-  font-family: var(--font-body);
-  border-radius: 14px;
-  padding: 12px 16px;
-  width: 200px;
-  box-shadow: var(--shadow-md);
+.schedule-day-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(20px, 3vw, 40px);
+  align-items: start;
 }
+
+.schedule-day {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
 .flow-day {
+  font-family: var(--font-body);
   background: var(--ink);
   color: var(--cream);
+  border-radius: 14px;
+  padding: 14px 18px;
+  box-shadow: var(--shadow-md);
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -825,26 +695,41 @@
 .flow-day strong { font-family: var(--font-display); font-size: 1.15rem; }
 .flow-day span { font-size: 0.78rem; color: #b3bed3; }
 
-.flow-slot { background: #fff; border: 1px solid rgba(17, 34, 78, 0.08); }
+.flow-slot-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.flow-slot {
+  font-family: var(--font-body);
+  background: #fff;
+  border: 1px solid rgba(17, 34, 78, 0.08);
+  border-radius: 14px;
+  padding: 12px 16px;
+  box-shadow: var(--shadow-md);
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
 .flow-time {
+  flex: 0 0 auto;
+  min-width: 52px;
   display: inline-block;
-  font-size: 0.72rem;
+  font-size: 0.78rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   color: var(--accent);
-  margin-bottom: 4px;
+  padding-top: 2px;
 }
+.flow-slot-body { min-width: 0; }
 .flow-slot h4 { font-size: 0.92rem; line-height: 1.25; margin: 0 0 4px; }
 .flow-slot p { font-size: 0.76rem; color: var(--ink-faint); margin: 0; }
 
-.schedule-flow .react-flow__handle {
-  width: 7px;
-  height: 7px;
-  background: var(--accent);
-  border: none;
-}
-.schedule-flow .react-flow__edge-path { stroke: var(--ink-faint); stroke-width: 1.6; }
-
 @media (max-width: 899px) {
-  .schedule-flow { height: clamp(340px, 60vh, 460px); }
+  .schedule-day-list { grid-template-columns: 1fr; }
+  .flow-slot { padding: 11px 14px; gap: 10px; }
 }

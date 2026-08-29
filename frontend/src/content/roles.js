@@ -18,6 +18,8 @@ import {
   Star,
   UserCheck,
   Ticket,
+  CreditCard,
+  BadgeCheck,
 } from "lucide-react";
 
 export const ROLES = {
@@ -47,6 +49,8 @@ export const ROLE_NAV = {
   [ROLES.ADMIN]: [
     { label: "Overview", to: "/admin", end: true, icon: LayoutDashboard },
     { label: "Registrations", to: "/admin/registrations", icon: ClipboardList },
+    { label: "Payment", to: "/admin/payment", icon: CreditCard },
+    { label: "Approvals", to: "/admin/approvals", icon: BadgeCheck },
     { label: "Events", to: "/admin/events", end: true, icon: CalendarDays },
     { label: "Add Roles", to: "/admin/roles", icon: UserPlus },
     { label: "Manage Roles", to: "/admin/allocations", icon: Users },

@@ -150,6 +150,11 @@ export default function RegistrationsTable({ rows, minRows = 0 }) {
                   <div className="reg-detail-row"><span>Email</span><span>{selected.email}</span></div>
                   <div className="reg-detail-row"><span>Phone</span><span>{selected.phone || "—"}</span></div>
                   <div className="reg-detail-row"><span>College</span><span>{selected.college || "—"}</span></div>
+                  <div className="reg-detail-row"><span>Department</span><span>{selected.department || "—"}</span></div>
+                  <div className="reg-detail-row">
+                    <span>Year</span><span>{selected.year ? `Year ${selected.year}` : "—"}</span>
+                  </div>
+                  <div className="reg-detail-row"><span>Location</span><span>{selected.location || "—"}</span></div>
                   {selected.team_name && (
                     <div className="reg-detail-row">
                       <span>Team</span>
@@ -169,12 +174,32 @@ export default function RegistrationsTable({ rows, minRows = 0 }) {
                       <span>Attended</span><span>{e.checked_in ? "Checked in" : "Not checked in"}</span>
                     </div>
                     <div className="reg-detail-row"><span>Amount</span><span>{money(e.fee)}</span></div>
-                    <div className="reg-detail-row">
-                      <span>Payment ID</span><span className="mono">{e.payment_id || "—"}</span>
-                    </div>
-                    <div className="reg-detail-row">
-                      <span>Order ID</span><span className="mono">{e.order_id || "—"}</span>
-                    </div>
+                    {/* Screenshot payments carry a transaction reference and an
+                        admin's verdict instead of gateway ids. */}
+                    {e.payment_mode === "screenshot" ? (
+                      <>
+                        <div className="reg-detail-row">
+                          <span>Transaction ID</span><span className="mono">{e.transaction_id || "—"}</span>
+                        </div>
+                        <div className="reg-detail-row">
+                          <span>Reviewed by</span><span>{e.reviewed_by || "—"}</span>
+                        </div>
+                        {e.review_note && (
+                          <div className="reg-detail-row">
+                            <span>Note</span><span>{e.review_note}</span>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <div className="reg-detail-row">
+                          <span>Payment ID</span><span className="mono">{e.payment_id || "—"}</span>
+                        </div>
+                        <div className="reg-detail-row">
+                          <span>Order ID</span><span className="mono">{e.order_id || "—"}</span>
+                        </div>
+                      </>
+                    )}
                     <div className="reg-detail-row">
                       <span>Method</span><span>{e.payment_method || "—"}</span>
                     </div>

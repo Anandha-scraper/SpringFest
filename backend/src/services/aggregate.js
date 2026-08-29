@@ -68,6 +68,7 @@ function registrationView(r, events) {
     status: r.status || "",
     fee: r.fee || 0,
     checked_in: Boolean(r.checked_in),
+    member_checkins: r.member_checkins || [],
     team_name: r.team_name || "",
     team_size: r.team_size ?? 1,
     members: r.members || [],
@@ -76,6 +77,13 @@ function registrationView(r, events) {
     payment_id: r.payment_id || "",
     order_id: r.order_id || "",
     payment_method: r.payment_method || "",
+    // Screenshot-mode fields. Empty on gateway rows, which is what tells the
+    // admin screens which payment story to show.
+    payment_mode: r.payment_mode || "",
+    transaction_id: r.transaction_id || "",
+    review_note: r.review_note || "",
+    reviewed_by: r.reviewed_by || "",
+    reviewed_at: r.reviewed_at || "",
   };
 }
 
@@ -112,6 +120,9 @@ export async function participantRows(data) {
       email: latest.email || "",
       phone: latest.phone || "",
       college: latest.college || "",
+      department: latest.department || "",
+      year: latest.year || "",
+      location: latest.location || "",
       events_count: regs.length,
       events: regs.map((r) => registrationView(r, events)),
       total_paid: completed.reduce((sum, r) => sum + (r.fee || 0), 0),

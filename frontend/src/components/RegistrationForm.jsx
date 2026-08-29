@@ -2,7 +2,42 @@ import { useEffect, useState } from "react";
 import { Trash2, UserPlus } from "lucide-react";
 import { useAuth } from "../auth/AuthContext.jsx";
 
-const blankMember = () => ({ name: "", email: "", phone: "" });
+const STUDY_YEARS = ["1", "2", "3", "4", "5"];
+
+const blankMember = () => ({
+  name: "", email: "", phone: "", college: "", department: "", year: "", location: "",
+});
+
+/** The academic block every participant fills in, lead and teammate alike.
+ * Shared so the two can't drift — the backend validates both with the same
+ * parseParticipantDetails(). */
+function DetailFields({ idPrefix, values, onChange, labelled }) {
+  const field = (name) => (idPrefix ? `${idPrefix}-${name}` : name);
+  return (
+    <>
+      {labelled && <label htmlFor={field("college")}>College</label>}
+      <input id={field("college")} placeholder="College name" required minLength={2}
+        value={values.college} onChange={(e) => onChange("college", e.target.value)} />
+
+      {labelled && <label htmlFor={field("department")}>Department</label>}
+      <input id={field("department")} placeholder="Department" required minLength={2}
+        value={values.department} onChange={(e) => onChange("department", e.target.value)} />
+
+      {labelled && <label htmlFor={field("year")}>Year of study</label>}
+      <select id={field("year")} required
+        value={values.year} onChange={(e) => onChange("year", e.target.value)}>
+        <option value="" disabled>Year of study</option>
+        {STUDY_YEARS.map((y) => (
+          <option key={y} value={y}>Year {y}</option>
+        ))}
+      </select>
+
+      {labelled && <label htmlFor={field("location")}>Location</label>}
+      <input id={field("location")} placeholder="City / town" required minLength={2}
+        value={values.location} onChange={(e) => onChange("location", e.target.value)} />
+    </>
+  );
+}
 
 /**
  * The signed-in user is the lead: their details are this form's top fields,
@@ -11,7 +46,9 @@ const blankMember = () => ({ name: "", email: "", phone: "" });
  */
 export default function RegistrationForm({ onSubmit, submitting, fee = 0, event = {} }) {
   const { user } = useAuth();
-  const [form, setForm] = useState({ name: "", email: "", phone: "", college: "" });
+  const [form, setForm] = useState({
+    name: "", email: "", phone: "", college: "", department: "", year: "", location: "",
+  });
   const [teamName, setTeamName] = useState("");
   const [members, setMembers] = useState([]);
 
@@ -35,6 +72,7 @@ export default function RegistrationForm({ onSubmit, submitting, fee = 0, event 
   }, [isTeam, teamMin]);
 
   const change = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+  const changeField = (field, value) => setForm((f) => ({ ...f, [field]: value }));
 
   const changeMember = (i, field, value) =>
     setMembers((prev) => prev.map((m, idx) => (idx === i ? { ...m, [field]: value } : m)));
@@ -60,9 +98,7 @@ export default function RegistrationForm({ onSubmit, submitting, fee = 0, event 
       <input id="rf-phone" name="phone" type="tel" placeholder="10-digit mobile number"
         value={form.phone} onChange={change} required minLength={8} maxLength={15} />
 
-      <label htmlFor="rf-college">College</label>
-      <input id="rf-college" name="college" placeholder="Your college name"
-        value={form.college} onChange={change} />
+      <DetailFields idPrefix="rf" values={form} onChange={changeField} labelled />
 
       {isTeam && (
         <>
@@ -93,6 +129,8 @@ export default function RegistrationForm({ onSubmit, submitting, fee = 0, event 
                 value={m.email} onChange={(e) => changeMember(i, "email", e.target.value)} />
               <input type="tel" placeholder="Phone" required minLength={8} maxLength={15}
                 value={m.phone} onChange={(e) => changeMember(i, "phone", e.target.value)} />
+              <DetailFields idPrefix={`rf-m${i}`} values={m}
+                onChange={(field, value) => changeMember(i, field, value)} />
             </div>
           ))}
 

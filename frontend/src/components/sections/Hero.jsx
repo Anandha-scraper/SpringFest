@@ -17,9 +17,6 @@ import { homeForRole } from "../../content/roles.js";
 // painted regardless, so there's no visible gap while this streams in.
 const Aurora = lazy(() => import("../reactbits/Aurora.jsx"));
 
-// Placeholder filters — no navigation yet.
-const DUMMY_ACTIONS = ["Technical", "Non-Technical", "Schedule"];
-
 const PARTNER_LOGOS = fest.partners.map((name) => ({
   node: <span className="loop-wordmark">{name}</span>,
   title: name,
@@ -118,14 +115,6 @@ export default function Hero() {
           />
 
           <p className="hero-blurb">{fest.blurb}</p>
-
-          <div className="hero-actions">
-            {DUMMY_ACTIONS.map((label) => (
-              <button key={label} type="button" className="hero-chip">
-                {label}
-              </button>
-            ))}
-          </div>
 
           <div className="hero-inst">
             Presented by {fest.institution.department}

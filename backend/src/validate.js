@@ -59,11 +59,33 @@ export function requireOneOf(value, allowed, { field } = {}) {
   return value;
 }
 
+/** Study years offered in the registration form. Strings, not numbers — they
+ * come off a <select> and are only ever displayed and exported, never
+ * arithmetic. */
+export const STUDY_YEARS = ["1", "2", "3", "4", "5"];
+
+/** The academic details every participant gives, whether they're the team
+ * lead or a member. Shared so the two can't drift apart — the admin CSV
+ * and the QR tickets assume both carry the same shape. */
+export function parseParticipantDetails(raw, prefix = "") {
+  const field = (name) => (prefix ? `${prefix}.${name}` : name);
+  return {
+    college: requireString(raw?.college, { field: field("college"), minLength: 2 }),
+    department: requireString(raw?.department, { field: field("department"), minLength: 2 }),
+    year: requireOneOf(typeof raw?.year === "number" ? String(raw.year) : raw?.year, STUDY_YEARS, {
+      field: field("year"),
+    }),
+    location: requireString(raw?.location, { field: field("location"), minLength: 2 }),
+  };
+}
+
 /** A team member entry, matching TeamMember in the old Pydantic schema. */
 export function parseTeamMember(raw, index) {
+  const prefix = `members[${index}]`;
   return {
-    name: requireString(raw?.name, { field: `members[${index}].name`, minLength: 2 }),
-    email: requireEmail(raw?.email, { field: `members[${index}].email` }),
-    phone: requirePhone(raw?.phone, { field: `members[${index}].phone` }),
+    name: requireString(raw?.name, { field: `${prefix}.name`, minLength: 2 }),
+    email: requireEmail(raw?.email, { field: `${prefix}.email` }),
+    phone: requirePhone(raw?.phone, { field: `${prefix}.phone` }),
+    ...parseParticipantDetails(raw, prefix),
   };
 }
