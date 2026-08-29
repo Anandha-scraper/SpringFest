@@ -12,9 +12,19 @@ env:
       - RUNTIME
 
   - variable: CORS_ORIGINS
-    value: "https://spring-fest--spring-fest-ksrce-cse.asia-southeast1.hosted.app"
+    value: "https://spring-fest--spring-fest-ksrce-cse.asia-southeast1.hosted.app,https://springfest2k26.live"
     availability:
       - RUNTIME
+
+  # Emails granted admin on sign-in (comma-separated, case-insensitive).
+  # Without this every login resolves as "participant" unless the person has
+  # a doc in the Firestore `roles` collection. Never leave it empty — it's
+  # the lockout-recovery path.
+  - variable: ADMIN_EMAILS
+    value: "anandhakumaran.m.s@gmail.com"
+    availability:
+      - RUNTIME
+
   # - variable: PAYMENT_KEY_ID
   #   value: "REPLACE_WITH_PAYMENT_KEY_ID"
   #   availability:
