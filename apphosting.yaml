@@ -10,12 +10,11 @@ env:
     value: "(default)"
     availability:
       - RUNTIME
-      - 
+
   - variable: CORS_ORIGINS
     value: "https://spring-fest--spring-fest-ksrce-cse.asia-southeast1.hosted.app"
     availability:
       - RUNTIME
-      - 
   # - variable: PAYMENT_KEY_ID
   #   value: "REPLACE_WITH_PAYMENT_KEY_ID"
   #   availability:
