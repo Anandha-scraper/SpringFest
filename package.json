@@ -1,0 +1,31 @@
+{
+  "name": "spring-fest",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "comments": [
+    "Firebase App Hosting entry point for the whole repo (root directory = /).",
+    "The Node buildpack runs: npm install -> npm run build -> npm start.",
+    "`build` compiles the Vite SPA into frontend/dist; `start` runs the Express",
+    "server (backend/server.js), which serves both /api and that SPA build.",
+    "dependencies here mirror backend/package.json so they land in the runtime",
+    "image. backend/ and frontend/ keep their own package.json for local dev."
+  ],
+  "scripts": {
+    "build": "npm --prefix frontend install && npm --prefix frontend run build",
+    "start": "node backend/server.js",
+    "dev:backend": "npm --prefix backend run dev",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "seed": "npm --prefix backend run seed"
+  },
+  "dependencies": {
+    "compression": "^1.7.5",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^5.0.1",
+    "firebase-admin": "^13.0.0",
+    "razorpay": "^2.9.4"
+  }
+}

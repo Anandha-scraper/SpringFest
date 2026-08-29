@@ -1,6 +1,8 @@
 import { auth } from "../auth/firebase.js";
 
-const BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000/api";
+// Same-origin by default: in production the Express server serves this SPA,
+// and local dev runs it behind Vite's `/api` proxy (see vite.config.js).
+const BASE = import.meta.env.VITE_API_BASE || "/api";
 
 async function authHeader() {
   const token = await auth?.currentUser?.getIdToken();
