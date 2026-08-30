@@ -120,6 +120,10 @@ export default function ManageEvents() {
         .map((c) => ({ label: c.label.trim(), max: Number(c.max) || 0 }))
         .filter((c) => c.label && c.max > 0),
     };
+    if (!editing && payload.marking_criteria.length === 0) {
+      toast.bad("Add at least one marking criterion — every event needs a scoring scheme.");
+      return;
+    }
     try {
       if (editing) {
         // Send only what's editable, so a locked field never triggers a 403
@@ -360,6 +364,11 @@ export default function ManageEvents() {
             <span className="field-label">
               <Lock size={12} aria-hidden="true" /> Mark allocation criteria
             </span>
+            {!editing && form.marking_criteria.filter((c) => c.label.trim() && Number(c.max) > 0).length === 0 && (
+              <p className="muted" style={{ marginTop: 0 }}>
+                At least one parameter is required — judges score every team against these.
+              </p>
+            )}
             <div className="criteria-editor">
               {form.marking_criteria.map((c, i) => (
                 <div className="criteria-row" key={i}>
@@ -498,7 +507,7 @@ export default function ManageEvents() {
                           {/* Closed individually — the fest-wide switch and
                               these toggles both live on the Payment page. */}
                           {ev.registration_open === false && (
-                            <span className="pill pill-failed">Closed</span>
+                            <span className="status-pill status-pill--failed">Closed</span>
                           )}
                           {ev.description && <span className="cell-sub">{ev.description}</span>}
                         </td>

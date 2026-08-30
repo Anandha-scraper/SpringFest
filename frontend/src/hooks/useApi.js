@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 
+import { useHeldLoading } from "@/hooks/useHeldLoading.js";
+
 /**
  * Run an API call on mount and expose { data, error, loading, reload }.
  *
@@ -11,7 +13,10 @@ import { useCallback, useEffect, useState } from "react";
 export function useApi(fetcher, { immediate = true } = {}) {
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(immediate);
+  const [rawLoading, setLoading] = useState(immediate);
+  // Every appearance of the loader is held for a minimum time so it never just
+  // flashes — on the first load and on every reload() after a write.
+  const loading = useHeldLoading(rawLoading);
 
   const reload = useCallback(async () => {
     setLoading(true);

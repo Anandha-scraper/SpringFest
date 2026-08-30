@@ -1,9 +1,16 @@
 import React from "react";
 import "@/styles/components/loader.css";
 
-const Loader = () => {
+/** The one loader for the whole app. `compact` shrinks it for in-row /
+ *  in-dialog spots; everywhere else it centers itself in the space it's given. */
+const Loader = ({ compact = false }) => {
   return (
-    <div className="ghost-loader-wrapper">
+    <div
+      className={`ghost-loader-wrapper${compact ? " ghost-loader-wrapper--compact" : ""}`}
+      role="status"
+      aria-live="polite"
+    >
+      <span className="sr-only">Loading…</span>
       <div id="ghost">
         <div id="red">
           <div id="pupil" />

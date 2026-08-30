@@ -69,10 +69,17 @@
 /* ── Proof upload (components/registration/PaymentProofForm.jsx) ── */
 .proof-hint { font-size: 0.85rem; margin: 0.25rem 0 0; }
 
-/* Inline preview of the screenshot the participant just picked. Capped by
-   height so a tall phone screenshot doesn't push the submit button off-screen. */
+/* Inline preview of the screenshot the participant just picked. Capped on
+   both axes — a tall phone screenshot would otherwise push the submit button
+   off-screen, and object-fit keeps it from stretching to fill the box. */
 .proof-preview {
-  max-height: 15rem;
+  width: 100%;
+  max-width: 14rem;
+  max-height: 12rem;
+  object-fit: contain;
+  object-position: top;
+  border: 1px solid var(--border);
   border-radius: var(--r-sm);
+  background: var(--surface-2);
   margin-top: 0.5rem;
 }

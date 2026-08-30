@@ -240,7 +240,7 @@ export default function ManageRoles() {
             <section className="admin-panel venue-card" key={ev.event_id}>
               <div className="panel-head">
                 <h2>{ev.name}</h2>
-                <span className={`pill ${ev.started ? "pill-completed" : "pill-draft"}`}>
+                <span className={`status-pill ${ev.started ? "status-pill--completed" : "status-pill--draft"}`}>
                   {ev.started ? `${ev.checked_in}/${total}` : "Not started"}
                 </span>
               </div>
@@ -282,10 +282,10 @@ export default function ManageRoles() {
               {(ev.judges.length > 0 || ev.volunteers.length > 0) && (
                 <div className="venue-staff">
                   {ev.judges.map((name) => (
-                    <span key={name} className="pill pill-judge">{name}</span>
+                    <span key={name} className="status-pill status-pill--judge">{name}</span>
                   ))}
                   {ev.volunteers.map((name) => (
-                    <span key={name} className="pill pill-volunteer">{name}</span>
+                    <span key={name} className="status-pill status-pill--volunteer">{name}</span>
                   ))}
                 </div>
               )}

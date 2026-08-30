@@ -6,5 +6,5 @@ const LABELS = {
 
 export default function StatusPill({ status }) {
   const value = status || "unknown";
-  return <span className={`pill pill-${value}`}>{LABELS[value] || value}</span>;
+  return <span className={`status-pill status-pill--${value}`}>{LABELS[value] || value}</span>;
 }

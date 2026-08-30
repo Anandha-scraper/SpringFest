@@ -51,3 +51,9 @@
 
 .cell-nowrap { white-space: nowrap; }
 
+
+/* Judging queue ("now evaluating / up next"), shared by judge + volunteer. */
+.queue-view p { margin: 0 0 0.375rem; display: flex; align-items: center; gap: 0.375rem; }
+.queue-upcoming { margin: 0; padding-left: 1.25rem; display: grid; gap: 0.25rem; }
+.queue-upcoming li { display: flex; align-items: center; gap: 0.375rem; }
+.row-actions { display: inline-flex; gap: 0.25rem; }

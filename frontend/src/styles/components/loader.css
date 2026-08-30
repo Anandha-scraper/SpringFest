@@ -11,9 +11,40 @@
   box-sizing: border-box;
 }
 
+.ghost-loader-wrapper .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .ghost-loader-wrapper #ghost {
   position: relative;
   scale: 0.8;
+}
+
+/* In-row / in-dialog: same ghost, smaller footprint. */
+.ghost-loader-wrapper--compact {
+  min-height: 140px;
+  padding: 1rem;
+}
+.ghost-loader-wrapper--compact #ghost {
+  scale: 0.5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ghost-loader-wrapper #red,
+  .ghost-loader-wrapper #shadow,
+  .ghost-loader-wrapper #pupil,
+  .ghost-loader-wrapper #pupil1,
+  .ghost-loader-wrapper [id^="an"] {
+    animation-duration: 2s;
+  }
 }
 
 .ghost-loader-wrapper #red {

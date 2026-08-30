@@ -1,15 +1,19 @@
 /** Check-in: marking that someone actually turned up.
  *
- * Volunteers do this on the day, at the venue. It's separate from payment —
- * a registration can be completed (paid) but never checked in (didn't show).
- * Admins satisfy the volunteer guard too, which is what lets the whole flow
- * be tested from the admin account before the volunteer screens exist.
+ * Two separate marks, on the day, at the fest — both gated on the fest having
+ * started (services/festClock.js):
  *
- * Check-in is per-member, per-event: a team registers as one document but
- * arrives one person at a time, and each of them may need to leave and come
- * back (check-out), so `member_checkins[]` entries are attributed on both
- * sides rather than just the one flag the old whole-registration fallback
- * used to flip.
+ *   1. Fest entry  — any volunteer scans a personal QR and marks the *person*
+ *      present at the fest. One flag per person (`fest_checkins/{uid}`), no
+ *      check-out. This is the gate on the door.
+ *
+ *   2. Event check-in — only the volunteer covering that event's venue (or an
+ *      admin) checks a participant in *for that event*. Per member, per event,
+ *      via `member_checkins[]` on the registration doc, check-out supported.
+ *      Being event-checked-in is what makes a team visible to the judges.
+ *
+ * Admins satisfy the volunteer guard and skip the venue restriction, which is
+ * what lets the whole flow be tested from the admin account.
  */
 import { verifyPersonToken } from "../auth/qrToken.js";
 import { getAuth, getDb } from "../config/firebase.js";
@@ -17,17 +21,27 @@ import { ApiError } from "../utils/ApiError.js";
 import { STATUS_COMPLETED } from "../utils/statuses.js";
 import { requireBool, requireInt, requireString } from "../utils/validate.js";
 import * as aggregate from "./aggregate.js";
+import { assertFestCheckinOpen } from "./festClock.js";
 import { ticketHolders } from "./qr.js";
 import { loadPersonRegistrations } from "./registrationLookup.js";
+import { resolveVolunteerEventId } from "./submissionAccess.js";
 
 function isCheckedIn(entry) {
   return !!entry && !entry.checked_out_at;
 }
 
+/** Has anyone on this registration ever been event-checked-in? The gate the
+ * judge dashboards use — a team stays visible even after it checks out, so
+ * scores entered against it never disappear from view. */
+export function everEventCheckedIn(row) {
+  return Array.isArray(row?.member_checkins) && row.member_checkins.length > 0;
+}
+
 /** Scan someone's personal QR: who they are, and every event they're
  * registered for (as lead or as a team member), with each one's current
- * check-in state. */
-export async function scan({ token }) {
+ * check-in state. Read-only — allowed before the fest opens so volunteers can
+ * dry-run; only the writes below are gated. */
+export async function scan({ token, actor }) {
   const raw = requireString(token, { field: "token" });
   const claim = verifyPersonToken(raw);
   if (!claim) throw new ApiError(400, "That QR code isn't valid");
@@ -39,10 +53,13 @@ export async function scan({ token }) {
     throw new ApiError(404, "No account found for this QR code");
   }
 
-  const [rows, data] = await Promise.all([
+  const [rows, data, volunteerEventId] = await Promise.all([
     loadPersonRegistrations({ uid: claim.uid, email: account.email || "" }),
     aggregate.loadAll(),
+    actor?.is_admin ? Promise.resolve("") : resolveVolunteerEventId(actor || {}),
   ]);
+
+  const festDoc = await getDb().collection("fest_checkins").doc(claim.uid).get();
 
   const registrations = rows.map((row) => {
     const holder = ticketHolders(row)[row.member_index] || {};
@@ -66,6 +83,10 @@ export async function scan({ token }) {
       checked_in: isCheckedIn(entry),
       checked_in_at: entry?.at || null,
       checked_out_at: entry?.checked_out_at || null,
+      // Whether *this* volunteer may event-check-in this row: admins always,
+      // otherwise only their venue's event.
+      can_event_check_in:
+        Boolean(actor?.is_admin) || (row.event_id || "") === volunteerEventId,
     };
   });
 
@@ -74,92 +95,220 @@ export async function scan({ token }) {
     name: account.displayName || "",
     email: account.email || "",
     picture: account.photoURL || "",
+    fest_checked_in: festDoc.exists,
     registrations,
   };
 }
 
-/** Check a specific member of a specific registration in or out. The only
- * check-in write path — a "no ticket, just their id" desk fallback is just
- * this call with `member_index: 0` (the lead). */
-export async function toggle({ actorEmail, body }) {
+/** Mark a person present at the fest — the door check. One flag per uid, no
+ * check-out. Any volunteer can do this for anyone. */
+export async function festCheckIn({ actor, body }) {
+  const uid = requireString(body.uid, { field: "uid" });
+  await assertFestCheckinOpen();
+
+  let account;
+  try {
+    account = await getAuth().getUser(uid);
+  } catch {
+    throw new ApiError(404, "No account found for this person");
+  }
+
+  const ref = getDb().collection("fest_checkins").doc(uid);
+  const existing = await ref.get();
+  if (!existing.exists) {
+    await ref.set({
+      uid,
+      name: account.displayName || "",
+      email: account.email || "",
+      at: new Date().toISOString(),
+      by: actor.email,
+    });
+    aggregate.invalidateLoadAll();
+  }
+
+  return {
+    uid,
+    name: account.displayName || "",
+    fest_checked_in: true,
+    already_done: existing.exists,
+  };
+}
+
+/** Check a specific member of a specific registration in or out — for one
+ * event. Restricted to the volunteer covering that event's venue (admins
+ * unrestricted). A "no ticket, just their id" desk fallback is this call with
+ * `member_index: 0` (the lead). */
+export async function toggle({ actor, body }) {
   const registrationId = requireString(body.registration_id, { field: "registration_id" });
   const memberIndex = requireInt(body.member_index, { field: "member_index", min: 0 });
   const checkedIn = requireBool(body.checked_in, true);
 
-  const ref = getDb().collection("registrations").doc(registrationId);
-  const doc = await ref.get();
-  if (!doc.exists) throw new ApiError(404, "Registration not found");
-  const row = doc.data() ?? {};
+  await assertFestCheckinOpen();
 
-  if (row.status !== STATUS_COMPLETED) {
-    throw new ApiError(
-      409,
-      "This registration is not confirmed — payment is still pending or was rejected"
-    );
+  const db = getDb();
+  const ref = db.collection("registrations").doc(registrationId);
+
+  let volunteerEventId = "";
+  if (!actor.is_admin) {
+    volunteerEventId = await resolveVolunteerEventId(actor);
+    if (!volunteerEventId) {
+      throw new ApiError(403, "You're not assigned to a venue.");
+    }
   }
-  const holder = ticketHolders(row)[memberIndex];
-  if (!holder) throw new ApiError(404, "No such member on this registration");
 
-  const checkins = row.member_checkins || [];
-  const existingIdx = checkins.findIndex((c) => c.member_index === memberIndex);
   const now = new Date().toISOString();
 
-  let entry;
-  let alreadyDone = false;
-  if (checkedIn) {
-    if (existingIdx >= 0 && isCheckedIn(checkins[existingIdx])) {
-      alreadyDone = true;
-      entry = checkins[existingIdx];
-    } else if (existingIdx >= 0) {
-      // Checking back in after a check-out: clear the out fields rather than
-      // adding a second entry, so there's one continuous record per member.
-      entry = { ...checkins[existingIdx], checked_out_at: null, checked_out_by: null };
-      checkins[existingIdx] = entry;
-    } else {
-      entry = {
-        member_index: memberIndex,
-        name: holder.name,
-        at: now,
-        by: actorEmail,
-        checked_out_at: null,
-        checked_out_by: null,
-      };
-      checkins.push(entry);
-    }
-  } else {
-    if (existingIdx < 0 || !isCheckedIn(checkins[existingIdx])) {
-      alreadyDone = true;
-      entry = checkins[existingIdx] || null;
-    } else {
-      entry = { ...checkins[existingIdx], checked_out_at: now, checked_out_by: actorEmail };
-      checkins[existingIdx] = entry;
-    }
-  }
+  const result = await db.runTransaction(async (tx) => {
+    const doc = await tx.get(ref);
+    if (!doc.exists) throw new ApiError(404, "Registration not found");
+    const row = doc.data() ?? {};
 
-  await ref.set(
-    {
-      member_checkins: checkins,
-      // "At least one member currently has no checked_out_at" — the flag every
-      // existing aggregate, stat card and CSV column already reads.
-      checked_in: checkins.some(isCheckedIn),
-    },
-    { merge: true }
-  );
+    if (!actor.is_admin && (row.event_id || "") !== volunteerEventId) {
+      throw new ApiError(403, "This participant isn't registered for your venue's event.");
+    }
+    if (row.status !== STATUS_COMPLETED) {
+      throw new ApiError(
+        409,
+        "This registration is not confirmed — payment is still pending or was rejected"
+      );
+    }
+    const holder = ticketHolders(row)[memberIndex];
+    if (!holder) throw new ApiError(404, "No such member on this registration");
+
+    const checkins = [...(row.member_checkins || [])];
+    const existingIdx = checkins.findIndex((c) => c.member_index === memberIndex);
+
+    let entry;
+    let alreadyDone = false;
+    if (checkedIn) {
+      if (existingIdx >= 0 && isCheckedIn(checkins[existingIdx])) {
+        alreadyDone = true;
+        entry = checkins[existingIdx];
+      } else if (existingIdx >= 0) {
+        // Checking back in after a check-out: clear the out fields rather than
+        // adding a second entry, so there's one continuous record per member.
+        entry = { ...checkins[existingIdx], checked_out_at: null, checked_out_by: null };
+        checkins[existingIdx] = entry;
+      } else {
+        entry = {
+          member_index: memberIndex,
+          name: holder.name,
+          at: now,
+          by: actor.email,
+          checked_out_at: null,
+          checked_out_by: null,
+        };
+        checkins.push(entry);
+      }
+    } else {
+      if (existingIdx < 0 || !isCheckedIn(checkins[existingIdx])) {
+        alreadyDone = true;
+        entry = checkins[existingIdx] || null;
+      } else {
+        entry = { ...checkins[existingIdx], checked_out_at: now, checked_out_by: actor.email };
+        checkins[existingIdx] = entry;
+      }
+    }
+
+    if (!alreadyDone) {
+      tx.set(
+        ref,
+        {
+          member_checkins: checkins,
+          // "At least one member currently has no checked_out_at" — the flag
+          // every existing aggregate, stat card and CSV column already reads.
+          checked_in: checkins.some(isCheckedIn),
+        },
+        { merge: true }
+      );
+    }
+
+    return { alreadyDone, entry };
+  });
+
   aggregate.invalidateLoadAll();
 
   return {
     registration_id: registrationId,
-    already_done: alreadyDone,
-    member: entry
+    already_done: result.alreadyDone,
+    member: result.entry
       ? {
-          member_index: entry.member_index,
-          name: entry.name,
-          at: entry.at,
-          by: entry.by,
-          checked_in: isCheckedIn(entry),
-          checked_out_at: entry.checked_out_at || null,
-          checked_out_by: entry.checked_out_by || null,
+          member_index: result.entry.member_index,
+          name: result.entry.name,
+          at: result.entry.at,
+          by: result.entry.by,
+          checked_in: isCheckedIn(result.entry),
+          checked_out_at: result.entry.checked_out_at || null,
+          checked_out_by: result.entry.checked_out_by || null,
         }
       : null,
   };
+}
+
+/** The volunteer's own dashboard: their venue, the event held there, and how
+ * far along it is. */
+export async function volunteerSummary({ user }) {
+  const data = await aggregate.loadAll();
+  const eventId = await resolveVolunteerEventId(user);
+  const event = eventId ? data.events[eventId] : null;
+
+  if (!event) {
+    return { venue_id: user.venue_id || "", venue_name: "", event: null };
+  }
+
+  const regs = data.registrations.filter((r) => r.event_id === eventId);
+  const completed = regs.filter((r) => r.status === STATUS_COMPLETED);
+
+  const nameFor = (registrationId) => {
+    const r = data.registrations.find((x) => x.id === registrationId);
+    if (!r) return null;
+    return { registration_id: r.id, team_name: r.team_name || "", name: r.name || "" };
+  };
+
+  return {
+    venue_id: event.venue_id || "",
+    venue_name: data.venues[event.venue_id || ""]?.name || "",
+    event: {
+      event_id: eventId,
+      name: event.name || eventId,
+      date: event.date || "",
+      start_time: event.start_time || "",
+      end_time: event.end_time || "",
+    },
+    registrations: regs.length,
+    completed: completed.length,
+    event_checked_in: completed.filter(everEventCheckedIn).length,
+    evaluated: regs.filter((r) => r.evaluated_at).length,
+    now_evaluating: event.judging_current ? nameFor(event.judging_current) : null,
+    up_next: (event.judging_order || []).map(nameFor).filter(Boolean),
+  };
+}
+
+/** The confirmed teams for the volunteer's event, each with per-member
+ * check-in state — the bulk view behind the scan screen. */
+export async function volunteerRoster({ user }) {
+  const eventId = user.is_admin ? "" : await resolveVolunteerEventId(user);
+  if (!eventId) return { event_id: "", participants: [] };
+
+  const snap = await getDb().collection("registrations").where("event_id", "==", eventId).get();
+  const participants = snap.docs
+    .map((d) => ({ id: d.id, ...(d.data() ?? {}) }))
+    .filter((r) => r.status === STATUS_COMPLETED)
+    .map((row) => ({
+      registration_id: row.id,
+      team_name: row.team_name || "",
+      lead_name: row.name || "",
+      holders: ticketHolders(row).map((h, i) => {
+        const entry = (row.member_checkins || []).find((c) => c.member_index === i);
+        return {
+          member_index: i,
+          name: h.name || "",
+          allocation_code: (row.allocation_codes || [])[i] || "",
+          checked_in: Boolean(entry) && !entry.checked_out_at,
+        };
+      }),
+    }))
+    .sort((a, b) => (a.team_name || a.lead_name).localeCompare(b.team_name || b.lead_name));
+
+  return { event_id: eventId, participants };
 }

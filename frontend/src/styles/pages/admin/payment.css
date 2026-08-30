@@ -66,10 +66,65 @@
 
 /* ── Payment mode + approvals ──────────────────────────────── */
 
-/* New registration statuses. awaiting_approval reads as "in progress"
-   (warn), rejected as a stop (bad) — matching pending/failed above. */
-.pill-awaiting_approval { background: var(--warn-bg); color: var(--warn); }
-.pill-rejected          { background: var(--bad-bg);  color: var(--bad); }
+/* The status pill colours (.pill-awaiting_approval, .pill-rejected) live in
+   admin/shared.css alongside the other statuses so they render everywhere. */
+
+/* Payment screenshot thumbnails in the approval queue — a fixed tile that
+   opens full size in a lightbox on click. The cell is pinned so the column
+   doesn't stretch with the "Free event — no payment" text. */
+.proof-cell { width: 8rem; }
+
+.proof-thumb {
+  display: block;
+  width: 4.5rem;
+  height: 4.5rem;
+  object-fit: cover;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+}
+.proof-thumb--loading {
+  display: grid;
+  place-items: center;
+  color: var(--ink-faint);
+  overflow: hidden;
+}
+.proof-thumb--loading .ghost-loader-wrapper {
+  min-height: 0;
+  padding: 0;
+}
+.proof-thumb--loading #ghost {
+  scale: 0.28;
+}
+.proof-thumb-btn {
+  border: 0;
+  background: none;
+  padding: 0;
+  cursor: zoom-in;
+  border-radius: var(--r-sm);
+}
+.proof-thumb-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Click-to-enlarge overlay for a payment screenshot. */
+.img-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 2rem;
+  background: rgba(0, 0, 0, 0.75);
+}
+.img-lightbox img {
+  max-width: min(100%, 900px);
+  max-height: 100%;
+  border-radius: var(--r-sm);
+  box-shadow: var(--shadow-lg, 0 10px 40px rgba(0, 0, 0, 0.4));
+  cursor: zoom-out;
+}
 
 /* A rejection is worse news than the default .notice, so it borrows the
    error palette rather than the warning one. */

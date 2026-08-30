@@ -12,9 +12,15 @@ import { settings } from "../config/index.js";
  * along with paid checkout. Instead it's built on first use: an unconfigured
  * deployment serves everything except a paid registration, which fails with
  * a clear error only when someone actually tries to pay. */
+/** Whether the Razorpay gateway has usable credentials. Used to stop a paid
+ * event being created with no way to actually take the money. */
+export function isGatewayConfigured() {
+  return Boolean(settings.PAYMENT_KEY_ID && settings.PAYMENT_KEY_SECRET);
+}
+
 let client = null;
 function getClient() {
-  if (!settings.PAYMENT_KEY_ID || !settings.PAYMENT_KEY_SECRET) {
+  if (!isGatewayConfigured()) {
     throw new Error("Payments are not configured (PAYMENT_KEY_ID / PAYMENT_KEY_SECRET)");
   }
   if (!client) {

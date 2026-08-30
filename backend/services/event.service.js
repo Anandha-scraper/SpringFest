@@ -7,6 +7,8 @@
  */
 import * as aggregate from "./aggregate.js";
 import { cached, invalidate } from "./cache.js";
+import { isGatewayConfigured } from "./payment.js";
+import { getAppSettings, screenshotPathReady } from "./settings.js";
 import { getDb } from "../config/firebase.js";
 import { ApiError } from "../utils/ApiError.js";
 import { slugify } from "../utils/slugify.js";
@@ -49,6 +51,20 @@ export const LOCKED_FIELDS = new Set([
   "team_min",
   "team_max",
 ]);
+
+/** A paid event is useless if nobody can pay for it. Require a working payment
+ * path — the Razorpay gateway configured, or the screenshot UPI id + QR set and
+ * locked — before it can be created (or have its fee raised above zero). */
+async function assertPaidEventCanCollect(fee) {
+  if (!fee || fee <= 0) return;
+  const s = await getAppSettings();
+  if (isGatewayConfigured() || screenshotPathReady(s)) return;
+  throw new ApiError(
+    409,
+    "A paid event needs a working payment method first — configure the Razorpay gateway, " +
+      "or set the UPI ID and payment QR and lock them (Admin → Payment)."
+  );
+}
 
 /** One doc is enough to know an event is live — no need to count them all. */
 async function hasRegistrations(eventId) {
@@ -118,8 +134,9 @@ function parseEventCreate(body) {
     allow_submissions: requireBool(body.allow_submissions, false),
     instructions: optionalString(body.instructions),
     // A list of { label, max } — the event's scoring scheme. Judges only;
-    // never leaves the server through a public route.
-    marking_criteria: parseMarkingCriteria(body.marking_criteria),
+    // never leaves the server through a public route. At least one is required
+    // on create so every event is judgeable the moment it exists.
+    marking_criteria: parseMarkingCriteria(body.marking_criteria, { required: true }),
     // Not in LOCKED_FIELDS: closing an event is only ever useful *after*
     // people have registered for it.
     registration_open: requireBool(body.registration_open, true),
@@ -196,6 +213,8 @@ export async function createEvent(body) {
   const takenBy = await venueTakenBy(payload.venue_id);
   if (takenBy) throw new ApiError(409, `That venue is already used by "${takenBy}"`);
 
+  await assertPaidEventCanCollect(payload.fee);
+
   if (payload.start_time && payload.end_time && payload.start_time >= payload.end_time) {
     throw new ApiError(400, "End time must be after the start time");
   }
@@ -239,6 +258,10 @@ export async function updateEvent(eventId, body) {
   if (changes.venue_id !== undefined) {
     const takenBy = await venueTakenBy(changes.venue_id, eventId);
     if (takenBy) throw new ApiError(409, `That venue is already used by "${takenBy}"`);
+  }
+
+  if (changes.fee !== undefined && changes.fee > 0 && changes.fee !== current.fee) {
+    await assertPaidEventCanCollect(changes.fee);
   }
 
   const start = changes.start_time ?? current.start_time ?? "";

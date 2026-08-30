@@ -14,7 +14,7 @@ import { settings } from "../config/index.js";
 import { getDb, getStorage } from "../config/firebase.js";
 
 const CONFIRM = process.argv.includes("--yes");
-const FULL_WIPE_COLLECTIONS = ["events", "registrations", "venues"];
+const FULL_WIPE_COLLECTIONS = ["events", "registrations", "venues", "fest_checkins"];
 const STORAGE_PREFIXES = ["payment-proofs/", "payment-qr/", "submissions/"];
 
 async function deleteQuery(query, label) {

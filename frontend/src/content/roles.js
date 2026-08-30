@@ -57,17 +57,17 @@ export const ROLE_NAV = {
   ],
   [ROLES.JUDGE]: [
     { label: "Overview", to: "/judge", end: true, icon: LayoutDashboard },
-    { label: "Assignments", to: "/judge/assignments", icon: ListChecks },
+    { label: "Queue", to: "/judge/queue", icon: ListChecks },
     { label: "Scoring", to: "/judge/scoring", icon: Star },
   ],
   [ROLES.VOLUNTEER]: [
     { label: "Overview", to: "/volunteer", end: true, icon: LayoutDashboard },
-    { label: "Tasks", to: "/volunteer/tasks", icon: ListChecks },
     { label: "Check-in", to: "/volunteer/check-in", icon: UserCheck },
+    { label: "Roster", to: "/volunteer/tasks", icon: ListChecks },
   ],
   [ROLES.PARTICIPANT]: [
     { label: "Overview", to: "/participant", end: true, icon: LayoutDashboard },
-    { label: "My Registrations", to: "/participant/registrations", icon: Ticket },
+    { label: "My Registrations", to: "/my-registrations", icon: Ticket },
     { label: "Schedule", to: "/participant/schedule", icon: CalendarDays },
   ],
 };

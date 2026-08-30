@@ -108,6 +108,11 @@ export default function PaymentSettings() {
     () => [...(events || [])].sort((a, b) => a.name.localeCompare(b.name)),
     [events],
   );
+  // While a paid event is still taking sign-ups, the QR is the only way its
+  // screenshot-mode participants can pay — it can be replaced but not removed.
+  const qrLockedByEvents = (events || []).some(
+    (e) => (e.fee || 0) > 0 && e.registration_open !== false,
+  );
 
   const save = async (patch, message) => {
     setBusy(true);
@@ -251,7 +256,7 @@ export default function PaymentSettings() {
                   <span className="mode-card-head">
                     <Icon size={18} aria-hidden="true" />
                     <strong>{m.label}</strong>
-                    {active && <span className="pill pill-admin">In use</span>}
+                    {active && <span className="status-pill status-pill--admin">In use</span>}
                   </span>
                   <span className="muted">{m.blurb}</span>
                 </button>
@@ -263,7 +268,7 @@ export default function PaymentSettings() {
         <section className="admin-panel">
           <div className="panel-head">
             <h2>Registration window</h2>
-            <span className={`pill ${registrationOpen ? "pill-completed" : "pill-failed"}`}>
+            <span className={`status-pill ${registrationOpen ? "status-pill--completed" : "status-pill--failed"}`}>
               {registrationOpen ? "Open" : "Closed"}
             </span>
           </div>
@@ -332,7 +337,7 @@ export default function PaymentSettings() {
           <div className="panel-head">
             <h2>Where participants pay</h2>
           {locked && (
-            <span className="pill pill-completed">
+            <span className="status-pill status-pill--completed">
               <Lock size={12} aria-hidden="true" /> Locked
             </span>
           )}
@@ -393,7 +398,17 @@ export default function PaymentSettings() {
             <div className="form-actions-row">
               <FormActions saveLabel={qrFile ? "Save & upload QR" : "Save details"} />
               {hasQr && !qrFile && (
-                <button type="button" className="btn btn-ghost btn-sm" disabled={busy} onClick={dropQr}>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  disabled={busy || qrLockedByEvents}
+                  title={
+                    qrLockedByEvents
+                      ? "Can't remove the QR while a paid event is still open — replace it instead."
+                      : undefined
+                  }
+                  onClick={dropQr}
+                >
                   <Trash2 size={14} aria-hidden="true" /> Remove QR
                 </button>
               )}

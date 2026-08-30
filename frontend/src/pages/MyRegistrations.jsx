@@ -13,6 +13,8 @@ import { useAuth } from "@/auth/AuthContext.jsx";
 import { yearLabel } from "@/content/formOptions.js";
 import { formatEventDate, formatEventTimeRange } from "@/utils/format.js";
 import StatusPill from "@/components/admin/StatusPill.jsx";
+import Loader from "@/components/common/Loader.jsx";
+import { useHeldLoading } from "@/hooks/useHeldLoading.js";
 import EventSubmission from "@/components/registration/EventSubmission.jsx";
 import AddTeammate from "@/components/registration/AddTeammate.jsx";
 
@@ -102,6 +104,7 @@ export default function MyRegistrations() {
   const [events, setEvents] = useState([]);
   const [error, setError] = useState("");
   const [sheet, setSheet] = useState(null); // { registration, event, resume } | null
+  const loading = useHeldLoading(items === null);
 
   const load = useCallback(() => {
     Promise.all([getMyRegistrations(), getEvents()])
@@ -121,6 +124,9 @@ export default function MyRegistrations() {
 
   const byId = new Map(events.map((e) => [e.id, e]));
   const rows = items || [];
+  // The entry pass (and allocation codes) only mean something once an organiser
+  // has confirmed at least one registration — until then there's nothing to scan.
+  const hasConfirmed = rows.some((r) => r.status === "completed");
   const me = ownDetails(rows);
   const myCodes = rows.map((r) => (r.allocation_codes || [])[r.member_index]).filter(Boolean);
   const teams = rows
@@ -137,8 +143,8 @@ export default function MyRegistrations() {
     <div className="myreg">
       {error && <p className="error">{error}</p>}
 
-      {items === null ? (
-        <div className="spinner" />
+      {loading || items === null ? (
+        <Loader />
       ) : items.length === 0 ? (
         <div className="empty-state">
           <p className="empty-state__lead">You haven't registered for any events yet.</p>
@@ -146,7 +152,22 @@ export default function MyRegistrations() {
         </div>
       ) : (
         <section className="myreg-layout">
-          <PersonalQr codes={myCodes} />
+          {hasConfirmed ? (
+            <PersonalQr codes={myCodes} />
+          ) : (
+            <div className="myreg-qr">
+              <span className="myreg-qr__title">
+                <QrCode size={18} aria-hidden="true" /> Your Entry Pass
+              </span>
+              <div className="notice">
+                <strong>Waiting for confirmation</strong>
+                <p>
+                  Your registration is in. Your entry pass and codes appear here once an
+                  organiser confirms you.
+                </p>
+              </div>
+            </div>
+          )}
 
           <div className="myreg-right">
             <div className="myreg-info">
@@ -163,21 +184,30 @@ export default function MyRegistrations() {
                 </div>
               )}
 
+              {/* A roster stacks — name (with its code) over the contact line —
+                  rather than borrowing the label/value row above: two long
+                  values fighting for one line is what made it unreadable. */}
               {teams.map((t) => (
                 <div className="reg-detail-group" key={t.id}>
                   <div className="reg-detail-group-head">
                     <h4>{t.event}</h4>
                     {t.teamName && <span className="muted">{t.teamName}</span>}
                   </div>
-                  {t.holders.map((h, i) => (
-                    <div className="reg-detail-row" key={i}>
-                      <span>
-                        {h.name || "—"}
-                        {t.codes[i] && <span className="alloc-code alloc-code--sm">{t.codes[i]}</span>}
-                      </span>
-                      <span>{[h.email, h.phone].filter(Boolean).join(" · ") || "—"}</span>
-                    </div>
-                  ))}
+                  <ul className="myreg-roster">
+                    {t.holders.map((h, i) => (
+                      <li key={i}>
+                        <span className="myreg-roster__name">
+                          {h.name || "—"}
+                          {t.codes[i] && (
+                            <span className="alloc-code alloc-code--sm">{t.codes[i]}</span>
+                          )}
+                        </span>
+                        <span className="myreg-roster__contact">
+                          {[h.email, h.phone].filter(Boolean).join(" · ") || "—"}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               ))}
             </div>
@@ -199,7 +229,13 @@ export default function MyRegistrations() {
                 registrationOpen;
               // The plain resume-payment link is only for a first payment that
               // never completed — a top-up gets its own resume button instead.
-              const cta = topUp ? null : PAYMENT_CTA[r.status];
+              // A rejected *free* registration has no payment to redo, just a
+              // form to resubmit.
+              const cta = topUp
+                ? null
+                : r.status === "rejected" && Number(r.fee) === 0
+                  ? "Register again"
+                  : PAYMENT_CTA[r.status];
               return (
                 <div className="myreg-event" key={r.id}>
                   <div className="myreg-event__top">
@@ -250,7 +286,7 @@ export default function MyRegistrations() {
                   {topupReview && (
                     <p className="muted myreg-event__note">New teammate's payment is under review.</p>
                   )}
-                  {event.allow_submissions && (
+                  {event.allow_submissions && r.status === "completed" && (
                     <EventSubmission
                       registrationId={r.id}
                       canUpload={r.member_index === 0}

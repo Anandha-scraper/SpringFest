@@ -51,7 +51,7 @@ export default function ParticipantHome() {
         ) : !open.length ? (
           <p className="empty-state">
             You've registered for everything on offer. See your passes under{" "}
-            <Link to="/participant/registrations">My Registrations</Link>.
+            <Link to="/my-registrations">My Registrations</Link>.
           </p>
         ) : (
           <div className="event-grid">

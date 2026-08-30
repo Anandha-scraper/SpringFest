@@ -25,7 +25,7 @@ export default function EventCard({ event = {}, registration, note, action }) {
   const time = formatEventTimeRange(event);
 
   const defaultAction = registration ? (
-    <Link className="btn btn-ghost btn-sm" to="/participant/registrations">
+    <Link className="btn btn-ghost btn-sm" to="/my-registrations">
       {registration.status === "completed" ? "View pass" : "View"}
     </Link>
   ) : (

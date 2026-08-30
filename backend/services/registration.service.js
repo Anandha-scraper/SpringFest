@@ -31,7 +31,7 @@ import {
 import * as aggregate from "./aggregate.js";
 import { MINT_ON_GATEWAY_VERIFY, mintQuietly } from "./allocation.service.js";
 import { createOrder, fetchPaymentMethod, verifySignature } from "./payment.js";
-import { MODE_GATEWAY, MODE_SCREENSHOT, getAppSettings } from "./settings.js";
+import { MODE_FREE, MODE_GATEWAY, MODE_SCREENSHOT, getAppSettings } from "./settings.js";
 import { uploadBuffer } from "./storage.js";
 
 /** This user's live registration for this event, if there is one.
@@ -159,6 +159,9 @@ export async function createOrResume({ user, body }) {
   // a switch have to keep behaving the way they started.
   const paymentMode = appSettings.payment_mode;
   const isScreenshot = paymentMode === MODE_SCREENSHOT;
+  // A ₹0 headcount total (free event, or a free event's team) has nothing to
+  // pay — it bypasses the mode above and is verified by an admin instead.
+  const isFree = fee <= 0;
 
   let regRef;
   const existing = await existingRegistration(db, user.uid, payload.event_id);
@@ -168,14 +171,19 @@ export async function createOrResume({ user, body }) {
       throw new ApiError(409, "You have already registered for this event");
     }
     if (row.status === STATUS_AWAITING_APPROVAL) {
-      throw new ApiError(409, "Your payment proof is already submitted and waiting for approval");
+      throw new ApiError(
+        409,
+        row.payment_mode === MODE_FREE
+          ? "You're already registered — an organiser is reviewing it"
+          : "Your payment proof is already submitted and waiting for approval"
+      );
     }
     // Draft, pending or rejected: hand back the same document rather than
     // making a duplicate — the user is finishing a form they saved, resuming
     // a checkout they abandoned, or resubmitting proof an admin turned down.
     regRef = existing.ref;
     const orderId = row.order_id || "";
-    if (!saveAsDraft && !isScreenshot && orderId) {
+    if (!saveAsDraft && !isScreenshot && !isFree && orderId) {
       return {
         registration_id: regRef.id,
         payment_mode: paymentMode,
@@ -205,6 +213,29 @@ export async function createOrResume({ user, body }) {
     });
     aggregate.invalidateLoadAll();
     return { registration_id: regRef.id, status: STATUS_DRAFT };
+  }
+
+  if (isFree) {
+    // Nothing to charge: skip both payment flows and drop straight into the
+    // approval queue. An admin's "yes" is what advances it to completed and
+    // mints allocation codes — exactly as a verified payment would.
+    await regRef.set({
+      ...payload,
+      team_size: 1 + members.length,
+      uid: user.uid,
+      user_email: user.email,
+      fee: 0,
+      payment_mode: MODE_FREE,
+      status: STATUS_AWAITING_APPROVAL,
+      checked_in: false,
+      created_at: new Date().toISOString(),
+    });
+    aggregate.invalidateLoadAll();
+    return {
+      registration_id: regRef.id,
+      payment_mode: MODE_FREE,
+      status: STATUS_AWAITING_APPROVAL,
+    };
   }
 
   await regRef.set({

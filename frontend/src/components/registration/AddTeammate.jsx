@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import "@/styles/components/add-teammate.css";
 import {
   Sheet,
   SheetContent,
@@ -7,6 +8,7 @@ import {
   SheetDescription,
 } from "@/components/ui/sheet.jsx";
 import DetailFields from "@/components/registration/DetailFields.jsx";
+import Loader from "@/components/common/Loader.jsx";
 import PaymentProofForm from "@/components/registration/PaymentProofForm.jsx";
 import { addTeamMember, getTopupPayment, submitPaymentProof } from "@/api/client.js";
 import { openCheckout } from "@/api/payment.js";
@@ -99,9 +101,9 @@ export default function AddTeammate({ registration, event, resume = false, onClo
 
   return (
     <Sheet open onOpenChange={(o) => !o && onClose()}>
-      <SheetContent className="reg-detail">
-        <SheetHeader className="reg-detail-head">
-          <SheetTitle>Add a teammate</SheetTitle>
+      <SheetContent className="at-sheet">
+        <SheetHeader className="at-head">
+          <SheetTitle className="pr-6">Add a teammate</SheetTitle>
           <SheetDescription>
             {eventName}
             {" · "}
@@ -112,7 +114,7 @@ export default function AddTeammate({ registration, event, resume = false, onClo
         </SheetHeader>
 
         {step === "form" ? (
-          <form className="form reg-edit-form" onSubmit={submitForm}>
+          <form className="form at-body" onSubmit={submitForm}>
             <h4>Member {(registration.team_size || 1) + 1}</h4>
 
             <label htmlFor="at-name">Full name</label>
@@ -157,9 +159,11 @@ export default function AddTeammate({ registration, event, resume = false, onClo
             </div>
           </form>
         ) : !pay ? (
-          error ? <p className="error">{error}</p> : <div className="spinner" />
+          <div className="at-body">
+            {error ? <p className="error">{error}</p> : <Loader compact />}
+          </div>
         ) : pay.payment_mode === "screenshot" ? (
-          <>
+          <div className="at-body">
             <PaymentProofForm
               amount={amountDue}
               upiId={pay.upi_id || paymentUpiId}
@@ -168,12 +172,12 @@ export default function AddTeammate({ registration, event, resume = false, onClo
               onSubmit={handleProof}
               submitting={busy}
             />
-            <button className="btn btn-ghost" type="button" onClick={onClose}>
+            <button className="btn btn-ghost at-cancel" type="button" onClick={onClose}>
               Cancel
             </button>
-          </>
+          </div>
         ) : (
-          <div className="form">
+          <div className="form at-body">
             <p className="notice">
               <strong>Pay ₹{amountDue}</strong> for the added teammate to confirm them.
             </p>

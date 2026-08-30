@@ -1,24 +1,27 @@
 import { useEffect, useRef, useState } from "react";
 import "@/styles/pages/volunteer-check-in.css";
-import { CheckCircle2, Circle, Keyboard, MapPin, ScanLine, XCircle } from "lucide-react";
-import { scanPersonToken, toggleCheckIn } from "@/api/client.js";
+import { CheckCircle2, Circle, DoorOpen, Keyboard, MapPin, ScanLine, XCircle } from "lucide-react";
+import { festCheckIn, scanPersonToken, toggleCheckIn } from "@/api/client.js";
 import { formatEventTime } from "@/utils/format.js";
 
 const SCANNER_ID = "volunteer-qr-scanner";
-// Ignore repeat decodes of the same code while it's still sitting in frame —
-// html5-qrcode can fire the callback several times a second otherwise.
 const RESCAN_GUARD_MS = 2000;
 
-/** One event row for the scanned person, with a check-in/out toggle. */
+/** One event row for the scanned person, with an event check-in/out toggle. */
 function EventRow({ reg, onToggle, busy }) {
+  const blocked = reg.status !== "completed" || !reg.can_event_check_in;
+  const why =
+    reg.status !== "completed"
+      ? "Not a confirmed registration"
+      : !reg.can_event_check_in
+        ? "This event isn't at your venue"
+        : undefined;
   return (
-    <li className="checkin-row">
+    <li className="checkin-row" style={blocked && !busy ? { opacity: 0.6 } : undefined}>
       <div className="checkin-row-info">
         <div className="checkin-row__head">
           <strong>{reg.event_name}</strong>
-          {reg.allocation_code && (
-            <span className="checkin-row__code">{reg.allocation_code}</span>
-          )}
+          {reg.allocation_code && <span className="checkin-row__code">{reg.allocation_code}</span>}
         </div>
         <span className="schedule-meta">{formatEventTime(reg) || "Date to be announced"}</span>
         {reg.venue_name && (
@@ -28,13 +31,16 @@ function EventRow({ reg, onToggle, busy }) {
           </span>
         )}
         {reg.team_name && <span className="muted checkin-row__team">Team: {reg.team_name}</span>}
+        {!reg.can_event_check_in && reg.status === "completed" && (
+          <span className="muted checkin-row__team">Another venue's event</span>
+        )}
       </div>
       <button
         type="button"
         className={`btn btn-sm ${reg.checked_in ? "btn-ghost" : ""}`}
-        disabled={busy || reg.status !== "completed"}
+        disabled={busy || blocked}
         onClick={() => onToggle(reg, !reg.checked_in)}
-        title={reg.status !== "completed" ? "Not a confirmed registration" : undefined}
+        title={why}
       >
         {reg.checked_in ? (
           <>
@@ -50,7 +56,6 @@ function EventRow({ reg, onToggle, busy }) {
   );
 }
 
-/** Camera-based scanner for the volunteer's personal-QR check-in flow. */
 function Scanner({ onDecode, active }) {
   const [scanError, setScanError] = useState("");
   const lastRef = useRef({ text: "", at: 0 });
@@ -59,6 +64,7 @@ function Scanner({ onDecode, active }) {
     if (!active) return undefined;
     let scanner;
     let cancelled = false;
+    let started = false;
 
     import("html5-qrcode").then(({ Html5Qrcode }) => {
       if (cancelled) return;
@@ -73,18 +79,24 @@ function Scanner({ onDecode, active }) {
             lastRef.current = { text, at: now };
             onDecode(text);
           },
-          () => {} // per-frame "no code found" — not an error, ignore
+          () => {}
         )
+        .then(() => {
+          started = true;
+        })
         .catch((err) => setScanError(err?.message || "Could not start the camera"));
     });
 
     return () => {
       cancelled = true;
-      if (scanner) {
+      if (!scanner || !started) return;
+      try {
         scanner
           .stop()
           .then(() => scanner.clear())
           .catch(() => {});
+      } catch {
+        /* already stopped */
       }
     };
   }, [active, onDecode]);
@@ -102,6 +114,7 @@ function Scanner({ onDecode, active }) {
 }
 
 export default function VolunteerCheckIn() {
+  const [checkType, setCheckType] = useState("event"); // "fest" | "event"
   const [mode, setMode] = useState("scan"); // "scan" | "manual"
   const [person, setPerson] = useState(null);
   const [manualId, setManualId] = useState("");
@@ -144,6 +157,14 @@ export default function VolunteerCheckIn() {
       .finally(() => setBusyKey(""));
   };
 
+  const handleFestCheckIn = () => {
+    setBusyKey("fest");
+    festCheckIn(person.uid)
+      .then(() => setPerson((p) => ({ ...p, fest_checked_in: true })))
+      .catch((e) => setError(e.message))
+      .finally(() => setBusyKey(""));
+  };
+
   const reset = () => {
     setPerson(null);
     setError("");
@@ -156,11 +177,33 @@ export default function VolunteerCheckIn() {
         <div className="checkin-mode-toggle">
           <button
             type="button"
-            className={`btn btn-sm ${mode === "scan" ? "" : "btn-ghost"}`}
-            onClick={() => setMode("scan")}
+            className={`btn btn-sm ${checkType === "fest" ? "" : "btn-ghost"}`}
+            onClick={() => {
+              setCheckType("fest");
+              setMode("scan");
+            }}
           >
-            <ScanLine size={15} aria-hidden="true" /> Scan
+            <DoorOpen size={15} aria-hidden="true" /> Fest entry
           </button>
+          <button
+            type="button"
+            className={`btn btn-sm ${checkType === "event" ? "" : "btn-ghost"}`}
+            onClick={() => setCheckType("event")}
+          >
+            <MapPin size={15} aria-hidden="true" /> Event
+          </button>
+        </div>
+      </div>
+
+      <div className="checkin-mode-toggle" style={{ marginBottom: ".75rem" }}>
+        <button
+          type="button"
+          className={`btn btn-sm ${mode === "scan" ? "" : "btn-ghost"}`}
+          onClick={() => setMode("scan")}
+        >
+          <ScanLine size={15} aria-hidden="true" /> Scan
+        </button>
+        {checkType === "event" && (
           <button
             type="button"
             className={`btn btn-sm ${mode === "manual" ? "" : "btn-ghost"}`}
@@ -168,7 +211,7 @@ export default function VolunteerCheckIn() {
           >
             <Keyboard size={15} aria-hidden="true" /> Enter ID
           </button>
-        </div>
+        )}
       </div>
 
       {error && (
@@ -180,7 +223,7 @@ export default function VolunteerCheckIn() {
 
       {mode === "scan" && !person && <Scanner active={mode === "scan"} onDecode={handleDecode} />}
 
-      {mode === "manual" && !person && (
+      {mode === "manual" && checkType === "event" && !person && (
         <form className="form checkin-manual-form" onSubmit={handleManual}>
           <label htmlFor="ci-manual">Registration ID</label>
           <input
@@ -193,7 +236,8 @@ export default function VolunteerCheckIn() {
             {busyKey === manualId ? "Checking in…" : "Check in the lead"}
           </button>
           <p className="muted checkin-note">
-            No ticket or QR on hand? Check in the team lead by their registration id
+            No ticket or QR on hand? Check in the team lead by their registration id (only works for
+            your venue's event).
           </p>
         </form>
       )}
@@ -214,7 +258,24 @@ export default function VolunteerCheckIn() {
             </div>
           </div>
 
-          {person.registrations.length === 0 ? (
+          {checkType === "fest" ? (
+            <div className="checkin-fest">
+              {person.fest_checked_in ? (
+                <p className="notice">
+                  <CheckCircle2 size={15} aria-hidden="true" /> Already marked present at the fest.
+                </p>
+              ) : (
+                <button
+                  type="button"
+                  className="btn"
+                  disabled={busyKey === "fest"}
+                  onClick={handleFestCheckIn}
+                >
+                  <DoorOpen size={15} aria-hidden="true" /> Mark present at fest
+                </button>
+              )}
+            </div>
+          ) : person.registrations.length === 0 ? (
             <p className="empty-state">No registrations found for this person.</p>
           ) : (
             <ul className="checkin-row-list">
@@ -238,7 +299,9 @@ export default function VolunteerCheckIn() {
       {!person && mode === "scan" && (
         <p className="muted checkin-note checkin-note--spaced">
           <XCircle size={13} aria-hidden="true" className="checkin-note__icon" />
-          Point the camera at the participant's Spring Fest QR code.
+          {checkType === "fest"
+            ? "Scan the participant's QR to mark them present at the fest."
+            : "Scan the participant's QR to check them in for your venue's event."}
         </p>
       )}
     </section>
