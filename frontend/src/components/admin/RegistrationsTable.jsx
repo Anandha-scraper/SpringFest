@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { Eye, Pencil } from "lucide-react";
 import StatusPill from "@/components/admin/StatusPill.jsx";
+import Loader from "@/components/common/Loader.jsx";
+import PersonDetailsDialog from "@/components/admin/PersonDetailsDialog.jsx";
 import { formatDateTime, rupees } from "@/utils/format.js";
 import { getAdminRegistration, updateAdminRegistration } from "@/api/client.js";
 import { DEPARTMENTS, STUDY_YEARS, TN_CITIES, yearLabel } from "@/content/formOptions.js";
@@ -11,15 +13,6 @@ import {
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet.jsx";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog.jsx";
 
 const money = (n) => (n > 0 ? rupees(n) : "Free");
 
@@ -120,7 +113,7 @@ function EditRegistrationSheet({ registrationId, onClose, onSaved }) {
         </SheetHeader>
 
         {!row ? (
-          error ? <p className="error">{error}</p> : <div className="spinner" />
+          error ? <p className="error">{error}</p> : <Loader compact />
         ) : (
           <form className="form reg-edit-form" onSubmit={submit}>
             <h4>Lead</h4>
@@ -191,8 +184,20 @@ function EditRegistrationSheet({ registrationId, onClose, onSaved }) {
  */
 export default function RegistrationsTable({ rows, minRows = 0, onSaved }) {
   const [selected, setSelected] = useState(null);
-  const [team, setTeam] = useState(null);
+  const [details, setDetails] = useState(null);
   const [editingId, setEditingId] = useState(null);
+
+  /** Open the details dialog for one person and, on a team entry, their whole
+   * roster. Someone leading two teams has two rosters, so they get the detail
+   * drawer (which lists every one) instead. */
+  const openDetails = (r, t) =>
+    setDetails({
+      title: t ? t.team_name : r.name,
+      subtitle: t
+        ? `${t.event_name} · ${t.team_size} members · led by ${r.name}`
+        : r.solo_events.join(" · ") || r.email,
+      people: [{ ...r, lead: true }, ...(t?.members || [])],
+    });
 
   if (!rows.length) return <p className="empty-state">No registrations match these filters.</p>;
 
@@ -227,7 +232,17 @@ export default function RegistrationsTable({ rows, minRows = 0, onSaved }) {
             {rows.map((r) => (
               <tr key={r.uid}>
                 <td>
-                  <strong>{r.name}</strong>
+                  {/* Always a link: a solo participant's own details are worth
+                      one click too, not just a team's roster. */}
+                  <button
+                    className="link-btn"
+                    type="button"
+                    onClick={() =>
+                      r.teams.length > 1 ? setSelected(r) : openDetails(r, r.teams[0])
+                    }
+                  >
+                    {r.name}
+                  </button>
                   <span className="cell-sub">{r.email}</span>
                 </td>
                 <td>{r.phone || "—"}</td>
@@ -256,7 +271,7 @@ export default function RegistrationsTable({ rows, minRows = 0, onSaved }) {
                           <button
                             className="link-btn"
                             type="button"
-                            onClick={() => setTeam({ ...t, lead: r })}
+                            onClick={() => openDetails(r, t)}
                           >
                             {t.team_name}
                           </button>
@@ -286,36 +301,13 @@ export default function RegistrationsTable({ rows, minRows = 0, onSaved }) {
         </table>
       </div>
 
-      {/* Teammates: they don't sign in themselves, so this is the only place
-          their details surface. */}
-      <AlertDialog open={!!team} onOpenChange={(open) => !open && setTeam(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{team?.team_name}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {team?.event_name} · {team?.team_size} members · led by {team?.lead?.name}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <ul className="team-list">
-            <li>
-              <span>
-                <strong>{team?.lead?.name}</strong>
-                <span className="pill pill-judge">lead</span>
-              </span>
-              <span className="cell-sub">{team?.lead?.email} · {team?.lead?.phone}</span>
-            </li>
-            {(team?.members || []).map((m) => (
-              <li key={m.email}>
-                <span><strong>{m.name}</strong></span>
-                <span className="cell-sub">{m.email} · {m.phone}</span>
-              </li>
-            ))}
-          </ul>
-          <AlertDialogFooter>
-            <AlertDialogAction>Close</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <PersonDetailsDialog
+        open={!!details}
+        onClose={() => setDetails(null)}
+        title={details?.title}
+        subtitle={details?.subtitle}
+        people={details?.people || []}
+      />
 
       <Sheet open={!!selected} onOpenChange={(open) => !open && setSelected(null)}>
         <SheetContent className="reg-detail">

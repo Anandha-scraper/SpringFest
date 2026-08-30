@@ -17,6 +17,7 @@ import { getAuth, getDb } from "../config/firebase.js";
 import { settings } from "../config/index.js";
 import { STATUS_COMPLETED } from "../utils/statuses.js";
 import { cached, invalidate } from "./cache.js";
+import { nowInFestZone } from "./festClock.js";
 
 // Re-exported because the admin read models filter on it and importing it
 // from here keeps them to one import; utils/statuses.js is the single source.
@@ -49,18 +50,20 @@ const TTL_SECONDS = 20;
 
 async function scanAll() {
   const db = getDb();
-  const [registrationsSnap, eventsSnap, venuesSnap, people] = await Promise.all([
+  const [registrationsSnap, eventsSnap, venuesSnap, festCheckinsSnap, people] = await Promise.all([
     db.collection("registrations").get(),
     db.collection("events").get(),
     db.collection("venues").get(),
+    db.collection("fest_checkins").get(),
     listPeople(),
   ]);
 
   const registrations = registrationsSnap.docs.map((d) => ({ id: d.id, ...(d.data() ?? {}) }));
   const events = Object.fromEntries(eventsSnap.docs.map((d) => [d.id, { id: d.id, ...(d.data() ?? {}) }]));
   const venues = Object.fromEntries(venuesSnap.docs.map((d) => [d.id, { id: d.id, ...(d.data() ?? {}) }]));
+  const festCheckins = festCheckinsSnap.docs.map((d) => ({ id: d.id, ...(d.data() ?? {}) }));
 
-  return { registrations, events, venues, people };
+  return { registrations, events, venues, festCheckins, people };
 }
 
 /** One trip for everything the rollups need, so an endpoint that wants two
@@ -217,6 +220,9 @@ export async function buildStats(data) {
     evaluated_users: new Set(registrations.filter(isEvaluated).map(personKey)).size,
     revenue: completed.reduce((sum, r) => sum + (r.fee || 0), 0),
     checked_in: registrations.filter((r) => r.checked_in).length,
+    // People who cleared the door (fest entry), a separate axis from event
+    // check-in and payment.
+    fest_checked_in: (data.festCheckins || []).length,
     total_registrations: registrations.length,
     events_count: Object.keys(events).length,
     per_event: perEventCounts(data),
@@ -302,29 +308,13 @@ export async function venueRollup(data) {
   return rows;
 }
 
-/** The fest runs in one place, and the admin form writes wall-clock strings. */
-const FEST_TIMEZONE = "Asia/Kolkata";
-
-/** Has this event started yet?
- *
- * An event's `date` ("YYYY-MM-DD") and `start_time` ("HH:MM") are local
- * wall-clock strings with no zone — that is what the admin form's date and
- * time pickers produce. Everything else in this codebase timestamps with
- * `new Date().toISOString()`, which is UTC. Comparing the two naively would
- * make every event look five and a half hours late, so `now` is rendered in
- * the fest's own zone before the string compare.
- *
- * Deliberately not reused for created_at / paid_at / reviewed_at: those are
- * genuine UTC instants and must keep being compared as such. */
+/** Has this event started yet? Wall-clock string compare in the fest's zone —
+ * see services/festClock.js for why the zone conversion is needed. Deliberately
+ * not reused for created_at / paid_at / reviewed_at: those are genuine UTC
+ * instants and must keep being compared as such. */
 function eventStarted(event, now = new Date()) {
   if (!event.date) return false; // an undated event never auto-starts
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: FEST_TIMEZONE,
-    year: "numeric", month: "2-digit", day: "2-digit",
-    hour: "2-digit", minute: "2-digit", hour12: false,
-  }).formatToParts(now);
-  const p = Object.fromEntries(parts.map((x) => [x.type, x.value]));
-  return `${event.date}T${event.start_time || "00:00"}` <= `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}`;
+  return `${event.date}T${event.start_time || "00:00"}` <= nowInFestZone(now);
 }
 
 /** Per event: headcount, attendance and evaluation progress, plus who is

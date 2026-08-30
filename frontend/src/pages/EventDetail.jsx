@@ -8,6 +8,10 @@ import { useAuth } from "@/auth/AuthContext.jsx";
 import { formatEventTime } from "@/utils/format.js";
 import RegistrationForm from "@/components/registration/RegistrationForm.jsx";
 import PaymentProofForm from "@/components/registration/PaymentProofForm.jsx";
+import RegistrationResultDialog from "@/components/registration/RegistrationResultDialog.jsx";
+import Loader from "@/components/common/Loader.jsx";
+import { useHeldLoading } from "@/hooks/useHeldLoading.js";
+import { homeForRole } from "@/content/roles.js";
 
 /** Pull just the form-shaped fields out of a saved draft (or any registration
  * row) — the row also carries id/status/fee/etc. that the form has no use
@@ -41,14 +45,18 @@ export default function EventDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const { paymentUpiId, hasPaymentQr, registrationOpen } = useAuth();
+  const { paymentUpiId, hasPaymentQr, registrationOpen, role } = useAuth();
 
   const [event, setEvent] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  // The outcome popup shown over this page before we move on. Every flow —
+  // free, screenshot proof, gateway — ends here rather than on its own route.
+  const [result, setResult] = useState(null);
   // Set once a screenshot-mode registration exists and is waiting for its
   // proof — this is what swaps the details form for the upload step.
   const [awaitingProof, setAwaitingProof] = useState(null);
+  const loading = useHeldLoading(!event);
 
   // MyRegistrations links back here to resume a saved draft or resubmit
   // after a rejection, handing over the registration so we can pick up
@@ -61,9 +69,10 @@ export default function EventDetail() {
   }, [id]);
 
   useEffect(() => {
-    // A draft goes back into the form itself (prefilled); anything else
-    // being resumed (a rejected screenshot) skips straight to the proof step.
-    if (resume && !isDraftResume) {
+    // A draft goes back into the form itself (prefilled); a rejected *paid*
+    // registration skips straight to the proof step. A rejected free one has
+    // no proof to give, so it falls through to the form for a plain resubmit.
+    if (resume && !isDraftResume && resume.fee > 0) {
       setAwaitingProof({
         registrationId: resume.id,
         amount: resume.fee,
@@ -80,6 +89,16 @@ export default function EventDetail() {
 
       // Which flow follows is the server's call, not the client's — it stamps
       // the mode on the registration so it can't change underneath us.
+      if (order.payment_mode === "free") {
+        // Nothing to pay — the row is already in the organiser's queue.
+        setResult({
+          awaiting: true,
+          free: true,
+          registrationId: order.registration_id,
+        });
+        return;
+      }
+
       if (order.payment_mode === "screenshot") {
         setAwaitingProof({
           registrationId: order.registration_id,
@@ -95,11 +114,10 @@ export default function EventDetail() {
         user: form,
         event,
         onSuccess: (r) =>
-          navigate("/success", {
-            state: {
-              registrationId: r.registration_id,
-              allocationCodes: r.allocation_codes || [],
-            },
+          setResult({
+            awaiting: false,
+            registrationId: r.registration_id,
+            codes: r.allocation_codes || [],
           }),
         onError: (e) => {
           setError(e.message);
@@ -129,9 +147,7 @@ export default function EventDetail() {
     setError("");
     try {
       await submitPaymentProof(awaitingProof.registrationId, { transactionId, file });
-      navigate("/success", {
-        state: { registrationId: awaitingProof.registrationId, awaitingApproval: true },
-      });
+      setResult({ awaiting: true, registrationId: awaitingProof.registrationId });
     } catch (e) {
       setError(e.message);
       setSubmitting(false);
@@ -145,7 +161,7 @@ export default function EventDetail() {
       </div>
     );
   }
-  if (!event) return <div className="spinner" />;
+  if (loading || !event) return <Loader />;
 
   return (
     <div className="container event-register">
@@ -178,7 +194,7 @@ export default function EventDetail() {
             <p className="muted register-note">
               {event.fee > 0
                 ? "You'll confirm payment after this step."
-                : "This event is free — you'll be confirmed instantly."}
+                : "This event is free — an organiser will confirm your spot."}
             </p>
             <RegistrationForm
               onSubmit={handleSubmit}
@@ -186,7 +202,7 @@ export default function EventDetail() {
               submitting={submitting}
               fee={event.fee}
               event={event}
-              initialValues={isDraftResume ? draftInitialValues(resume) : null}
+              initialValues={resume ? draftInitialValues(resume) : null}
             />
           </>
         )}
@@ -223,6 +239,17 @@ export default function EventDetail() {
         </ul>
         {event.description && <p className="muted">{event.description}</p>}
       </aside>
+
+      <RegistrationResultDialog
+        open={!!result}
+        awaiting={result?.awaiting}
+        free={result?.free}
+        registrationId={result?.registrationId}
+        codes={result?.codes}
+        // homeForRole, not a hardcoded /participant: a judge or volunteer can
+        // register too, and /participant's role guard would bounce them.
+        onDone={() => navigate(homeForRole(role))}
+      />
     </div>
   );
 }

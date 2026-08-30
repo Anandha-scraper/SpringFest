@@ -172,7 +172,7 @@ export default function AddRoles() {
                   <tr key={p.email}>
                     <td>{p.email}</td>
                     <td>{p.name || "—"}</td>
-                    <td><span className={`pill pill-${p.role}`}>{p.role}</span></td>
+                    <td><span className={`status-pill status-pill--${p.role}`}>{p.role}</span></td>
                     <td className="row-actions">
                       {/* Seeded admins live in ADMIN_EMAILS — they're the lockout
                           recovery path, so the API refuses to remove them. */}

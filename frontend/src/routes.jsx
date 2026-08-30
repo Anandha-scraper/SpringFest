@@ -13,7 +13,6 @@ import { ROLES } from "@/content/roles.js";
 const Landing = lazy(() => import("@/pages/Landing.jsx"));
 const EventDetail = lazy(() => import("@/pages/EventDetail.jsx"));
 const MyRegistrations = lazy(() => import("@/pages/MyRegistrations.jsx"));
-const Success = lazy(() => import("@/pages/Success.jsx"));
 const NotFound = lazy(() => import("@/pages/NotFound.jsx"));
 
 const AdminDashboard = lazy(() => import("@/pages/admin/AdminDashboard.jsx"));
@@ -26,10 +25,10 @@ const PaymentSettings = lazy(() => import("@/pages/admin/PaymentSettings.jsx"));
 const Approvals = lazy(() => import("@/pages/admin/Approvals.jsx"));
 
 const JudgeHome = lazy(() => import("@/pages/roles/JudgeHome.jsx"));
-const JudgeAssignments = lazy(() => import("@/pages/roles/JudgeAssignments.jsx"));
+const JudgeQueue = lazy(() => import("@/pages/roles/JudgeQueue.jsx"));
 const JudgeScoring = lazy(() => import("@/pages/roles/JudgeScoring.jsx"));
 const VolunteerHome = lazy(() => import("@/pages/roles/VolunteerHome.jsx"));
-const VolunteerTasks = lazy(() => import("@/pages/roles/VolunteerTasks.jsx"));
+const VolunteerRoster = lazy(() => import("@/pages/roles/VolunteerRoster.jsx"));
 const VolunteerCheckIn = lazy(() => import("@/pages/roles/VolunteerCheckIn.jsx"));
 const ParticipantHome = lazy(() => import("@/pages/roles/ParticipantHome.jsx"));
 const ParticipantSchedule = lazy(() => import("@/pages/roles/ParticipantSchedule.jsx"));
@@ -43,17 +42,22 @@ export default function AppRoutes() {
     <Routes>
       <Route element={<Layout />}>
         <Route path="/" element={<Landing />} />
-        <Route path="/success" element={<Success />} />
-
-        <Route
-          path="/my-registrations"
-          element={
-            <ProtectedRoute>
-              <MyRegistrations />
-            </ProtectedRoute>
-          }
-        />
         <Route path="*" element={<NotFound />} />
+      </Route>
+
+      {/* The one registrations page — dashboard shell, like event detail, so
+          the sidebar carries the navigation instead of the marketing pill
+          nav. The outcome of a registration is a popup on the event page,
+          not a route of its own. */}
+      <Route
+        path="/my-registrations"
+        element={
+          <ProtectedRoute>
+            <RoleLayout role={ROLES.PARTICIPANT} />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<MyRegistrations />} />
       </Route>
 
       {/* Event detail + registration — sidebar shell (like the role
@@ -98,7 +102,7 @@ export default function AppRoutes() {
         }
       >
         <Route index element={<JudgeHome />} />
-        <Route path="assignments" element={<JudgeAssignments />} />
+        <Route path="queue" element={<JudgeQueue />} />
         <Route path="scoring" element={<JudgeScoring />} />
       </Route>
 
@@ -111,8 +115,8 @@ export default function AppRoutes() {
         }
       >
         <Route index element={<VolunteerHome />} />
-        <Route path="tasks" element={<VolunteerTasks />} />
         <Route path="check-in" element={<VolunteerCheckIn />} />
+        <Route path="tasks" element={<VolunteerRoster />} />
       </Route>
 
       <Route
@@ -124,7 +128,6 @@ export default function AppRoutes() {
         }
       >
         <Route index element={<ParticipantHome />} />
-        <Route path="registrations" element={<MyRegistrations />} />
         <Route path="schedule" element={<ParticipantSchedule />} />
       </Route>
     </Routes>

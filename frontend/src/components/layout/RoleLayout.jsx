@@ -1,6 +1,7 @@
 import { Outlet } from "react-router-dom";
 import "@/styles/pages/admin/shared.css";
 import RoleSidebar from "@/components/layout/RoleSidebar.jsx";
+import PageBoundary from "@/components/common/PageBoundary.jsx";
 
 /**
  * Standalone shell for every role dashboard (and the event-detail page): the
@@ -13,7 +14,9 @@ export default function RoleLayout({ role }) {
     <div className="role-shell">
       <RoleSidebar role={role} />
       <main className="role-main">
-        <Outlet />
+        <PageBoundary>
+          <Outlet />
+        </PageBoundary>
       </main>
     </div>
   );

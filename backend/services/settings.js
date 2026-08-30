@@ -18,6 +18,7 @@ import { getDb } from "../config/firebase.js";
 import { ApiError } from "../utils/ApiError.js";
 import { optionalString, requireBool, requireOneOf } from "../utils/validate.js";
 import { cached, invalidate } from "./cache.js";
+import { eventEnded } from "./festClock.js";
 import { uploadBuffer } from "./storage.js";
 
 const COLLECTION = "settings";
@@ -28,6 +29,11 @@ const TTL_SECONDS = 30;
 export const MODE_GATEWAY = "gateway";
 export const MODE_SCREENSHOT = "screenshot";
 export const PAYMENT_MODES = [MODE_GATEWAY, MODE_SCREENSHOT];
+
+// Stamped on a registration whose fee works out to ₹0 — there's nothing to
+// charge, so it skips both payment flows and goes straight to the admin
+// approval queue for a plain "yes, you're in". Never a selectable app mode.
+export const MODE_FREE = "free";
 
 const DEFAULTS = {
   payment_mode: MODE_GATEWAY,
@@ -54,6 +60,13 @@ const DEFAULTS = {
   updated_at: "",
   updated_by: "",
 };
+
+/** Whether screenshot-mode payment is fully set up: a UPI id, a QR, and both
+ * locked so they can't be edited into something wrong. One of this or the
+ * gateway must be ready before a paid event can be created. */
+export function screenshotPathReady(s) {
+  return Boolean(s.payment_upi_id && s.payment_qr_path && s.payment_locked);
+}
 
 export async function getAppSettings() {
   return cached(CACHE_KEY, TTL_SECONDS, async () => {
@@ -127,8 +140,26 @@ export async function savePaymentQr({ file, extension, actorEmail }) {
 
 /** Forget the payment QR. The stored object is left in place: there is no
  * delete helper in services/storage.js and these are a handful of tiny private
- * files — the same reasoning that keeps every payment-proof attempt around. */
+ * files — the same reasoning that keeps every payment-proof attempt around.
+ *
+ * Blocked while any paid event is still running: for screenshot-mode
+ * participants that QR is the only way to pay, so it may be *replaced*
+ * (savePaymentQr) but not removed until every event has closed
+ * (`registration_open === false`) or ended (past its end time). */
 export async function clearPaymentQr(actorEmail) {
   assertUnlocked(await getAppSettings());
+
+  const snap = await getDb().collection("events").get();
+  const running = snap.docs
+    .map((d) => d.data() ?? {})
+    .filter((e) => (e.fee || 0) > 0 && e.registration_open !== false && !eventEnded(e));
+  if (running.length) {
+    throw new ApiError(
+      409,
+      "The payment QR can't be removed while paid events are still running — replace it " +
+        "instead, or wait until every event has closed or ended."
+    );
+  }
+
   return setAppSettings({ payment_qr_path: "" }, actorEmail);
 }

@@ -7,6 +7,7 @@
  */
 import { getDb } from "../config/firebase.js";
 import { ApiError } from "../utils/ApiError.js";
+import { STATUS_COMPLETED } from "../utils/statuses.js";
 import * as aggregate from "./aggregate.js";
 import { personalQrPng } from "./qr.js";
 import { loadPersonRegistrations, matchMemberIndex } from "./registrationLookup.js";
@@ -96,8 +97,16 @@ export async function submissionFile(user, registrationId) {
 /** This person's personal check-in badge — one QR, not one per registration.
  * Generated on the fly (no Cloud Storage round-trip): it's cheap, and the
  * whole point is that it never needs to be reissued when they register for
- * something new. */
+ * something new.
+ *
+ * Withheld until at least one registration is `completed`: an unconfirmed
+ * request carries no allocation codes, so the pass would scan to nothing —
+ * and it shouldn't look like a ticket before an organiser has said yes. */
 export async function badgePng(user) {
+  const rows = await loadPersonRegistrations({ uid: user.uid, email: user.email });
+  if (!rows.some((r) => r.status === STATUS_COMPLETED)) {
+    throw new ApiError(409, "Your entry pass unlocks once an organiser confirms your registration.");
+  }
   return personalQrPng(user.uid);
 }
 

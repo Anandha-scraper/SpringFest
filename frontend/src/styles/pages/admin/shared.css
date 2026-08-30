@@ -189,27 +189,41 @@
   margin-top: 1px;
 }
 
-/* ── Status pills ──────────────────────────────────────────── */
-.pill {
+/* ── Status pills ──────────────────────────────────────────────
+   Its own class, NOT `.pill`: the marketing nav (components/animation/
+   PillNav.css) also styles a bare `.pill` (height:100%; line-height:0;
+   overflow:hidden; white background) and, in the bundled CSS, that leaks into
+   these badges — clipping the text and painting a blob. `inline-flex` +
+   real line-height keeps the label centred inside its rounded background. */
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
   font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.04em;
+  line-height: 1.4;
   text-transform: capitalize;
   padding: 0.1875rem 0.625rem;
   border-radius: var(--r-full);
   white-space: nowrap;
+  vertical-align: middle;
 }
-.pill-completed { background: var(--ok-bg);   color: var(--ok); }
-.pill-pending   { background: var(--warn-bg); color: var(--warn); }
-.pill-failed    { background: var(--bad-bg);  color: var(--bad); }
-.pill-draft     { background: var(--surface-2); color: var(--ink-soft); }
-.pill-unknown   { background: var(--border);  color: var(--ink-faint); }
+.status-pill--completed { background: var(--ok-bg);     color: var(--ok); }
+.status-pill--pending   { background: var(--warn-bg);   color: var(--warn); }
+.status-pill--failed    { background: var(--bad-bg);    color: var(--bad); }
+.status-pill--draft     { background: var(--surface-2); color: var(--ink-soft); }
+.status-pill--unknown   { background: var(--border);    color: var(--ink-faint); }
+/* awaiting_approval reads as "in progress" (warn), rejected as a stop (bad). */
+.status-pill--awaiting_approval { background: var(--warn-bg); color: var(--warn); }
+.status-pill--rejected          { background: var(--bad-bg);  color: var(--bad); }
 
-/* Role pills (Manage People). */
-.pill-admin       { background: var(--accent-soft); color: var(--accent-hover); }
-.pill-judge       { background: var(--ok-bg);       color: var(--ok); }
-.pill-volunteer   { background: var(--warn-bg);     color: var(--warn); }
-.pill-participant { background: var(--border);      color: var(--ink-faint); }
+/* Role pills (Manage People) — same component, same class. */
+.status-pill--admin       { background: var(--accent-soft); color: var(--accent-hover); }
+.status-pill--judge       { background: var(--ok-bg);       color: var(--ok); }
+.status-pill--volunteer   { background: var(--warn-bg);     color: var(--warn); }
+.status-pill--participant { background: var(--border);      color: var(--ink-faint); }
 
 .empty-state {
   text-align: center;
@@ -320,6 +334,32 @@
 }
 .team-list li > span:first-child { display: flex; align-items: center; gap: 0.5rem; }
 
+/* Full field list per person inside PersonDetailsDialog. The .reg-detail-row
+   layout rules live in pages/admin/registrations.css, which the Approvals
+   page doesn't load — so they're restated here, scoped to this dialog. */
+.person-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin-top: 0.4rem;
+}
+.person-fields .reg-detail-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: baseline;
+  font-size: 0.83rem;
+}
+.person-fields .reg-detail-row > span:first-child {
+  color: var(--ink-faint);
+  flex-shrink: 0;
+}
+.person-fields .reg-detail-row > span:last-child {
+  text-align: right;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 /* Explains why some form fields are disabled. */
 .notice {
   margin: 0 0 0.875rem;
@@ -331,6 +371,8 @@
   font-size: 0.85rem;
   line-height: 1.5;
 }
+.notice strong { display: block; margin-bottom: 0.25rem; }
+.notice p { margin: 0; }
 
 /* Checkbox plus its inline follow-up fields (team size range). */
 .check-row {
@@ -455,7 +497,7 @@
 .venue-stat-row strong { color: var(--ink); }
 
 .venue-staff { display: flex; flex-wrap: wrap; gap: 0.375rem; margin-top: 0.625rem; }
-.venue-staff .pill { font-weight: 600; }
+.venue-staff .status-pill { font-weight: 600; }
 
 .input-sm { padding: 0.3125rem 0.5rem; font-size: 0.8rem; max-width: 9.375rem; }
 /* Inside a table cell the choices carry an event name + time — 9.375rem clips them. */

@@ -251,8 +251,9 @@ export const reviewApproval = (registrationId, decision, note = "") =>
 export const scanPersonToken = (token) =>
   req("/volunteer/scan", { method: "POST", body: JSON.stringify({ token }) }, true);
 
-/** Check one member of one registration in or out. A "no ticket, just their
- *  id" desk fallback is this same call with memberIndex 0 (the lead). */
+/** Check one member of one registration in or out — for the volunteer's own
+ *  event. A "no ticket, just their id" desk fallback is this same call with
+ *  memberIndex 0 (the lead). */
 export const toggleCheckIn = (registrationId, memberIndex, checkedIn) =>
   req(
     "/volunteer/check-in/toggle",
@@ -262,6 +263,73 @@ export const toggleCheckIn = (registrationId, memberIndex, checkedIn) =>
     },
     true
   );
+
+/** Mark a person present at the fest (the door check). Any volunteer, anyone. */
+export const festCheckIn = (uid) =>
+  req("/volunteer/fest-check-in", { method: "POST", body: JSON.stringify({ uid }) }, true);
+
+/** The volunteer's own dashboard: their venue, its event, and how far along it is. */
+export const getVolunteerSummary = () => req("/volunteer/summary", {}, true);
+
+/** The confirmed teams for the volunteer's event, with per-member check-in state. */
+export const getVolunteerRoster = () => req("/volunteer/roster", {}, true);
+
+/** Authenticated blob URL for a team's submission, staff view. */
+export async function volunteerSubmissionObjectUrl(registrationId) {
+  const res = await fetch(
+    `${BASE}/volunteer/registrations/${encodeURIComponent(registrationId)}/submission`,
+    { headers: await authHeader() }
+  );
+  if (!res.ok) throw new Error(`Could not load the file: ${res.status}`);
+  return URL.createObjectURL(await res.blob());
+}
+
+// ── Judge ────────────────────────────────────────────────────
+/** The judge's assigned events, with marking criteria and progress counts. */
+export const getJudgeEvents = () => req("/judge/events", {}, true);
+
+/** Checked-in teams for one event, with each team's submission and scores. */
+export const getJudgeParticipants = (eventId) =>
+  req(`/judge/events/${encodeURIComponent(eventId)}/participants`, {}, true);
+
+/** Save (or overwrite) this judge's score for one team. */
+export const saveEvaluation = (eventId, { registrationId, scores, note }) =>
+  req(
+    `/judge/events/${encodeURIComponent(eventId)}/evaluations`,
+    { method: "POST", body: JSON.stringify({ registration_id: registrationId, scores, note }) },
+    true
+  );
+
+export const deleteEvaluation = (eventId, registrationId) =>
+  req(
+    `/judge/events/${encodeURIComponent(eventId)}/evaluations/${encodeURIComponent(registrationId)}`,
+    { method: "DELETE" },
+    true
+  );
+
+export const getJudgeQueue = (eventId) =>
+  req(`/judge/events/${encodeURIComponent(eventId)}/queue`, {}, true);
+
+export const setJudgeQueue = (eventId, { current, upcoming }) =>
+  req(
+    `/judge/events/${encodeURIComponent(eventId)}/queue`,
+    { method: "PUT", body: JSON.stringify({ current, upcoming }) },
+    true
+  );
+
+/** Authenticated blob URL for a team's submission, judge view. */
+export async function judgeSubmissionObjectUrl(registrationId) {
+  const res = await fetch(
+    `${BASE}/judge/registrations/${encodeURIComponent(registrationId)}/submission`,
+    { headers: await authHeader() }
+  );
+  if (!res.ok) throw new Error(`Could not load the file: ${res.status}`);
+  return URL.createObjectURL(await res.blob());
+}
+
+/** Per-event judging results — every team's per-judge totals + remarks. Admin. */
+export const getEventResults = (eventId) =>
+  req(`/admin/events/${encodeURIComponent(eventId)}/results`, {}, true);
 
 /** Fetch an authenticated binary endpoint and save it to disk.
  *

@@ -2,24 +2,20 @@
    person's / team's details with the event boxes below them. Sizing in
    rem / % / clamp; the only px are hairline borders. */
 
+/* The page lives inside RoleLayout's .role-main, which already pads and sits
+   clear of any navbar — so this is just the reading-width cap. */
 .myreg {
   max-width: var(--page-w);
   margin-inline: auto;
-  /* Offsets the fixed marketing navbar on the /my-registrations route. */
-  padding: calc(var(--nav-h) + 40px) clamp(1rem, 4vw, 1.5rem) 5rem;
 }
 
-/* Inside the role dashboard there is no navbar and .role-main already pads. */
-.role-main .myreg {
-  max-width: none;
-  padding: 0;
-}
-
+/* The pass card stretches to the full height of the taller right column
+   rather than floating as a short tile beside it. */
 .myreg-layout {
   display: grid;
-  grid-template-columns: minmax(0, 46rem) minmax(0, 1fr);
-  gap: clamp(1.25rem, 3vw, 2.5rem);
-  align-items: start;
+  grid-template-columns: minmax(0, 20rem) minmax(0, 1fr);
+  gap: clamp(1.25rem, 3vw, 2rem);
+  align-items: stretch;
 }
 
 /* ── QR + codes (left) ─────────────────────────────────────── */
@@ -63,11 +59,12 @@
 }
 
 .myreg-qr {
-  position: sticky;
-  top: clamp(1rem, 4vw, 2rem);
   display: flex;
   flex-direction: column;
   align-items: center;
+  /* Centred in the stretched card, so a short pass doesn't hug the top of a
+     tall column. */
+  justify-content: center;
   gap: 0.85rem;
   padding: clamp(1rem, 3vw, 1.75rem);
   text-align: center;
@@ -87,7 +84,7 @@
 .myreg-qr img,
 .myreg-qr .ticket-placeholder {
   width: 100%;
-  max-width: 42rem;
+  max-width: 14rem;
   aspect-ratio: 1 / 1;
   height: auto;
   background: #fff;
@@ -110,12 +107,17 @@
 
 .myreg-info {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 21rem), 1fr));
   gap: 1rem;
   align-items: start;
 }
 
+/* The label/value rows reuse the admin sheet's markup, but that sheet's CSS
+   (pages/admin/registrations.css) also fixes a 26rem panel width — wrong for
+   this full-width page — so the layout rules are restated here, scoped. */
 .myreg-info .reg-detail-group {
+  display: flex;
+  flex-direction: column;
   padding: clamp(0.9rem, 2.5vw, 1.25rem);
   gap: 0.4rem;
   background: var(--surface);
@@ -124,7 +126,70 @@
   box-shadow: var(--shadow-sm);
 }
 
+.myreg-info .reg-detail-group h4 {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: 0.1875rem;
+}
+
+.myreg-info .reg-detail-group-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.myreg-info .reg-detail-group-head h4 { margin-bottom: 0; }
+
+.myreg-info .reg-detail-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: baseline;
+  font-size: 0.88rem;
+}
+
+.myreg-info .reg-detail-row > span:first-child {
+  color: var(--ink-soft);
+  flex-shrink: 0;
+}
+
 .myreg-info .reg-detail-row > span:last-child {
+  text-align: right;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* ── Team roster inside an info card ────────────────────────── */
+.myreg-roster {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.myreg-roster li {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0.5rem 0.625rem;
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+}
+.myreg-roster__name {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+.myreg-roster__name .alloc-code--sm { margin-left: 0; }
+.myreg-roster__contact {
+  font-size: 0.78rem;
+  color: var(--ink-faint);
   overflow-wrap: anywhere;
 }
 
@@ -136,8 +201,9 @@
 
 .myreg-events {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 14rem), 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 16rem), 1fr));
   gap: clamp(0.6rem, 1.5vw, 0.9rem);
+  align-items: start;
 }
 
 .myreg-event {
@@ -173,16 +239,6 @@
   flex-shrink: 0;
 }
 
-/* components/animation/PillNav.css also claims `.pill` (height:100%;
-   line-height:0; overflow:hidden) — undo that for the status pill here so its
-   text isn't clipped to a sliver. */
-.myreg-event .pill {
-  height: auto;
-  line-height: 1.5;
-  overflow: visible;
-  font-size: 0.72rem;
-  padding: 3px 10px;
-}
 
 .myreg-event__add {
   display: inline-flex;
@@ -224,17 +280,8 @@
     grid-template-columns: 1fr;
   }
 
-  .myreg-qr {
-    position: static;
-  }
-
   .myreg-info {
     max-width: none;
-  }
-
-  .myreg-qr img,
-  .myreg-qr .ticket-placeholder {
-    max-width: 24rem;
   }
 }
 

@@ -63,8 +63,9 @@ function adminOnly(req, res, next) {
 }
 
 // Convenience middleware chains for `router.get(path, ...AdminUser, handler)`.
-// There is no JudgeUser: admins pass every role check and judges read through
-// /api/me/*, so no route has ever needed one.
+// Admins pass every role check (see requireRoles), so AdminUser is the strict
+// one and the others admit admins too.
 export const CurrentUser = [currentUser];
 export const AdminUser = [currentUser, adminOnly];
 export const VolunteerUser = [currentUser, requireRoles("volunteer")];
+export const JudgeUser = [currentUser, requireRoles("judge")];

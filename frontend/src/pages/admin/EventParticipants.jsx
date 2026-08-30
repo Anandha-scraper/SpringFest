@@ -3,7 +3,7 @@ import "@/styles/pages/admin/dashboard.css";
 import { Link, useParams } from "react-router-dom";
 import StatCard from "@/components/admin/StatCard.jsx";
 import StatusPill from "@/components/admin/StatusPill.jsx";
-import { downloadRegistrationsCsv, getEventParticipants } from "@/api/client.js";
+import { downloadRegistrationsCsv, getEventParticipants, getEventResults } from "@/api/client.js";
 import { useApi } from "@/hooks/useApi.js";
 import { formatDateTime, formatEventTime, rupees } from "@/utils/format.js";
 import Loader from "@/components/common/Loader.jsx";
@@ -12,6 +12,8 @@ export default function EventParticipants() {
   const { id } = useParams();
   const fetcher = useCallback(() => getEventParticipants(id), [id]);
   const { data, error, loading } = useApi(fetcher);
+  const resultsFetcher = useCallback(() => getEventResults(id), [id]);
+  const { data: results } = useApi(resultsFetcher);
 
   if (loading) return <Loader />;
   if (error) {
@@ -92,6 +94,56 @@ export default function EventParticipants() {
                     <td>{r.checked_in ? "Yes" : "No"}</td>
                     <td className="num">{r.fee > 0 ? rupees(r.fee) : "Free"}</td>
                     <td className="cell-sub">{formatDateTime(r.created_at)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      <section className="admin-panel">
+        <h2>Judging results</h2>
+        {!results || !results.results.length ? (
+          <p className="empty-state">No teams have been evaluated yet.</p>
+        ) : (
+          <div className="table-wrap">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Rank</th>
+                  <th>Team</th>
+                  <th className="num">Average</th>
+                  <th>Judges</th>
+                </tr>
+              </thead>
+              <tbody>
+                {results.results.map((r) => (
+                  <tr key={r.registration_id}>
+                    <td>{r.rank ?? "—"}</td>
+                    <td>
+                      <strong>{r.team_name || r.lead_name}</strong>
+                      {r.allocation_codes?.length > 0 && (
+                        <span className="cell-sub">{r.allocation_codes.join(", ")}</span>
+                      )}
+                    </td>
+                    <td className="num">
+                      {r.average === null ? "—" : r.average.toFixed(1)} / {results.event.criteria_total}
+                    </td>
+                    <td>
+                      {r.evaluations.length === 0 ? (
+                        <span className="muted">not scored</span>
+                      ) : (
+                        <ul className="cell-sub" style={{ margin: 0, paddingLeft: "1rem" }}>
+                          {r.evaluations.map((e, i) => (
+                            <li key={i}>
+                              {e.judge_name}: <strong>{e.total}</strong>
+                              {e.note ? ` — "${e.note}"` : ""}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
