@@ -7,11 +7,11 @@
  *   node scripts/flush.js --yes    # actually deletes
  *
  * Hits exactly the database and bucket the app uses: it reads the same
- * backend/.env (FIRESTORE_DATABASE_ID, STORAGE_BUCKET) through src/config.js.
+ * backend/.env (FIRESTORE_DATABASE_ID, STORAGE_BUCKET) through config/index.js.
  * Irreversible.
  */
-import { settings } from "../src/config/index.js";
-import { getDb, getStorage } from "../src/config/firebase.js";
+import { settings } from "../config/index.js";
+import { getDb, getStorage } from "../config/firebase.js";
 
 const CONFIRM = process.argv.includes("--yes");
 const FULL_WIPE_COLLECTIONS = ["events", "registrations", "venues"];
