@@ -14,6 +14,7 @@
  * a red paragraph.
  */
 import { createContext, useCallback, useContext, useMemo, useRef, useState } from "react";
+import "@/styles/components/toast.css";
 import { CheckCircle2, Info, TriangleAlert, X } from "lucide-react";
 
 const DISMISS_MS = 4000;

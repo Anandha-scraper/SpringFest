@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
+import "@/styles/pages/admin/shared.css";
+import "@/styles/pages/my-registrations.css";
 import { Link } from "react-router-dom";
 import { Download, QrCode, UserPlus } from "lucide-react";
 import {
@@ -6,13 +8,13 @@ import {
   getEvents,
   getMyRegistrations,
   personalQrObjectUrl,
-} from "../api/client.js";
-import { useAuth } from "../auth/AuthContext.jsx";
-import { yearLabel } from "../content/formOptions.js";
-import { formatEventDate, formatEventTimeRange } from "../lib/format.js";
-import StatusPill from "../components/admin/StatusPill.jsx";
-import EventSubmission from "../components/EventSubmission.jsx";
-import AddTeammate from "../components/AddTeammate.jsx";
+} from "@/api/client.js";
+import { useAuth } from "@/auth/AuthContext.jsx";
+import { yearLabel } from "@/content/formOptions.js";
+import { formatEventDate, formatEventTimeRange } from "@/utils/format.js";
+import StatusPill from "@/components/admin/StatusPill.jsx";
+import EventSubmission from "@/components/registration/EventSubmission.jsx";
+import AddTeammate from "@/components/registration/AddTeammate.jsx";
 
 /** The signed-in person's one badge — scanning it is how a volunteer sees
  * every event they're registered for, not just this one.

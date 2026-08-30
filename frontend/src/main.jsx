@@ -1,62 +1,22 @@
-import React, { Suspense, lazy } from "react";
+import React, { Suspense } from "react";
 import ReactDOM from "react-dom/client";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter } from "react-router-dom";
 
-import { AuthProvider } from "./auth/AuthContext.jsx";
-import { ToastProvider } from "./components/ui/toast.jsx";
-import ProtectedRoute from "./components/ProtectedRoute.jsx";
-import ErrorBoundary from "./components/ErrorBoundary.jsx";
-import GlyphMatrix from "./components/GlyphMatrix.jsx";
-import Layout from "./components/layout/Layout.jsx";
-import Loader from "./components/Loader.jsx";
-import ClickSpark from "./components/reactbits/ClickSpark.jsx";
+import { AuthProvider } from "@/auth/AuthContext.jsx";
+import ClickSpark from "@/components/animation/ClickSpark.jsx";
+import ErrorBoundary from "@/components/common/ErrorBoundary.jsx";
+import GlyphMatrix from "@/components/common/GlyphMatrix.jsx";
+import Loader from "@/components/common/Loader.jsx";
+import { ToastProvider } from "@/components/ui/toast.jsx";
+import AppRoutes from "@/routes.jsx";
 
-// Route-level code splitting: each page becomes its own chunk, fetched only
-// when its route is actually visited, instead of one bundle carrying every
-// admin/judge/volunteer/participant page (and their deps, e.g. chart.js) up
-// front for every anonymous landing-page visitor.
-const Landing = lazy(() => import("./pages/Landing.jsx"));
-const EventDetail = lazy(() => import("./pages/EventDetail.jsx"));
-const MyRegistrations = lazy(() => import("./pages/MyRegistrations.jsx"));
-const Success = lazy(() => import("./pages/Success.jsx"));
-const NotFound = lazy(() => import("./pages/NotFound.jsx"));
-const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard.jsx"));
-const EventParticipants = lazy(() => import("./pages/admin/EventParticipants.jsx"));
-const Registrations = lazy(() => import("./pages/admin/Registrations.jsx"));
-const ManageEvents = lazy(() => import("./pages/admin/ManageEvents.jsx"));
-const AddRoles = lazy(() => import("./pages/admin/AddRoles.jsx"));
-const ManageRoles = lazy(() => import("./pages/admin/ManageRoles.jsx"));
-const PaymentSettings = lazy(() => import("./pages/admin/PaymentSettings.jsx"));
-const Approvals = lazy(() => import("./pages/admin/Approvals.jsx"));
-
-import RoleLayout from "./components/layout/RoleLayout.jsx";
-import { ROLES } from "./content/roles.js";
-const JudgeHome = lazy(() => import("./pages/roles/JudgeHome.jsx"));
-const JudgeAssignments = lazy(() => import("./pages/roles/JudgeAssignments.jsx"));
-const JudgeScoring = lazy(() => import("./pages/roles/JudgeScoring.jsx"));
-const VolunteerHome = lazy(() => import("./pages/roles/VolunteerHome.jsx"));
-const VolunteerTasks = lazy(() => import("./pages/roles/VolunteerTasks.jsx"));
-const VolunteerCheckIn = lazy(() => import("./pages/roles/VolunteerCheckIn.jsx"));
-const ParticipantHome = lazy(() => import("./pages/roles/ParticipantHome.jsx"));
-const ParticipantSchedule = lazy(() => import("./pages/roles/ParticipantSchedule.jsx"));
-
-import "./components/reactbits/PillNav.css";
-import "./styles/tokens.css";
-import "./styles/base.css";
-import "./styles/layout.css";
-import "./styles/landing.css";
-import "./styles/track-card.css";
-import "./styles/admin.css";
-import "./styles/event-card.css";
-import "./styles/my-registrations.css";
-import "./styles/role-sidebar.css";
-import "./styles/register-button.css";
-import "./styles/sign-in-modal.css";
-import "./styles/custom-date-picker.css";
-import "./styles/custom-time-picker.css";
-import "./styles/toast.css";
+// Only the true globals live here. Every other stylesheet is imported by the
+// component or page it belongs to, from styles/components/ or styles/pages/.
+import "@/styles/tokens.css";
+import "@/styles/base.css";
+import "@/styles/layout.css";
 // Utilities only — preflight is off, so this can't touch the reset above.
-import "./styles/tailwind.css";
+import "@/styles/tailwind.css";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
@@ -74,105 +34,24 @@ ReactDOM.createRoot(document.getElementById("root")).render(
       </div>
 
       <AuthProvider>
-      <ToastProvider>
-      <BrowserRouter>
-        <ClickSpark sparkColor="#f87b1b" sparkSize={9} sparkRadius={16} sparkCount={7} duration={420}>
-          {/* One boundary for every route chunk — a lazy page's own load
-              looks like the same loader ProtectedRoute already shows while
-              resolving auth, not a new loading UI. */}
-          <Suspense fallback={<Loader />}>
-          <Routes>
-            <Route element={<Layout />}>
-              <Route path="/" element={<Landing />} />
-              <Route path="/success" element={<Success />} />
-
-              <Route
-                path="/my-registrations"
-                element={
-                  <ProtectedRoute>
-                    <MyRegistrations />
-                  </ProtectedRoute>
-                }
-              />
-              <Route path="*" element={<NotFound />} />
-            </Route>
-
-            {/* Event detail + registration — sidebar shell (like the role
-                dashboards) rather than the marketing navbar/footer. */}
-            <Route
-              path="/events/:id"
-              element={
-                <ProtectedRoute>
-                  <RoleLayout role={ROLES.PARTICIPANT} />
-                </ProtectedRoute>
-              }
+        <ToastProvider>
+          <BrowserRouter>
+            <ClickSpark
+              sparkColor="#f87b1b"
+              sparkSize={9}
+              sparkRadius={16}
+              sparkCount={7}
+              duration={420}
             >
-              <Route index element={<EventDetail />} />
-            </Route>
-
-            {/* ── Role dashboards. Each parent renders RoleLayout (heading
-                 + sidebar + outlet); children are the sections. ───────── */}
-            <Route
-              path="/admin"
-              element={
-                <ProtectedRoute adminOnly>
-                  <RoleLayout role={ROLES.ADMIN} />
-                </ProtectedRoute>
-              }
-            >
-              <Route index element={<AdminDashboard />} />
-              <Route path="registrations" element={<Registrations />} />
-              <Route path="payment" element={<PaymentSettings />} />
-              <Route path="approvals" element={<Approvals />} />
-              <Route path="events" element={<ManageEvents />} />
-              <Route path="events/:id" element={<EventParticipants />} />
-              <Route path="roles" element={<AddRoles />} />
-              <Route path="allocations" element={<ManageRoles />} />
-            </Route>
-
-            <Route
-              path="/judge"
-              element={
-                <ProtectedRoute roles={[ROLES.JUDGE]}>
-                  <RoleLayout role={ROLES.JUDGE} />
-                </ProtectedRoute>
-              }
-            >
-              <Route index element={<JudgeHome />} />
-              <Route path="assignments" element={<JudgeAssignments />} />
-              <Route path="scoring" element={<JudgeScoring />} />
-            </Route>
-
-            <Route
-              path="/volunteer"
-              element={
-                <ProtectedRoute roles={[ROLES.VOLUNTEER]}>
-                  <RoleLayout role={ROLES.VOLUNTEER} />
-                </ProtectedRoute>
-              }
-            >
-              <Route index element={<VolunteerHome />} />
-              <Route path="tasks" element={<VolunteerTasks />} />
-              <Route path="check-in" element={<VolunteerCheckIn />} />
-            </Route>
-
-            <Route
-              path="/participant"
-              element={
-                <ProtectedRoute roles={[ROLES.PARTICIPANT]}>
-                  <RoleLayout role={ROLES.PARTICIPANT} />
-                </ProtectedRoute>
-              }
-            >
-              <Route index element={<ParticipantHome />} />
-              <Route path="registrations" element={<MyRegistrations />} />
-              <Route path="schedule" element={<ParticipantSchedule />} />
-            </Route>
-          </Routes>
-          </Suspense>
-        </ClickSpark>
-      </BrowserRouter>
-      </ToastProvider>
+              {/* One boundary for every route chunk — a lazy page's own load
+                  looks like the same loader ProtectedRoute already shows while
+                  resolving auth, not a new loading UI. */}
+              <Suspense fallback={<Loader />}>
+                <AppRoutes />
+              </Suspense>
+            </ClickSpark>
+          </BrowserRouter>
+        </ToastProvider>
       </AuthProvider>
     </ErrorBoundary>
   </React.StrictMode>

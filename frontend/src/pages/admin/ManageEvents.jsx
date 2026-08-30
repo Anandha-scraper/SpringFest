@@ -1,8 +1,9 @@
 import { useCallback, useMemo, useState } from "react";
+import "@/styles/pages/admin/events.css";
 import { Link } from "react-router-dom";
 import { Lock, Plus, Trash2 } from "lucide-react";
-import Loader from "../../components/Loader.jsx";
-import FormActions from "../../components/admin/FormActions.jsx";
+import Loader from "@/components/common/Loader.jsx";
+import FormActions from "@/components/admin/FormActions.jsx";
 import { useToast } from "@/components/ui/toast.jsx";
 import {
   addVenue,
@@ -13,10 +14,10 @@ import {
   removeEvent,
   removeVenue,
   updateEvent,
-} from "../../api/client.js";
-import { useApi } from "../../hooks/useApi.js";
-import { EVENT_CATEGORIES } from "../../content/formOptions.js";
-import { formatEventTime, rupees } from "../../lib/format.js";
+} from "@/api/client.js";
+import { useApi } from "@/hooks/useApi.js";
+import { EVENT_CATEGORIES } from "@/content/formOptions.js";
+import { formatEventTime, rupees } from "@/utils/format.js";
 import { DatePicker } from "@/components/ui/date-picker.jsx";
 import { TimePicker } from "@/components/ui/time-picker.jsx";
 import {

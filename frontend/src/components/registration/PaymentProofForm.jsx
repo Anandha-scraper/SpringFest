@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Upload } from "lucide-react";
 
-import PaymentTarget from "./PaymentTarget.jsx";
+import PaymentTarget from "@/components/registration/PaymentTarget.jsx";
 
 const MAX_BYTES = 5 * 1024 * 1024;
 const ACCEPTED = ["image/png", "image/jpeg", "image/webp"];

@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
-import { useAuth } from "../auth/AuthContext.jsx";
-import { homeForRole } from "../content/roles.js";
-import SignInModal from "./SignInModal.jsx";
-import Loader from "./Loader.jsx";
+import { useAuth } from "@/auth/AuthContext.jsx";
+import { homeForRole } from "@/content/roles.js";
+import SignInModal from "@/components/common/SignInModal.jsx";
+import Loader from "@/components/common/Loader.jsx";
 
 /**
  * `adminOnly` is the original guard and is unchanged. `roles` is the newer,

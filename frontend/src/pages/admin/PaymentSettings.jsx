@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import "@/styles/pages/admin/payment.css";
 import { Camera, CreditCard, Lock, LockOpen, Trash2, Upload } from "lucide-react";
 import {
   AlertDialog,
@@ -11,8 +12,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog.jsx";
 import { useToast } from "@/components/ui/toast.jsx";
-import Loader from "../../components/Loader.jsx";
-import FormActions from "../../components/admin/FormActions.jsx";
+import Loader from "@/components/common/Loader.jsx";
+import FormActions from "@/components/admin/FormActions.jsx";
 import {
   getAppSettings,
   getEvents,
@@ -21,8 +22,8 @@ import {
   updateAppSettings,
   updateEvent,
   uploadPaymentQr,
-} from "../../api/client.js";
-import { useApi } from "../../hooks/useApi.js";
+} from "@/api/client.js";
+import { useApi } from "@/hooks/useApi.js";
 
 const MODES = [
   {

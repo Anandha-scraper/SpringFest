@@ -6,11 +6,11 @@ import {
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet.jsx";
-import DetailFields from "./registration/DetailFields.jsx";
-import PaymentProofForm from "./PaymentProofForm.jsx";
-import { addTeamMember, getTopupPayment, submitPaymentProof } from "../api/client.js";
-import { openCheckout } from "../api/payment.js";
-import { useAuth } from "../auth/AuthContext.jsx";
+import DetailFields from "@/components/registration/DetailFields.jsx";
+import PaymentProofForm from "@/components/registration/PaymentProofForm.jsx";
+import { addTeamMember, getTopupPayment, submitPaymentProof } from "@/api/client.js";
+import { openCheckout } from "@/api/payment.js";
+import { useAuth } from "@/auth/AuthContext.jsx";
 
 const blank = () => ({
   name: "", email: "", phone: "", college: "", department: "", year: "", location: "", location_other: "",

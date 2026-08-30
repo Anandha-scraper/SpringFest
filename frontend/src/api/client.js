@@ -1,4 +1,4 @@
-import { auth } from "../auth/firebase.js";
+import { auth } from "@/auth/firebase.js";
 const BASE = import.meta.env.VITE_API_BASE || "/api";
 
 async function authHeader() {

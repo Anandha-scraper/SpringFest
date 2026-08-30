@@ -1,14 +1,15 @@
 import { useCallback, useState } from "react";
-import Loader from "../../components/Loader.jsx";
+import "@/styles/pages/admin/roles.css";
+import Loader from "@/components/common/Loader.jsx";
 import {
   getEventRollup,
   getEvents,
   getPeople,
   getVenues,
   setAssignments,
-} from "../../api/client.js";
-import { useApi } from "../../hooks/useApi.js";
-import { formatEventTime } from "../../lib/format.js";
+} from "@/api/client.js";
+import { useApi } from "@/hooks/useApi.js";
+import { formatEventTime } from "@/utils/format.js";
 import {
   AlertDialog,
   AlertDialogAction,

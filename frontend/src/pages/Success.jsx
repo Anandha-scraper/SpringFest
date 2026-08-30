@@ -1,6 +1,8 @@
 import { useLocation, Link } from "react-router-dom";
+import "@/styles/pages/admin/shared.css";
+import "@/styles/pages/event-detail.css";
 import { CheckCircle2, Clock3 } from "lucide-react";
-import { fest } from "../content/fest.js";
+import { fest } from "@/content/fest.js";
 
 export default function Success() {
   const { state } = useLocation();

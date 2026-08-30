@@ -1,11 +1,12 @@
 import { useCallback } from "react";
+import "@/styles/pages/admin/dashboard.css";
 import { Link, useParams } from "react-router-dom";
-import StatCard from "../../components/admin/StatCard.jsx";
-import StatusPill from "../../components/admin/StatusPill.jsx";
-import { downloadRegistrationsCsv, getEventParticipants } from "../../api/client.js";
-import { useApi } from "../../hooks/useApi.js";
-import { formatDateTime, formatEventTime, rupees } from "../../lib/format.js";
-import Loader from "../../components/Loader.jsx";
+import StatCard from "@/components/admin/StatCard.jsx";
+import StatusPill from "@/components/admin/StatusPill.jsx";
+import { downloadRegistrationsCsv, getEventParticipants } from "@/api/client.js";
+import { useApi } from "@/hooks/useApi.js";
+import { formatDateTime, formatEventTime, rupees } from "@/utils/format.js";
+import Loader from "@/components/common/Loader.jsx";
 
 export default function EventParticipants() {
   const { id } = useParams();

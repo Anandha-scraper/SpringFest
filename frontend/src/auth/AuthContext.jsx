@@ -1,8 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut } from "firebase/auth";
-import { auth, isFirebaseConfigured, firebaseConfigError } from "./firebase.js";
-import { getMe } from "../api/client.js";
-import { DEFAULT_ROLE, ROLES } from "../content/roles.js";
+import { auth, isFirebaseConfigured, firebaseConfigError } from "@/auth/firebase.js";
+import { getMe } from "@/api/client.js";
+import { DEFAULT_ROLE, ROLES } from "@/content/roles.js";
 
 const AuthContext = createContext(null);
 

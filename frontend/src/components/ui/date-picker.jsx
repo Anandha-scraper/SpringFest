@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, forwardRef, useImperativeHandle } from "react";
+import "@/styles/components/date-picker.css";
 import { CalendarSearch } from "lucide-react";
 
 /**

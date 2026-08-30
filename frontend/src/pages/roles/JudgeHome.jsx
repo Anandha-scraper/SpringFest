@@ -1,8 +1,9 @@
 import { useCallback } from "react";
-import { getEvents, getMe } from "../../api/client.js";
-import { useApi } from "../../hooks/useApi.js";
-import { eventsOverlap, formatEventTime } from "../../lib/format.js";
-import Loader from "../../components/Loader.jsx";
+import "@/styles/pages/admin/roles.css";
+import { getEvents, getMe } from "@/api/client.js";
+import { useApi } from "@/hooks/useApi.js";
+import { eventsOverlap, formatEventTime } from "@/utils/format.js";
+import Loader from "@/components/common/Loader.jsx";
 
 // GET /api/me carries the caller's own event_ids, so a judge can read their
 // assignments without an admin-only endpoint.

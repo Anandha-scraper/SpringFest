@@ -1,9 +1,10 @@
 import { useCallback, useMemo, useState } from "react";
+import "@/styles/pages/participant-schedule.css";
 import { Calendar, MapPin } from "lucide-react";
-import { getEvents, getMyRegistrations } from "../../api/client.js";
-import { useApi } from "../../hooks/useApi.js";
-import { formatEventTime } from "../../lib/format.js";
-import Loader from "../../components/Loader.jsx";
+import { getEvents, getMyRegistrations } from "@/api/client.js";
+import { useApi } from "@/hooks/useApi.js";
+import { formatEventTime } from "@/utils/format.js";
+import Loader from "@/components/common/Loader.jsx";
 
 const load = () => Promise.all([getMyRegistrations(), getEvents()]);
 

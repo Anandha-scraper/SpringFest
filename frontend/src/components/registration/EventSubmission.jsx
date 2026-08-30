@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Download, Upload } from "lucide-react";
-import { eventSubmissionObjectUrl, submitEventFile } from "../api/client.js";
+import { eventSubmissionObjectUrl, submitEventFile } from "@/api/client.js";
 
 const ACCEPT = ".pdf,.ppt,.pptx,.doc,.docx";
 

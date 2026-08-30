@@ -1,7 +1,7 @@
 import React, { useCallback, useLayoutEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { gsap } from 'gsap';
-import './StaggeredMenu.css';
+import '@/styles/components/animation/StaggeredMenu.css';
 
 // Same rule PillNav uses: in-app paths render as router links so navigating
 // doesn't hard-reload the SPA. Hash-only and external hrefs stay plain <a>.
@@ -15,7 +15,7 @@ export const StaggeredMenu = ({
   displaySocials = true,
   displayItemNumbering = true,
   className,
-  logoUrl = '/src/assets/logos/reactbits-gh-white.svg',
+  logoUrl = '/logo.png',
   menuButtonColor = '#fff',
   openMenuButtonColor = '#fff',
   accentColor = '#5227FF',
@@ -377,7 +377,7 @@ export const StaggeredMenu = ({
       <header className="staggered-menu-header" aria-label="Main navigation header">
         <div className="sm-logo" aria-label="Logo">
           <img
-            src={logoUrl || '/src/assets/logos/reactbits-gh-white.svg'}
+            src={logoUrl || '/logo.png'}
             alt="Logo"
             className="sm-logo-img"
             draggable={false}

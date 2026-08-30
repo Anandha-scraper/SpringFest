@@ -10,9 +10,10 @@
  * unmounts. Same pattern as Approvals' proof thumbnail.
  */
 import { useEffect, useState } from "react";
+import "@/styles/components/payment-target.css";
 import { Check, Copy, QrCode } from "lucide-react";
 
-import { paymentQrObjectUrl } from "../api/client.js";
+import { paymentQrObjectUrl } from "@/api/client.js";
 
 export default function PaymentTarget({ amount, upiId, hasQr }) {
   const [qrUrl, setQrUrl] = useState("");

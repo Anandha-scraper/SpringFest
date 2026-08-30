@@ -1,6 +1,7 @@
 import * as React from "react";
+import "@/styles/components/time-picker.css";
 import { Clock } from "lucide-react";
-import { cn } from "@/lib/utils.js";
+import { cn } from "@/utils/cn.js";
 import { Button } from "@/components/ui/button.jsx";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover.jsx";
 

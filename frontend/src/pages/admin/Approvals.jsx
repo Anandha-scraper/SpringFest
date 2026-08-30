@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import "@/styles/pages/admin/payment.css";
 
 import {
   AlertDialog,
@@ -11,10 +12,10 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog.jsx";
 import { useToast } from "@/components/ui/toast.jsx";
-import Loader from "../../components/Loader.jsx";
-import TablePagination from "../../components/admin/TablePagination.jsx";
-import { getApprovals, proofObjectUrl, reviewApproval } from "../../api/client.js";
-import { useApi } from "../../hooks/useApi.js";
+import Loader from "@/components/common/Loader.jsx";
+import TablePagination from "@/components/admin/TablePagination.jsx";
+import { getApprovals, proofObjectUrl, reviewApproval } from "@/api/client.js";
+import { useApi } from "@/hooks/useApi.js";
 
 // Screenshot proofs are read one at a time, so a short page keeps each
 // thumbnail large enough to actually check against the transaction ID.

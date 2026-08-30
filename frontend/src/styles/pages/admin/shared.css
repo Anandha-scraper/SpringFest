@@ -1,0 +1,464 @@
+/* Dashboard primitives shared by every admin and role page: the page head,
+   panels, stat cards, tables, filters, status pills and the small form
+   widgets. Imported once by RoleLayout so it always loads before a page's own
+   sheet. Anything used by exactly one page lives in that page's file. */
+
+.admin-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+  margin-bottom: 2rem;
+}
+.admin-head h1 { font-size: clamp(1.7rem, 3.5vw, 2.3rem); margin-bottom: 0.25rem; }
+
+.back-link {
+  display: inline-block;
+  font-size: 0.88rem;
+  color: var(--ink-soft);
+  margin-bottom: 1.25rem;
+  transition: color 0.16s ease;
+}
+.back-link:hover { color: var(--accent); }
+
+/* ── Stat cards ────────────────────────────────────────────── */
+.stat-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 11.875rem), 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--lilac);
+  border-radius: var(--r-md);
+  padding: 1.25rem 1.375rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  box-shadow: var(--shadow-sm);
+}
+.stat-card.ok     { border-left-color: var(--ok); }
+.stat-card.warn   { border-left-color: var(--warn); }
+.stat-card.accent { border-left-color: var(--accent); }
+
+.stat-card-label {
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.stat-card-value {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+/* ── Panels ────────────────────────────────────────────────── */
+.admin-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 1.625rem;
+  margin-bottom: 1.625rem;
+  box-shadow: var(--shadow-sm);
+}
+.admin-panel h2 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.2rem;
+  margin-bottom: 1.25rem;
+}
+.panel-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.panel-head h2 { margin-bottom: 0; }
+
+/* ── Progress bars (Manage Roles per-event cards) ──────────── */
+.bar-track {
+  height: 0.625rem;
+  background: var(--border);
+  border-radius: var(--r-full);
+  overflow: hidden;
+}
+.bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: var(--r-full);
+  background: linear-gradient(90deg, var(--pink-deep), var(--peach-deep));
+  transition: width 0.5s ease;
+  min-width: 0.25rem;
+}
+
+/* ── Filters ───────────────────────────────────────────────── */
+.filter-bar {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+.filter-bar .input { flex: 1 1 13.75rem; min-width: 11.25rem; max-width: 100%; min-height: 2.5rem; }
+.filter-bar select.input { flex: 0 1 11.875rem; cursor: pointer; }
+.filter-bar .btn,
+.filter-bar .form-actions { flex: 0 0 auto; margin: 0; }
+
+.chips { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; }
+.chip {
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  border-radius: var(--r-full);
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: all 0.16s ease;
+}
+.chip:hover { border-color: var(--accent); color: var(--accent); }
+.chip.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+/* ── Table ─────────────────────────────────────────────────── */
+.table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  min-width: 0;
+  max-width: 100%;
+}
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.89rem;
+  min-width: 48.75rem;
+}
+/* Column widths come from a <colgroup> and hold steady across pages. */
+.data-table--fixed { table-layout: fixed; }
+.data-table--fixed td { overflow-wrap: anywhere; }
+/* Tighter cells so the status pill and the icon button fit their columns. */
+.data-table--fixed th,
+.data-table--fixed td { padding: 0.75rem 0.625rem; }
+/* Narrow tables (3–4 cols) don't need the full 48.75rem scroll floor. */
+.data-table--compact { min-width: 30rem; }
+.data-table th {
+  text-align: center;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  background: var(--surface-2);
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.data-table td {
+  padding: 0.8125rem 1rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+  text-align: center;
+}
+/* The leading identity column (name / email / venue) stays left-aligned —
+   centred proper nouns are hard to scan down a column. */
+.data-table th:first-child,
+.data-table td:first-child { text-align: left; }
+.data-table tr:last-child td { border-bottom: none; }
+.data-table tbody tr:hover { background: var(--surface-2); }
+.data-table .num { font-variant-numeric: tabular-nums; }
+.cell-sub {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--ink-faint);
+  margin-top: 1px;
+}
+
+/* ── Status pills ──────────────────────────────────────────── */
+.pill {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: capitalize;
+  padding: 0.1875rem 0.625rem;
+  border-radius: var(--r-full);
+  white-space: nowrap;
+}
+.pill-completed { background: var(--ok-bg);   color: var(--ok); }
+.pill-pending   { background: var(--warn-bg); color: var(--warn); }
+.pill-failed    { background: var(--bad-bg);  color: var(--bad); }
+.pill-draft     { background: var(--surface-2); color: var(--ink-soft); }
+.pill-unknown   { background: var(--border);  color: var(--ink-faint); }
+
+/* Role pills (Manage People). */
+.pill-admin       { background: var(--accent-soft); color: var(--accent-hover); }
+.pill-judge       { background: var(--ok-bg);       color: var(--ok); }
+.pill-volunteer   { background: var(--warn-bg);     color: var(--warn); }
+.pill-participant { background: var(--border);      color: var(--ink-faint); }
+
+.empty-state {
+  text-align: center;
+  color: var(--ink-faint);
+  padding: 3rem 1.25rem;
+  font-size: 0.95rem;
+}
+
+/* ── Misc shared ───────────────────────────────────────────── */
+.tag {
+  align-self: flex-start;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--lilac-deep);
+  background: #f2ecfd;
+  padding: 0.25rem 0.625rem;
+  border-radius: var(--r-full);
+}
+
+@media (max-width: 899px) {
+  .admin-panel { padding: 1.25rem 1rem; }
+
+  .admin-head { flex-direction: column; align-items: stretch; gap: 0.75rem; }
+  .admin-head .btn { align-self: flex-start; }
+  .panel-head { gap: 0.625rem; }
+  .stat-cards { grid-template-columns: 1fr; }
+  /* search on its own line; total + export share the next row */
+  .reg-toolbar { flex-wrap: wrap; }
+  .reg-search { flex-basis: 100%; }
+  .reg-total { flex: 1 1 auto; }
+
+  .schedule-row { flex-direction: column; align-items: flex-start; gap: 0.375rem; }
+}
+
+
+/* Count badge beside a section heading. The parent heading is a flex
+   container with its own gap, so this only needs its own box — no
+   margin or vertical-align hack to line up with the sibling text. */
+.division-count {
+  padding: 1px 0.5625rem;
+  border-radius: var(--r-full);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--ink-faint);
+}
+
+/* A vertical stack of rows; each row below is its own proportional grid. */
+.form-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 0.25rem;
+}
+
+/* The "to" between the team-size min/max inputs. */
+.row-actions { display: flex; gap: 0.375rem; justify-content: center; }
+
+/* Compact square button for a single icon action inside a table cell. */
+.icon-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 1.875rem;
+  height: 1.875rem;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+.icon-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* A value that opens something (a team's members) rather than a navigation. */
+.link-btn {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: var(--accent);
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.link-btn:hover { color: var(--accent-hover); }
+
+/* Team members inside the roster dialog. */
+.team-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0.25rem 0;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+.team-list li {
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  font-size: 0.9rem;
+}
+.team-list li > span:first-child { display: flex; align-items: center; gap: 0.5rem; }
+
+/* Explains why some form fields are disabled. */
+.notice {
+  margin: 0 0 0.875rem;
+  padding: 0.625rem 0.875rem;
+  border: 1px solid var(--warn);
+  border-radius: var(--r-sm);
+  background: var(--warn-bg);
+  color: var(--warn);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+/* Checkbox plus its inline follow-up fields (team size range). */
+.check-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+}
+.check-row input[type="checkbox"] { width: 1rem; height: 1rem; accent-color: var(--accent); }
+.check-row .input-sm { max-width: 5.625rem; }
+
+/* A teammate's fields on the public registration form. */
+.team-member {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem 0.875rem;
+  margin-top: 0.625rem;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+}
+.team-member-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.85rem;
+}
+
+/* One teammate at a time, paged with prev/next — the card stays a fixed
+   size no matter how big the team is. */
+.team-pager {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+.team-pager strong {
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+.team-pager .icon-btn {
+  width: 1.75rem;
+  height: 1.75rem;
+}
+.team-pager .icon-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  border-color: var(--border);
+  color: var(--ink-faint);
+}
+.team-pager__remove {
+  margin-left: auto;
+  color: var(--bad);
+  border-color: var(--bad-bg);
+}
+.team-pager__remove:hover {
+  border-color: var(--bad);
+  color: var(--bad);
+}
+
+/* Venues on the Events page: a name, what's held there, and a delete. */
+.venue-chip-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 13.75rem), 1fr));
+  gap: 0.625rem;
+  margin-top: 0.25rem;
+}
+.venue-chip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.625rem;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  font-size: 0.9rem;
+}
+.venue-chip > span:first-child { min-width: 0; }
+
+/* Summary card per venue — read-only; editing lives in the Judges /
+   Volunteers panels above the grid. */
+.venue-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18.75rem), 1fr));
+  gap: 1.125rem;
+}
+.venue-card { margin-top: 0; padding: 1.375rem; }
+
+/* Two overlaid fills on one track: attendance in green, evaluation on top of
+   it in the accent. Both measure against the same total, so the accent bar
+   can never exceed the green one and the pair reads as one progression
+   rather than two competing bars. */
+.event-progress {
+  display: block;
+  position: relative;
+  margin: 0.5rem 0 0.5rem;
+}
+.event-progress .bar-fill {
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  min-width: 0;
+}
+.bar-fill--in { background: var(--ok); }
+.bar-fill--done { background: var(--accent); }
+/* An empty track still needs its height when the event hasn't started. */
+.event-progress:empty { min-height: 0.625rem; }
+
+/* completed/total · checked-in line on each venue card. */
+.venue-stat-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+  margin: 0.375rem 0 0.125rem;
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+}
+.venue-stat-row strong { color: var(--ink); }
+
+.venue-staff { display: flex; flex-wrap: wrap; gap: 0.375rem; margin-top: 0.625rem; }
+.venue-staff .pill { font-weight: 600; }
+
+.input-sm { padding: 0.3125rem 0.5rem; font-size: 0.8rem; max-width: 9.375rem; }
+/* Inside a table cell the choices carry an event name + time — 9.375rem clips them. */
+.data-table .input-sm { max-width: 15rem; }
+
+/* Capacity warning, reused on the Overview venues table. */
+.over { color: var(--bad); font-weight: 600; }
+

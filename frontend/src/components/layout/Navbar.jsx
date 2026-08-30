@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
-import PillNav from "../reactbits/PillNav.jsx";
-import StaggeredMenu from "../reactbits/StaggeredMenu.jsx";
-import { navLinks, fest } from "../../content/fest.js";
+import PillNav from "@/components/animation/PillNav.jsx";
+import StaggeredMenu from "@/components/animation/StaggeredMenu.jsx";
+import { navLinks, fest } from "@/content/fest.js";
 
 // StaggeredMenu takes { label, ariaLabel, link }; navLinks are { label, href }.
 const staggeredItems = navLinks.map((l) => ({

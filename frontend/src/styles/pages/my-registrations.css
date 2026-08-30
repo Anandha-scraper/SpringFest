@@ -198,3 +198,18 @@
     max-width: 24rem;
   }
 }
+
+/* ── Personal entry-pass QR (My Registrations) ───────────────── */
+/* Layout lives in styles/my-registrations.css (.myreg-hero__qr). This is just
+   the fallback tile shown while the QR blob loads or errors. */
+.ticket-placeholder {
+  width: 13.75rem;
+  max-width: 100%;
+  aspect-ratio: 1 / 1;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  color: var(--ink-faint);
+}
+

@@ -1,9 +1,9 @@
 import { useCallback } from "react";
 import { Link } from "react-router-dom";
-import { getEvents, getMyRegistrations } from "../../api/client.js";
-import EventCard from "../../components/EventCard.jsx";
-import { useApi } from "../../hooks/useApi.js";
-import Loader from "../../components/Loader.jsx";
+import { getEvents, getMyRegistrations } from "@/api/client.js";
+import EventCard from "@/components/common/EventCard.jsx";
+import { useApi } from "@/hooks/useApi.js";
+import Loader from "@/components/common/Loader.jsx";
 
 const load = () => Promise.all([getEvents(), getMyRegistrations()]);
 

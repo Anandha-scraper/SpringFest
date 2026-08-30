@@ -1,21 +1,21 @@
 import { Suspense, lazy, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import SplitText from "../reactbits/SplitText.jsx";
-import BlurText from "../reactbits/BlurText.jsx";
-import GradientText from "../reactbits/GradientText.jsx";
-import HeroShowcase from "./HeroShowcase.jsx";
-import ScrollVelocity from "../reactbits/ScrollVelocity.jsx";
-import LogoLoop from "../reactbits/LogoLoop.jsx";
-import RegisterButton from "../RegisterButton.jsx";
-import SignInModal from "../SignInModal.jsx";
-import { useAuth } from "../../auth/AuthContext.jsx";
-import { fest } from "../../content/fest.js";
-import { homeForRole } from "../../content/roles.js";
+import SplitText from "@/components/animation/SplitText.jsx";
+import BlurText from "@/components/animation/BlurText.jsx";
+import GradientText from "@/components/animation/GradientText.jsx";
+import HeroShowcase from "@/components/sections/HeroShowcase.jsx";
+import ScrollVelocity from "@/components/animation/ScrollVelocity.jsx";
+import LogoLoop from "@/components/animation/LogoLoop.jsx";
+import RegisterButton from "@/components/common/RegisterButton.jsx";
+import SignInModal from "@/components/common/SignInModal.jsx";
+import { useAuth } from "@/auth/AuthContext.jsx";
+import { fest } from "@/content/fest.js";
+import { homeForRole } from "@/content/roles.js";
 
 // ogl (WebGL) only loads once this chunk resolves. The CSS blobs rendered
 // alongside it below are the "WebGL unavailable" fallback and are always
 // painted regardless, so there's no visible gap while this streams in.
-const Aurora = lazy(() => import("../reactbits/Aurora.jsx"));
+const Aurora = lazy(() => import("@/components/animation/Aurora.jsx"));
 
 const PARTNER_LOGOS = fest.partners.map((name) => ({
   node: <span className="loop-wordmark">{name}</span>,

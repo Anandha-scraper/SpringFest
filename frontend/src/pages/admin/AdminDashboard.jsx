@@ -1,10 +1,11 @@
 import { useCallback } from "react";
+import "@/styles/pages/admin/dashboard.css";
 import { Link } from "react-router-dom";
-import Loader from "../../components/Loader.jsx";
-import StatCard from "../../components/admin/StatCard.jsx";
-import ParticipationChart from "../../components/admin/ParticipationChart.jsx";
-import { getAdminStats, getAuthUsers, getVenueRollup } from "../../api/client.js";
-import { useApi } from "../../hooks/useApi.js";
+import Loader from "@/components/common/Loader.jsx";
+import StatCard from "@/components/admin/StatCard.jsx";
+import ParticipationChart from "@/components/admin/ParticipationChart.jsx";
+import { getAdminStats, getAuthUsers, getVenueRollup } from "@/api/client.js";
+import { useApi } from "@/hooks/useApi.js";
 
 const load = () => Promise.all([getAdminStats(), getAuthUsers(), getVenueRollup()]);
 

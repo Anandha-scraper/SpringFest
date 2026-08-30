@@ -1,8 +1,9 @@
 import { useEffect } from "react";
+import "@/styles/pages/landing.css";
 import { useLocation } from "react-router-dom";
-import Hero from "../components/sections/Hero.jsx";
-import EventsPreview from "../components/sections/EventsPreview.jsx";
-import Schedule from "../components/sections/Schedule.jsx";
+import Hero from "@/components/sections/Hero.jsx";
+import EventsPreview from "@/components/sections/EventsPreview.jsx";
+import Schedule from "@/components/sections/Schedule.jsx";
 
 export default function Landing() {
   const { hash, key } = useLocation();

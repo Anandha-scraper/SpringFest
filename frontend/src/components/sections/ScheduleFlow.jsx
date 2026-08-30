@@ -1,4 +1,4 @@
-import { fest } from "../../content/fest.js";
+import { fest } from "@/content/fest.js";
 
 export default function ScheduleFlow() {
   return (

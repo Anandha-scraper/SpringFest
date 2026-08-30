@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
+import "@/styles/pages/event-detail.css";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { CalendarDays, MapPin, Users, Wallet } from "lucide-react";
-import { getEvent, createRegistration, submitPaymentProof } from "../api/client.js";
-import { openCheckout } from "../api/payment.js";
-import { useAuth } from "../auth/AuthContext.jsx";
-import { formatEventTime } from "../lib/format.js";
-import RegistrationForm from "../components/RegistrationForm.jsx";
-import PaymentProofForm from "../components/PaymentProofForm.jsx";
+import { getEvent, createRegistration, submitPaymentProof } from "@/api/client.js";
+import { openCheckout } from "@/api/payment.js";
+import { useAuth } from "@/auth/AuthContext.jsx";
+import { formatEventTime } from "@/utils/format.js";
+import RegistrationForm from "@/components/registration/RegistrationForm.jsx";
+import PaymentProofForm from "@/components/registration/PaymentProofForm.jsx";
 
 /** Pull just the form-shaped fields out of a saved draft (or any registration
  * row) — the row also carries id/status/fee/etc. that the form has no use

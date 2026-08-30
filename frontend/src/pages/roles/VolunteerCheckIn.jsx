@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
+import "@/styles/pages/volunteer-check-in.css";
 import { CheckCircle2, Circle, Keyboard, MapPin, ScanLine, XCircle } from "lucide-react";
-import { scanPersonToken, toggleCheckIn } from "../../api/client.js";
-import { formatEventTime } from "../../lib/format.js";
+import { scanPersonToken, toggleCheckIn } from "@/api/client.js";
+import { formatEventTime } from "@/utils/format.js";
 
 const SCANNER_ID = "volunteer-qr-scanner";
 // Ignore repeat decodes of the same code while it's still sitting in frame —

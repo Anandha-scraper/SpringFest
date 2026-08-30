@@ -1,9 +1,10 @@
 import { useCallback, useMemo, useState } from "react";
-import Loader from "../../components/Loader.jsx";
-import RegistrationsTable from "../../components/admin/RegistrationsTable.jsx";
-import TablePagination from "../../components/admin/TablePagination.jsx";
-import { getParticipants, downloadRegistrationsCsv } from "../../api/client.js";
-import { useApi } from "../../hooks/useApi.js";
+import "@/styles/pages/admin/registrations.css";
+import Loader from "@/components/common/Loader.jsx";
+import RegistrationsTable from "@/components/admin/RegistrationsTable.jsx";
+import TablePagination from "@/components/admin/TablePagination.jsx";
+import { getParticipants, downloadRegistrationsCsv } from "@/api/client.js";
+import { useApi } from "@/hooks/useApi.js";
 import { useToast } from "@/components/ui/toast.jsx";
 import { Input } from "@/components/ui/input.jsx";
 import { Button } from "@/components/ui/button.jsx";

@@ -1,7 +1,8 @@
 import { Link } from "react-router-dom";
+import "@/styles/components/event-card.css";
 import { MapPin } from "lucide-react";
-import { formatEventDate, formatEventTimeRange } from "../lib/format.js";
-import StatusPill from "./admin/StatusPill.jsx";
+import { formatEventDate, formatEventTimeRange } from "@/utils/format.js";
+import StatusPill from "@/components/admin/StatusPill.jsx";
 
 // En dash stands in for a cell we have no value for, so every card keeps the
 // same four-row shape instead of collapsing.

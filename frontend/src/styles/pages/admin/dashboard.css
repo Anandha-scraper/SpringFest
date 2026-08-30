@@ -1,0 +1,59 @@
+/* Admin Overview — the participation pie and the stat-card grid beside it. */
+
+/* ── Participation pie (Chart.js) ──────────────────────────── */
+.participation-chart {
+  position: relative;
+  height: 20rem;
+  margin-top: 0.5rem;
+}
+@media (max-width: 899px) {
+  .participation-chart { height: 23.75rem; }
+}
+
+/* ── Overview: stat cards beside the chart ─────────────────────
+   Laptop: the four headline numbers form a 2×2 block on the left —
+   Signed-in / Registered on top, Completed / Revenue below — each
+   keeping the 4px accent border that marks its kind, with the chart
+   panel to the right. The block stretches to the chart panel's
+   height and grid-auto-rows: 1fr splits that into two equal rows,
+   so the two line up. Tablet/phone: everything stacks. */
+.overview-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 28rem) minmax(0, 1fr);
+  gap: 1.625rem;
+  align-items: stretch;
+  margin-bottom: 1.625rem;
+}
+.overview-grid .stat-cards {
+  grid-template-columns: 1fr 1fr;
+  grid-auto-rows: 1fr;
+  margin-bottom: 0;
+}
+.overview-grid > .admin-panel {
+  margin-bottom: 0;
+  display: flex;
+  flex-direction: column;
+}
+.overview-grid .participation-chart { flex: 1; min-height: 17rem; }
+
+/* Roomier laptops: give the chart more of the row. */
+@media (min-width: 1280px) {
+  .overview-grid { grid-template-columns: minmax(0, 26rem) minmax(0, 1fr); }
+}
+
+@media (max-width: 899px) {
+  .overview-grid { grid-template-columns: minmax(0, 1fr); gap: 1.25rem; }
+  .overview-grid .stat-cards {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 11.875rem), 1fr));
+    grid-auto-rows: auto;
+  }
+  .overview-grid .participation-chart { min-height: 22rem; }
+}
+
+/* A stat whose number isn't meaningful yet (evaluation before judging
+   starts) says so, so 0 doesn't read as a broken feed. */
+.stat-card-note {
+  font-size: 0.76rem;
+  color: var(--ink-faint);
+}
+

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import './PixelSwap.css';
+import '@/styles/components/animation/PixelSwap.css';
 
 // Every pixel is a window onto its own copy of the incoming content, so the
 // grid stays bounded no matter how small the requested pixel size is.

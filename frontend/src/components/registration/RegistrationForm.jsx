@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight, Trash2, UserPlus } from "lucide-react";
-import { useAuth } from "../auth/AuthContext.jsx";
-import DetailFields from "./registration/DetailFields.jsx";
+import { useAuth } from "@/auth/AuthContext.jsx";
+import DetailFields from "@/components/registration/DetailFields.jsx";
 
 const blankMember = () => ({
   name: "", email: "", phone: "", college: "", department: "", year: "", location: "", location_other: "",

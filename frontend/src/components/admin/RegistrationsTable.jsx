@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { Eye, Pencil } from "lucide-react";
-import StatusPill from "./StatusPill.jsx";
-import { formatDateTime, rupees } from "../../lib/format.js";
-import { getAdminRegistration, updateAdminRegistration } from "../../api/client.js";
-import { DEPARTMENTS, STUDY_YEARS, TN_CITIES, yearLabel } from "../../content/formOptions.js";
+import StatusPill from "@/components/admin/StatusPill.jsx";
+import { formatDateTime, rupees } from "@/utils/format.js";
+import { getAdminRegistration, updateAdminRegistration } from "@/api/client.js";
+import { DEPARTMENTS, STUDY_YEARS, TN_CITIES, yearLabel } from "@/content/formOptions.js";
 import {
   Sheet,
   SheetContent,

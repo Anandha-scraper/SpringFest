@@ -1,5 +1,6 @@
 import { Outlet } from "react-router-dom";
-import RoleSidebar from "./RoleSidebar.jsx";
+import "@/styles/pages/admin/shared.css";
+import RoleSidebar from "@/components/layout/RoleSidebar.jsx";
 
 /**
  * Standalone shell for every role dashboard (and the event-detail page): the

@@ -8,7 +8,7 @@ import {
   useVelocity,
   useAnimationFrame
 } from 'motion/react';
-import './ScrollVelocity.css';
+import '@/styles/components/animation/ScrollVelocity.css';
 
 function useElementWidth(ref) {
   const [width, setWidth] = useState(0);

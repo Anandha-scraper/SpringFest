@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
+import "@/styles/components/sign-in-modal.css";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../auth/AuthContext.jsx";
-import { homeForRole } from "../content/roles.js";
+import { useAuth } from "@/auth/AuthContext.jsx";
+import { homeForRole } from "@/content/roles.js";
 
 /**
  * Sign-in card shown when "Register Now" is clicked. Google is the only

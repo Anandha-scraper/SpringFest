@@ -1,0 +1,132 @@
+import { lazy } from "react";
+import { Routes, Route } from "react-router-dom";
+
+import ProtectedRoute from "@/components/common/ProtectedRoute.jsx";
+import Layout from "@/components/layout/Layout.jsx";
+import RoleLayout from "@/components/layout/RoleLayout.jsx";
+import { ROLES } from "@/content/roles.js";
+
+// Route-level code splitting: each page becomes its own chunk, fetched only
+// when its route is actually visited, instead of one bundle carrying every
+// admin/judge/volunteer/participant page (and their deps, e.g. chart.js) up
+// front for every anonymous landing-page visitor.
+const Landing = lazy(() => import("@/pages/Landing.jsx"));
+const EventDetail = lazy(() => import("@/pages/EventDetail.jsx"));
+const MyRegistrations = lazy(() => import("@/pages/MyRegistrations.jsx"));
+const Success = lazy(() => import("@/pages/Success.jsx"));
+const NotFound = lazy(() => import("@/pages/NotFound.jsx"));
+
+const AdminDashboard = lazy(() => import("@/pages/admin/AdminDashboard.jsx"));
+const EventParticipants = lazy(() => import("@/pages/admin/EventParticipants.jsx"));
+const Registrations = lazy(() => import("@/pages/admin/Registrations.jsx"));
+const ManageEvents = lazy(() => import("@/pages/admin/ManageEvents.jsx"));
+const AddRoles = lazy(() => import("@/pages/admin/AddRoles.jsx"));
+const ManageRoles = lazy(() => import("@/pages/admin/ManageRoles.jsx"));
+const PaymentSettings = lazy(() => import("@/pages/admin/PaymentSettings.jsx"));
+const Approvals = lazy(() => import("@/pages/admin/Approvals.jsx"));
+
+const JudgeHome = lazy(() => import("@/pages/roles/JudgeHome.jsx"));
+const JudgeAssignments = lazy(() => import("@/pages/roles/JudgeAssignments.jsx"));
+const JudgeScoring = lazy(() => import("@/pages/roles/JudgeScoring.jsx"));
+const VolunteerHome = lazy(() => import("@/pages/roles/VolunteerHome.jsx"));
+const VolunteerTasks = lazy(() => import("@/pages/roles/VolunteerTasks.jsx"));
+const VolunteerCheckIn = lazy(() => import("@/pages/roles/VolunteerCheckIn.jsx"));
+const ParticipantHome = lazy(() => import("@/pages/roles/ParticipantHome.jsx"));
+const ParticipantSchedule = lazy(() => import("@/pages/roles/ParticipantSchedule.jsx"));
+
+/** Every route in the app. Two shells: `Layout` is the marketing chrome
+ * (navbar + footer), `RoleLayout` is the dashboard chrome (sidebar rail +
+ * outlet) — which the event-detail page uses too, so registering feels like
+ * part of the dashboard rather than the landing site. */
+export default function AppRoutes() {
+  return (
+    <Routes>
+      <Route element={<Layout />}>
+        <Route path="/" element={<Landing />} />
+        <Route path="/success" element={<Success />} />
+
+        <Route
+          path="/my-registrations"
+          element={
+            <ProtectedRoute>
+              <MyRegistrations />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="*" element={<NotFound />} />
+      </Route>
+
+      {/* Event detail + registration — sidebar shell (like the role
+          dashboards) rather than the marketing navbar/footer. */}
+      <Route
+        path="/events/:id"
+        element={
+          <ProtectedRoute>
+            <RoleLayout role={ROLES.PARTICIPANT} />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<EventDetail />} />
+      </Route>
+
+      {/* ── Role dashboards. Each parent renders RoleLayout (heading
+           + sidebar + outlet); children are the sections. ───────── */}
+      <Route
+        path="/admin"
+        element={
+          <ProtectedRoute adminOnly>
+            <RoleLayout role={ROLES.ADMIN} />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<AdminDashboard />} />
+        <Route path="registrations" element={<Registrations />} />
+        <Route path="payment" element={<PaymentSettings />} />
+        <Route path="approvals" element={<Approvals />} />
+        <Route path="events" element={<ManageEvents />} />
+        <Route path="events/:id" element={<EventParticipants />} />
+        <Route path="roles" element={<AddRoles />} />
+        <Route path="allocations" element={<ManageRoles />} />
+      </Route>
+
+      <Route
+        path="/judge"
+        element={
+          <ProtectedRoute roles={[ROLES.JUDGE]}>
+            <RoleLayout role={ROLES.JUDGE} />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<JudgeHome />} />
+        <Route path="assignments" element={<JudgeAssignments />} />
+        <Route path="scoring" element={<JudgeScoring />} />
+      </Route>
+
+      <Route
+        path="/volunteer"
+        element={
+          <ProtectedRoute roles={[ROLES.VOLUNTEER]}>
+            <RoleLayout role={ROLES.VOLUNTEER} />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<VolunteerHome />} />
+        <Route path="tasks" element={<VolunteerTasks />} />
+        <Route path="check-in" element={<VolunteerCheckIn />} />
+      </Route>
+
+      <Route
+        path="/participant"
+        element={
+          <ProtectedRoute roles={[ROLES.PARTICIPANT]}>
+            <RoleLayout role={ROLES.PARTICIPANT} />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<ParticipantHome />} />
+        <Route path="registrations" element={<MyRegistrations />} />
+        <Route path="schedule" element={<ParticipantSchedule />} />
+      </Route>
+    </Routes>
+  );
+}

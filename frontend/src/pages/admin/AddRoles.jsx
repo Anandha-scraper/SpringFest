@@ -1,10 +1,10 @@
 import { useCallback, useState } from "react";
-import Loader from "../../components/Loader.jsx";
-import FormActions from "../../components/admin/FormActions.jsx";
+import Loader from "@/components/common/Loader.jsx";
+import FormActions from "@/components/admin/FormActions.jsx";
 import { useToast } from "@/components/ui/toast.jsx";
-import { ROLES } from "../../content/roles.js";
-import { addPerson, checkPersonConflicts, getPeople, removePerson } from "../../api/client.js";
-import { useApi } from "../../hooks/useApi.js";
+import { ROLES } from "@/content/roles.js";
+import { addPerson, checkPersonConflicts, getPeople, removePerson } from "@/api/client.js";
+import { useApi } from "@/hooks/useApi.js";
 
 const FILTERS = [
   { label: "All", value: "" },

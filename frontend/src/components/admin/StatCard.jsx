@@ -1,4 +1,4 @@
-import CountUp from "../reactbits/CountUp.jsx";
+import CountUp from "@/components/animation/CountUp.jsx";
 
 export default function StatCard({ label, value, prefix = "", tone = "", note = "" }) {
   return (

@@ -1,15 +1,15 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import SplitFlapText from "../reactbits/SplitFlapText.jsx";
-import TrackCard from "../TrackCard.jsx";
-import SignInModal from "../SignInModal.jsx";
-import { useAuth } from "../../auth/AuthContext.jsx";
-import { homeForRole } from "../../content/roles.js";
+import SplitFlapText from "@/components/animation/SplitFlapText.jsx";
+import TrackCard from "@/components/common/TrackCard.jsx";
+import SignInModal from "@/components/common/SignInModal.jsx";
+import { useAuth } from "@/auth/AuthContext.jsx";
+import { homeForRole } from "@/content/roles.js";
 
 // Fixed track cards — the actual per-event list lives behind registration.
 const TRACKS = [
   { label: "Technical", image: "/events/technical.svg", accent: "#E14E1D", tint: "#f4dbda" },
-  { label: "Non-Technical", image: "/events/nontechincal.svg", accent: "#10b981", tint: "#dcf5e7" },
+  { label: "Non-Technical", image: "/events/non-technical.svg", accent: "#10b981", tint: "#dcf5e7" },
   { label: "Hackathon", image: "/events/hackathon.svg", accent: "#6366f1", tint: "#e6e8fd" },
   { label: "Workshop", image: "/events/workshop.svg", accent: "#f59e0b", tint: "#fef3d9" },
 ];

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import "@/styles/components/track-card.css";
 
 // Neo-brutalist track card — the React Bits `Card` (styled-components)
 // ported to plain CSS, matching this repo's styling approach.

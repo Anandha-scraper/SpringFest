@@ -1,4 +1,4 @@
-import { DEPARTMENTS, STUDY_YEARS, TN_CITIES, yearLabel } from "../../content/formOptions.js";
+import { DEPARTMENTS, STUDY_YEARS, TN_CITIES, yearLabel } from "@/content/formOptions.js";
 
 /** The academic block every participant fills in, lead and teammate alike.
  * Shared so the two can't drift — the backend validates both with the same

@@ -1,8 +1,9 @@
 import { useState } from "react";
+import "@/styles/components/role-sidebar.css";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { LogOut, PanelLeft } from "lucide-react";
-import { useAuth } from "../../auth/AuthContext.jsx";
-import { ROLE_NAV, ROLE_TITLE } from "../../content/roles.js";
+import { useAuth } from "@/auth/AuthContext.jsx";
+import { ROLE_NAV, ROLE_TITLE } from "@/content/roles.js";
 
 /**
  * The role-dashboard rail. Collapsed to an icon strip by default; on desktop it

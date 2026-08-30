@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
-import PixelSwap from "../reactbits/PixelSwap.jsx";
-import { fest } from "../../content/fest.js";
+import PixelSwap from "@/components/animation/PixelSwap.jsx";
+import { fest } from "@/content/fest.js";
 
 const hashtags = fest.tagline
   .replace(/[.,]/g, "")
