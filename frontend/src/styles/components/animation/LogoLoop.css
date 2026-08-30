@@ -1,5 +1,12 @@
 .logoloop {
   position: relative;
+  /* `.logoloop__track` is `width: max-content` and is only ever transformed,
+     never wrapped — without this the strip is as wide as its content and the
+     document gains horizontal scroll. It currently only survives because
+     `.hero { overflow: hidden }` happens to sit above it; anywhere else on the
+     site it would leak. `.logoloop--scale-hover` already reserves vertical
+     padding for the hover scale, so this doesn't clip the scaled logos. */
+  overflow: hidden;
 
   --logoloop-gap: 32px;
   --logoloop-logoHeight: 28px;

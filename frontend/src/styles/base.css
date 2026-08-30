@@ -4,7 +4,19 @@
 
 * { margin: 0; padding: 0; }
 
-html { scroll-behavior: smooth; scroll-padding-top: 0; }
+/* Every neo-brutalist offset shadow on this site paints outside its box —
+   `.card-sm` 5–8px, `.hero-card` 0.7–1em, `.doodlepro__poster` 12–17px — and
+   the LogoLoop track is `width: max-content`. `body` alone is not enough: the
+   viewport scroller is the ROOT element, so overflow off a fixed/absolute
+   descendant that escapes body still scrolls the page.
+   `clip`, not `hidden`: `overflow-x: hidden` turns the box into a scroll
+   container, which is what breaks `position: sticky` in pages/event-detail.css
+   and pages/my-registrations.css. `clip` doesn't. */
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 0;
+  overflow-x: clip;
+}
 
 /* Site-wide glyph backdrop: fixed behind every route. Negative z-index keeps
    it above the root background but under all content. */
@@ -30,7 +42,7 @@ body {
   color: var(--ink);
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 h1, h2, h3, h4 {
@@ -83,9 +95,12 @@ img { max-width: 100%; display: block; }
   margin-bottom: 18px;
 }
 
+/* A bare 260px floor makes the track wider than the viewport at ≤300px (with
+   the container's 18px padding, below ~296px). `min(100%, 260px)` caps the
+   floor at the available width. */
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
   gap: 20px;
 }
 

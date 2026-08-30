@@ -32,14 +32,19 @@ const TRACK_ICONS = {
   ),
 };
 
-export default function TrackCard({ label, image, accent, tint, onClick }) {
+export default function TrackCard({ label, image, accent, tint, onClick, expanded = false }) {
   const [imageFailed, setImageFailed] = useState(false);
 
   // public/ dir maps to the site root: /events/<name>.svg
   const showImage = image && !imageFailed;
 
   return (
-    <button type="button" className="card-sm track-card" onClick={onClick}>
+    <button
+      type="button"
+      className={`card-sm track-card${expanded ? " track-card--expanded" : ""}`}
+      onClick={onClick}
+      aria-expanded={expanded}
+    >
       <div className="block-header track-header" style={{ "--track-tint": tint }}>
         <div className="block-title">
           <span className="track-icon" style={{ "--track-accent": accent }}>

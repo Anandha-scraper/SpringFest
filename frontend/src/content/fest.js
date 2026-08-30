@@ -19,6 +19,8 @@ export const fest = {
     website: "https://example.edu",
   },
 
+  // UNUSED — the landing Schedule section is built from the real events API
+  // (see components/sections/ScheduleFlow.jsx). Kept as reference copy only.
   schedule: [
     {
       day: "Day 1",

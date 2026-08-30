@@ -1,20 +1,61 @@
 /* ── Event track cards (neo-brutalist) ─────────────────────── */
 
-/* 4 across on wide screens → 2 → single column on phones. */
-.track-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: clamp(16px, 2.4vw, 28px);
+/* The category cards sit in one wrapping row. Selecting a track drops the
+   other cards; the selected card stays at the left anchor and its event
+   posters scatter into the rest of the row. */
+.events-lineup {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: clamp(18px, 2.6vw, 32px);
+  margin-top: clamp(24px, 3vh, 44px);
+}
+
+.events-lineup > .track-card {
+  flex: 0 1 clamp(280px, 29vw, 420px);
+}
+
+/* The selected track's posters — a staggered, non-overlapping scatter that
+   fills the rest of the row. */
+.events-scatter {
+  flex: 1 1 320px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: clamp(22px, 2.6vw, 40px) clamp(26px, 3vw, 52px);
+}
+
+.events-scatter > .doodlepro {
+  flex: 0 1 clamp(260px, 24vw, 320px);
+}
+
+/* One up, one middle, one down — margin-top is real space, so wrapped rows
+   can never overlap; a hair of rotation makes it read as hand-placed. */
+.events-scatter > .doodlepro:nth-child(3n + 1) { rotate: -0.4deg; }
+.events-scatter > .doodlepro:nth-child(3n + 2) { margin-top: clamp(30px, 4vw, 64px); rotate: 1deg; }
+.events-scatter > .doodlepro:nth-child(3n + 3) { margin-top: clamp(14px, 2vw, 30px); rotate: -1.2deg; }
+
+/* Loader / status message centred in the poster area. */
+.events-scatter--status {
+  flex: 1 1 100%;
   justify-content: center;
-  margin-top: clamp(20px, 3vh, 40px);
+  align-items: center;
+  min-height: 240px;
 }
 
-@media (max-width: 1124px) {
-  .track-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-
-@media (max-width: 560px) {
-  .track-grid { grid-template-columns: 1fr; }
+@media (max-width: 899px) {
+  .events-lineup { flex-direction: column; }
+  .events-lineup > .track-card,
+  .events-scatter {
+    flex-basis: auto;
+    width: 100%;
+  }
+  .events-scatter > .doodlepro {
+    flex-basis: 100%;
+    max-width: 100%;
+    margin-top: 0;
+    rotate: none;
+  }
 }
 
 /* Neo brutalism data card */
@@ -80,14 +121,14 @@ button.track-card:focus-visible {
 .block-title-text {
   margin: 0 0 0 0.5rem;
   color: #374151;
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 600;
 }
 
 .css-dom {
   position: relative;
   width: 100%;
-  height: 220px;
+  height: clamp(260px, 23vw, 380px);
   border-radius: 4px;
   box-sizing: border-box;
   border: 1px solid black;
@@ -135,3 +176,10 @@ button.track-card:focus-visible {
 /* Per-track colours, passed in from the TRACKS list in EventsPreview. */
 .track-header { background: var(--track-tint, #f4dbda); }
 .track-icon { background: var(--track-accent, var(--accent)); color: #fff; }
+
+/* The selected track card — a subtle active cue; still clickable to collapse. */
+button.track-card--expanded {
+  box-shadow: 6px 6px #323232;
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+}

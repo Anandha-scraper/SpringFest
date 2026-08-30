@@ -338,17 +338,11 @@
     right: 0;
   }
 
-  .staggered-menu-wrapper[data-open] .sm-logo-img {
-    filter: invert(100%);
-  }
-}
-
-@media (max-width: 640px) {
-  .staggered-menu-panel {
-    width: 100%;
-    left: 0;
-    right: 0;
-  }
+  /* The panel goes full-width here but `.sm-prelayers` kept its
+     `clamp(260px, 38vw, 420px)`, so the coloured prelayer strips animated in at
+     a different width than the panel they sit behind — a visible seam during
+     the open/close sweep. */
+  .sm-prelayers { width: 100%; }
 
   .staggered-menu-wrapper[data-open] .sm-logo-img {
     filter: invert(100%);

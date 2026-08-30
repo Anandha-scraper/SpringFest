@@ -149,184 +149,83 @@
 }
 .events-flap::-webkit-scrollbar { display: none; }
 
+/* Not a real button — a note styled with the ComicButton shell. Recolored for
+   visibility (navy panel, orange frame), scaled up, and stripped of the hover
+   press/ink/scale reactions so it doesn't invite a click. */
+.events-hint-btn {
+  margin-top: 20px;
+  font-size: clamp(0.66rem, 2.8vw, 0.82rem);
+  --cb-primary: var(--ink);
+  --cb-accent: var(--accent);
+  --cb-shadow: rgba(17, 34, 78, 0.4);
+}
+.events-hint-btn .comic-brutal-button { cursor: default; }
+.events-hint-btn:hover .comic-brutal-button { transform: rotate(-2deg); }
+.events-hint-btn:hover .comic-brutal-button::before { opacity: 0; }
+.events-hint-btn:hover .button-inner {
+  background: var(--cb-primary);
+  transform: skew(-3deg, 1deg);
+}
+.events-hint-btn:hover .button-text {
+  color: var(--cb-panel);
+  text-shadow:
+    0.09em 0 0 var(--cb-text),
+    -0.09em 0 0 var(--cb-text),
+    0 0.09em 0 var(--cb-text),
+    0 -0.09em 0 var(--cb-text);
+}
+.events-hint-btn:hover .ink-splatter { opacity: 0; }
+.events-hint-btn:hover .button-shadow {
+  transform: translate(0.25em, 0.25em) rotate(-2deg) skew(-3deg, 1deg);
+}
+
 @media (max-width: 899px) {
   .events-flap { justify-content: center; }
+  .events-hint-btn {
+    display: block;
+    width: fit-content;
+    max-width: 90%;
+    margin-inline: auto;
+  }
+  .events-hint-btn .button-text { white-space: normal; text-align: center; }
 }
 
-/* Two-column hero: copy left, PixelSwap right */
-/* Hero runs full-bleed — the shared .container caps at --page-w and centres,
-   which left a wide gutter on both sides. */
+/* Hero = the neo-brutalist HeroCard alone, near-full-bleed. The shared
+   .container caps at --page-w and centres, which left a wide gutter on both
+   sides; here it runs edge to edge with only a small symmetric gutter. */
 .hero .container {
   max-width: none;
-  padding-left: clamp(24px, 3vw, 48px);
-  padding-right: clamp(16px, 2vw, 32px);
+  padding-left: clamp(12px, 1.6vw, 28px);
+  padding-right: clamp(12px, 1.6vw, 28px);
 }
 
+/* The hero is the card alone — one centred column, no copy block. */
 .hero-grid {
   position: relative;
   z-index: 3;
   width: 100%;
   display: grid;
-  grid-template-columns: 1fr 1.18fr;
-  gap: 36px;
+  grid-template-columns: minmax(0, 1fr);
   align-items: center;
-}
-.hero-copy {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  text-align: left;
 }
 .hero-visual {
   display: flex;
-  justify-content: flex-end;
+  justify-content: center;
 }
-/* Width-driven sizing blew past the viewport once the hero went full-bleed
-   (a 4/5 card in a ~740px column is ~925px tall). Drive it off height so the
-   hero always fits one screen. */
-.hero-pixelswap {
-  height: min(calc(100svh - 230px), 440px);
-  width: auto;
+/* HeroCard is `em`-driven off its own font-size. With the copy column gone it
+   takes the full container width — no `max-width` cap, so the only side gap is
+   `.hero .container`'s small gutter; the type scale rides `vw` to match. */
+.hero-visual .hero-card {
+  font-size: clamp(14px, 1.15vw, 26px);
+  width: 100%;
   max-width: 100%;
-  margin-left: auto;
-  border-radius: 24px;
-  overflow: hidden;
-  box-shadow: var(--shadow-lg);
-  background: var(--surface);
+}
+@media (max-height: 680px) {
+  .hero-visual .hero-card { font-size: clamp(13px, 1.2vw, 17px); }
 }
 
-/* PixelSwap faces */
-.ps-face {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 14px;
-  padding: 34px 30px;
-  text-align: center;
-}
-.ps-kicker {
-  font-size: 0.74rem;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-}
-.ps-poster {
-  background: linear-gradient(150deg, var(--pink) 0%, var(--peach) 52%, var(--mint) 100%);
-  color: var(--ink);
-}
-.ps-poster .ps-kicker { color: rgba(17, 34, 78, 0.62); }
-.ps-title {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  font-family: var(--font-display);
-  line-height: 0.95;
-}
-.ps-title span { font-size: 1.9rem; font-weight: 600; }
-.ps-title strong {
-  font-size: 3.4rem;
-  font-weight: 600;
-  background: linear-gradient(90deg, #f87b1b, #11224e);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-.ps-dates {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--ink-soft);
-}
-.ps-tags {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-  justify-content: center;
-}
-.ps-tags span {
-  font-size: 0.72rem;
-  font-weight: 600;
-  background: rgba(255, 255, 255, 0.62);
-  border-radius: var(--r-full);
-  padding: 3px 10px;
-  color: var(--ink-soft);
-}
-.ps-hint {
-  margin-top: 4px;
-  font-size: 0.7rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: rgba(17, 34, 78, 0.48);
-}
-.ps-register {
-  background: var(--surface);
-}
-.ps-register .ps-kicker { color: var(--accent); }
-.ps-register h3 {
-  font-family: var(--font-display);
-  font-size: 1.7rem;
-  font-weight: 600;
-}
-.ps-register p {
-  font-size: 0.9rem;
-  color: var(--ink-soft);
-  max-width: 320px;
-}
-.ps-register .btn { margin-top: 6px; }
-
-/* Title and the Register button share a row; the button's corner brackets
-   fly ~36px outward on hover, hence the generous gap and padding. */
-.hero-headline {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 32px;
-  flex-wrap: wrap;
-  width: 100%;
-  margin-bottom: 18px;
-  padding-right: 44px;
-}
-
-.hero-title {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
-  margin-bottom: 0;
-}
-.hero-title-main {
-  font-family: var(--font-display);
-  font-size: clamp(2.6rem, 6vw, 4.6rem);
-  font-weight: 600;
-  line-height: 0.95;
-  letter-spacing: -0.03em;
-  color: var(--ink);
-}
-.hero-title-year {
-  font-family: var(--font-display);
-  font-size: clamp(2.2rem, 5vw, 3.8rem);
-  font-weight: 600;
-  line-height: 1;
-  letter-spacing: -0.03em;
-}
-
-.hero-tagline {
-  font-size: clamp(1.05rem, 2.4vw, 1.45rem);
-  font-weight: 500;
-  color: var(--ink-soft);
-  justify-content: flex-start;
-  margin-bottom: 10px;
-}
-.hero-blurb {
-  max-width: 540px;
-  color: var(--ink-faint);
-  font-size: 0.98rem;
-  margin-bottom: 20px;
-}
-
-/* Success page reuses this row for its two links */
+/* Success page reuses this row for its two links — the only survivor of the
+   old hero copy block, which the hero card replaced. */
 .hero-cta {
   display: flex;
   align-items: center;
@@ -335,15 +234,8 @@
   justify-content: center;
 }
 
-.hero-inst {
-  font-size: 0.86rem;
-  color: var(--ink-faint);
-  line-height: 1.7;
-}
-.hero-inst strong { color: var(--ink-soft); }
 
-
-@media (max-width: 900px) {
+@media (max-width: 899px) {
   /* The fixed mobile nav header floats at the top — the hero has to start
      below it, not below the (desktop) --nav-h. */
   .hero {
@@ -351,46 +243,30 @@
     padding: 168px 0 104px;
   }
   .hero-logoloop { top: 108px; }
-  .hero-grid {
-    grid-template-columns: 1fr;
-    gap: 36px;
-  }
-  .hero-copy {
-    align-items: center;
-    text-align: center;
-  }
-  .hero-title { align-items: center; }
-  .hero-headline {
-    flex-direction: column;
-    justify-content: center;
-    gap: 26px;
-    padding-right: 0;
-    margin-bottom: 16px;
-  }
-  .hero-tagline { justify-content: center; }
   .hero-cta { justify-content: center; }
-  .hero-blurb { margin-left: auto; margin-right: auto; }
-  .hero-visual { order: 2; justify-content: center; }
-  /* Width-driven again: 16/9 across the column, capped so it stays readable. */
-  .hero-pixelswap {
-    height: auto;
-    width: 100%;
-    max-width: 520px;
-    margin-left: auto;
-    margin-right: auto;
-  }
-  .hero .container { padding-left: 24px; padding-right: 24px; }
+  .hero-visual .hero-card { font-size: clamp(13px, 2.1vw, 18px); }
+  .hero .container { padding-left: 16px; padding-right: 16px; }
 }
 
-@media (max-width: 560px) {
+@media (max-width: 640px) {
   .hero { padding: 154px 0 92px; }
   .hero-logoloop { top: 96px; }
-  .hero-pixelswap { max-width: 100%; border-radius: 18px; }
-  .ps-face { padding: 24px 20px; gap: 10px; }
-  .ps-title span { font-size: 1.45rem; }
-  .ps-title strong { font-size: 2.5rem; }
-  .ps-register h3 { font-size: 1.35rem; }
-  .ps-register p { font-size: 0.84rem; }
+  .hero-visual .hero-card { font-size: 13px; }
+  .hero .container { padding-left: 12px; padding-right: 12px; }
+}
+
+/* The desktop --nav-h (68px) is the wrong clearance on mobile: the fixed
+   StaggeredMenu header is ~67px tall (30px logo + 2×1.15em padding), so the
+   76px these two sections use put the EVENTS / Schedule headings right under
+   it. The id selector beats base.css's mobile `.section` padding, so the
+   override has to carry the same specificity. */
+@media (max-width: 899px) {
+  #events.section,
+  #schedule.section { padding-top: 112px; }
+}
+@media (max-width: 400px) {
+  #events.section,
+  #schedule.section { padding-top: 100px; }
 }
 
 /* ── About ─────────────────────────────────────────────────── */
@@ -638,11 +514,32 @@
   padding: clamp(16px, 2.4vw, 32px);
 }
 
+/* N days now, not a hardcoded 2 — auto-fit so one day fills the row and four
+   days wrap instead of overflowing. `min(100%, 280px)` stops the track from
+   demanding 280px on a narrower viewport. */
 .schedule-day-list {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
   gap: clamp(20px, 3vw, 40px);
   align-items: start;
+}
+
+/* Loading / empty variant — the panel keeps its frame but centres one child. */
+.schedule-flow--status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 220px;
+}
+/* `.empty-state` lives in pages/admin/shared.css, which the landing page does
+   NOT import — restated here, scoped, so it isn't an unstyled bare <p>. */
+.schedule-flow .empty-state {
+  text-align: center;
+  color: var(--ink-faint);
+  font-size: 0.95rem;
+  padding: 1rem 1.25rem;
+  margin: 0;
+  max-width: 42ch;
 }
 
 .schedule-day {
@@ -675,6 +572,7 @@
   gap: 10px;
 }
 
+/* One event = a small stacked card: name + category chip, then a meta line. */
 .flow-slot {
   font-family: var(--font-body);
   background: #fff;
@@ -683,24 +581,65 @@
   padding: 12px 16px;
   box-shadow: var(--shadow-md);
   display: flex;
-  align-items: flex-start;
-  gap: 14px;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
 }
-.flow-time {
+.flow-slot-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+.flow-slot h4 {
+  font-size: 0.95rem;
+  line-height: 1.25;
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* Category chip. NOT `.tag` — that class lives in pages/admin/shared.css and is
+   never loaded on the landing page. */
+.flow-tag {
   flex: 0 0 auto;
-  min-width: 52px;
-  display: inline-block;
-  font-size: 0.78rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.62rem;
   font-weight: 700;
   letter-spacing: 0.08em;
-  color: var(--accent);
-  padding-top: 2px;
+  text-transform: uppercase;
+  color: var(--ink);
+  background: var(--sage);
+  border-radius: var(--r-full);
+  padding: 3px 9px;
+  white-space: nowrap;
 }
-.flow-slot-body { min-width: 0; }
-.flow-slot h4 { font-size: 0.92rem; line-height: 1.25; margin: 0 0 4px; }
-.flow-slot p { font-size: 0.76rem; color: var(--ink-faint); margin: 0; }
+
+.flow-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 0;
+  font-size: 0.76rem;
+  color: var(--ink-faint);
+  min-width: 0;
+}
+.flow-meta__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.flow-meta__item svg { flex: 0 0 auto; color: var(--accent); }
 
 @media (max-width: 899px) {
-  .schedule-day-list { grid-template-columns: 1fr; }
-  .flow-slot { padding: 11px 14px; gap: 10px; }
+  .flow-slot { padding: 11px 14px; }
+}
+@media (max-width: 400px) {
+  .flow-slot-head { flex-direction: column; align-items: flex-start; gap: 6px; }
+  .flow-meta { gap: 4px 10px; }
 }

@@ -1,21 +1,32 @@
-/* RegisterButton — was a styled-components template; moved to plain CSS to
-   drop the styled-components runtime (used in only 2 files site-wide).
-   Every selector is scoped under .register-button, the wrapper class that
-   used to be styled-components' auto-generated scope — .btn/.btn-text/etc.
-   are generic names reused elsewhere in the app (RegistrationForm,
-   ErrorBoundary, HeroShowcase, FormActions all have their own .btn), so
-   nothing here may be left unscoped. */
+/* RegisterButton — plain-CSS port of the supplied styled-components button
+   (corner-flourish brackets + peek-out drawers + hue-shift hover). Ported to
+   drop the styled-components runtime.
+
+   EVERYTHING is scoped under .register-button on purpose: `.btn` / `.btn-text`
+   are generic utility class names reused elsewhere (RegistrationForm,
+   ErrorBoundary, FormActions) — nothing here may be left unscoped.
+   The reference nested `.btn-container:has(...) { .btn { … } }`;
+   flattened here to `.register-button .btn-container:has(...) .btn { … }`.
+
+   Reference `--btn-color: #d8ff7c` (lime) swapped for the fest orange
+   `--accent`; the reference's near-black drawer/text/corner ink is lightened
+   so it reads on orange. Modern Firefox supports `:has()`, so the reference's
+   `@-moz-document` fallbacks are dropped. */
 
 .register-button {
-  --btn-color: #f87b1b;
-  --corner-color: #11224e22;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.register-button .btn-container {
+  --btn-color: var(--accent);
+  --corner-color: rgba(17, 34, 78, 0.28);
   --corner-dist: 24px;
   --corner-multiplier: 1.5;
   --timing-function: cubic-bezier(0, 0, 0, 2.5);
   --duration: 250ms;
-}
 
-.register-button .btn-container {
   position: relative;
   display: flex;
   align-items: center;
@@ -24,7 +35,7 @@
 
 .register-button .btn {
   position: relative;
-  min-width: 190px;
+  min-width: 160px;
   min-height: calc(var(--corner-dist) * 2);
   border-radius: 16px;
   border: none;
@@ -33,15 +44,16 @@
   background: linear-gradient(#fff3, #0001), var(--btn-color);
   box-shadow:
     1px 1px 2px -1px #fff inset,
-    0 2px 1px #11224e10,
-    0 4px 2px #11224e10,
-    0 8px 4px #11224e10,
-    0 16px 8px #11224e10,
-    0 32px 16px #11224e10;
+    0 2px 1px #11224e12,
+    0 4px 2px #11224e12,
+    0 8px 4px #11224e12,
+    0 16px 8px #11224e12,
+    0 32px 16px #11224e12;
 
   transition:
     transform var(--duration) var(--timing-function),
     filter var(--duration) var(--timing-function);
+
   cursor: pointer;
 }
 
@@ -55,13 +67,13 @@
   border: none;
   padding: 0.25em 1em;
   font-size: 0.78em;
-  font-weight: 600;
+  font-weight: 700;
   font-family: var(--font-body);
-  letter-spacing: 0.02em;
-  color: #11224ecc;
-  white-space: nowrap;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--cream);
 
-  background: linear-gradient(#fff3, #0001), var(--btn-color);
+  background: linear-gradient(#ffffff1f, #0000001f), var(--ink);
   opacity: 0;
 
   transition:
@@ -74,13 +86,11 @@
 .register-button .transition-top {
   top: 0;
   left: 0;
-  right: 0;
   border-radius: 12px 12px 0 0;
   align-items: start;
 }
 .register-button .transition-bottom {
   bottom: 0;
-  left: 0;
   right: 0;
   border-radius: 0 0 12px 12px;
   align-items: end;
@@ -89,16 +99,16 @@
 .register-button .btn-text {
   display: inline-block;
 
-  font-size: 1.05em;
+  font-size: 1.1em;
   font-family: var(--font-body);
   font-weight: 700;
-  color: #5550;
+  color: #ffffff;
 
-  background-image: linear-gradient(#fff, #ffffffdd);
+  background-image: linear-gradient(#ffffff, #ffffffd9);
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  filter: drop-shadow(0 1px 0 #0003) drop-shadow(0 -1px 0 #fff4);
+  filter: drop-shadow(0 1px 0 #0003) drop-shadow(0 -1px 0 #fff5);
 
   transition:
     transform var(--duration) var(--timing-function),
@@ -109,6 +119,9 @@
 .register-button .btn-corner {
   position: absolute;
   width: 32px;
+  height: auto;
+  overflow: visible;
+
   fill: none;
   stroke: var(--corner-color);
 
@@ -139,34 +152,38 @@
 }
 
 /* ── Hover / focus ─────────────────────────────────────────── */
+.register-button .btn-container:has(.btn:hover),
+.register-button .btn-container:has(.btn:focus-visible) {
+  --corner-color: rgba(17, 34, 78, 0.5);
+}
+
 .register-button .btn-container:has(.btn:hover) .btn,
 .register-button .btn-container:has(.btn:focus-visible) .btn {
   transform: scale(1.05);
   filter: drop-shadow(0 16px 16px #11224e22);
 }
+
 .register-button .btn-container:has(.btn:hover) .transition-top,
 .register-button .btn-container:has(.btn:focus-visible) .transition-top {
-  transform: translateY(-24px) rotateZ(3deg);
+  transform: translateY(-24px) rotateZ(4deg);
   filter: blur(0px);
-  animation: hue-anim 3s infinite linear;
+  animation: register-button-hue-anim 3s infinite linear;
   opacity: 1;
 }
 .register-button .btn-container:has(.btn:hover) .transition-bottom,
 .register-button .btn-container:has(.btn:focus-visible) .transition-bottom {
-  transform: translateY(24px) rotateZ(3deg);
+  transform: translateY(24px) rotateZ(4deg);
   filter: blur(0px);
-  animation: hue-anim 3s infinite linear;
+  animation: register-button-hue-anim 3s infinite linear;
   opacity: 1;
 }
+
 .register-button .btn-container:has(.btn:hover) .btn-text,
 .register-button .btn-container:has(.btn:focus-visible) .btn-text {
-  filter: drop-shadow(0 1px 0 #0003) drop-shadow(0 -1px 0 #fff4) drop-shadow(0px 6px 2px #11224e33);
+  filter: drop-shadow(0 1px 0 #0003) drop-shadow(0 -1px 0 #fff5) drop-shadow(0px 6px 2px #11224e33);
   transform: scale(1.05);
 }
-.register-button .btn-container:has(.btn:hover),
-.register-button .btn-container:has(.btn:focus-visible) {
-  --corner-color: #11224e44;
-}
+
 .register-button .btn-container:has(.btn:hover) .btn-corner:nth-of-type(1),
 .register-button .btn-container:has(.btn:focus-visible) .btn-corner:nth-of-type(1) {
   transform: translate(
@@ -205,6 +222,10 @@
 }
 
 /* ── Active ────────────────────────────────────────────────── */
+.register-button .btn-container:has(.btn:active) {
+  --corner-color: rgba(17, 34, 78, 0.62);
+  --corner-multiplier: 0.95;
+}
 .register-button .btn-container:has(.btn:active) .btn {
   transform: scale(0.95);
   filter: drop-shadow(0 10px 4px #11224e22);
@@ -216,18 +237,46 @@
 .register-button .btn-container:has(.btn:active) .btn-text {
   transform: scale(1);
 }
-.register-button .btn-container:has(.btn:active) {
-  --corner-color: #11224e55;
-  --corner-multiplier: 0.95;
+.register-button .btn-container:has(.btn:active) .btn-corner:nth-of-type(1) {
+  transform: translate(
+      calc(-1 * var(--corner-multiplier) * var(--corner-dist)),
+      calc(-1 * var(--corner-multiplier) * var(--corner-dist))
+    )
+    rotate(90deg);
+  filter: drop-shadow(-10px 10px 2px var(--corner-color)) drop-shadow(-20px 20px 3px var(--corner-color));
+}
+.register-button .btn-container:has(.btn:active) .btn-corner:nth-of-type(2) {
+  transform: translate(
+      calc(var(--corner-multiplier) * var(--corner-dist)),
+      calc(-1 * var(--corner-multiplier) * var(--corner-dist))
+    )
+    rotate(180deg);
+  filter: drop-shadow(-10px 10px 2px var(--corner-color)) drop-shadow(-20px 20px 3px var(--corner-color));
+}
+.register-button .btn-container:has(.btn:active) .btn-corner:nth-of-type(3) {
+  transform: translate(
+      calc(var(--corner-multiplier) * var(--corner-dist)),
+      calc(var(--corner-multiplier) * var(--corner-dist))
+    )
+    rotate(-90deg);
+  filter: drop-shadow(-10px 10px 2px var(--corner-color)) drop-shadow(-20px 20px 3px var(--corner-color));
+}
+.register-button .btn-container:has(.btn:active) .btn-corner:nth-of-type(4) {
+  transform: translate(
+      calc(-1 * var(--corner-multiplier) * var(--corner-dist)),
+      calc(var(--corner-multiplier) * var(--corner-dist))
+    )
+    rotate(0deg);
+  filter: drop-shadow(-10px 10px 2px var(--corner-color)) drop-shadow(-20px 20px 3px var(--corner-color));
 }
 
-@keyframes hue-anim {
+@keyframes register-button-hue-anim {
   0%,
   100% {
     filter: hue-rotate(0deg);
   }
   50% {
-    filter: hue-rotate(-30deg);
+    filter: hue-rotate(-70deg);
   }
 }
 

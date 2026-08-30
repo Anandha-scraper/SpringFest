@@ -1,12 +1,8 @@
 import { Suspense, lazy, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import SplitText from "@/components/animation/SplitText.jsx";
-import BlurText from "@/components/animation/BlurText.jsx";
-import GradientText from "@/components/animation/GradientText.jsx";
-import HeroShowcase from "@/components/sections/HeroShowcase.jsx";
+import HeroCard from "@/components/sections/HeroCard.jsx";
 import ScrollVelocity from "@/components/animation/ScrollVelocity.jsx";
 import LogoLoop from "@/components/animation/LogoLoop.jsx";
-import RegisterButton from "@/components/common/RegisterButton.jsx";
 import SignInModal from "@/components/common/SignInModal.jsx";
 import { useAuth } from "@/auth/AuthContext.jsx";
 import { fest } from "@/content/fest.js";
@@ -71,60 +67,12 @@ export default function Hero() {
         />
       </div>
 
+      {/* The hero is the card alone — the old copy column (title, tagline,
+          blurb, institution) lived here; the card already carries all of it. */}
       <div className="container hero-grid">
-        <div className="hero-copy">
-          <div className="hero-headline">
-            <h1 className="hero-title">
-              <SplitText
-                text={fest.name}
-                className="hero-title-main"
-                delay={60}
-                duration={0.8}
-                ease="power3.out"
-                splitType="chars"
-                from={{ opacity: 0, y: 60 }}
-                to={{ opacity: 1, y: 0 }}
-                threshold={0.1}
-                textAlign="left"
-              />
-              <GradientText
-                className="hero-title-year"
-                colors={["#f87b1b", "#11224e", "#9bb15f", "#f5a55c", "#f87b1b"]}
-                animationSpeed={6}
-              >
-                {fest.year}
-              </GradientText>
-            </h1>
-
-            <RegisterButton
-              label="Register Now"
-              topText="registrations"
-              bottomText="close soon"
-              onClick={handleRegister}
-            />
-
-            <SignInModal open={signInOpen} onClose={() => setSignInOpen(false)} />
-          </div>
-
-          <BlurText
-            text={fest.tagline}
-            className="hero-tagline"
-            delay={40}
-            animateBy="words"
-            direction="bottom"
-          />
-
-          <p className="hero-blurb">{fest.blurb}</p>
-
-          <div className="hero-inst">
-            Presented by {fest.institution.department}
-            <br />
-            <strong>{fest.institution.name}</strong>
-          </div>
-        </div>
-
         <div className="hero-visual">
-          <HeroShowcase />
+          <HeroCard onRegister={handleRegister} />
+          <SignInModal open={signInOpen} onClose={() => setSignInOpen(false)} />
         </div>
       </div>
 

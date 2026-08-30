@@ -1,0 +1,410 @@
+/* HeroCard — plain-CSS port of the supplied neo-brutalist "Creative Studio"
+   card, re-themed to the fest palette. Replaces the <PixelSwap> hero visual,
+   whose hover animation cloned the card into ~220 DOM cells and ran ~440 Web
+   Animations (the "pixel render makes the site slower" jank).
+
+   BEM, block = .hero-card; every selector scoped under it (`.price` etc. are
+   global utility classes). All sizing is in `em` off the block font-size —
+   landing.css scales that per breakpoint.
+
+   Reference custom props -> fest tokens (prefixed --hc- so the reference's
+   local `--accent` can't shadow the global token):
+     --primary   -> --accent   (title bar, price accent)
+     --secondary -> --ink      (feature-icon frames; icons render white)
+     --accent    -> --sage     (diamond, dot/grid patterns, price underline)
+     --text      -> --ink      (borders, body copy)
+     --bg        -> --surface
+     --shadow    -> --ink
+     stamp       -> --bad
+*/
+
+.hero-card {
+  --hc-primary: var(--accent);
+  --hc-primary-hover: var(--accent-hover);
+  --hc-secondary: var(--ink);
+  --hc-secondary-hover: var(--navy-soft, #24386b);
+  --hc-accent: var(--sage);
+  --hc-text: var(--ink);
+  --hc-bg: var(--surface);
+  --hc-shadow: var(--ink);
+  --hc-pattern: rgba(17, 34, 78, 0.14);
+
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  /* Content-driven height plus a floor, so the card keeps a poster-ish
+     proportion on a wide viewport instead of collapsing to a short band.
+     `em` so it tracks the font-size landing.css sets per breakpoint, and a
+     column flex so `.hero-card__body` absorbs the slack. */
+  min-height: 26em;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  background: var(--hc-bg);
+  border: 0.35em solid var(--hc-text);
+  border-radius: 0.6em;
+  box-shadow:
+    0.7em 0.7em 0 var(--hc-shadow),
+    inset 0 0 0 0.15em rgba(17, 34, 78, 0.05);
+  overflow: hidden;
+  font-family: var(--font-body);
+  color: var(--hc-text);
+  transform-origin: center;
+  transition: transform 0.4s cubic-bezier(0.23, 1, 0.32, 1), box-shadow 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.hero-card:hover {
+  transform: translate(-0.4em, -0.4em) scale(1.02);
+  box-shadow: 1em 1em 0 var(--hc-shadow);
+}
+.hero-card:active {
+  transform: translate(0.1em, 0.1em) scale(0.98);
+  box-shadow: 0.5em 0.5em 0 var(--hc-shadow);
+}
+.hero-card:hover .hero-card__grid,
+.hero-card:hover .hero-card__dots {
+  opacity: 1;
+}
+
+/* corner accent triangle + star */
+.hero-card::before {
+  content: "";
+  position: absolute;
+  top: -1em;
+  right: -1em;
+  width: 4em;
+  height: 4em;
+  background: var(--hc-accent);
+  transform: rotate(45deg);
+  z-index: 1;
+}
+.hero-card::after {
+  content: "\2605";
+  position: absolute;
+  top: 0.4em;
+  right: 0.4em;
+  color: var(--hc-text);
+  font-size: 1.2em;
+  font-weight: bold;
+  z-index: 2;
+}
+
+/* ── Background overlays ──────────────────────────────────── */
+.hero-card__grid {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background-image:
+    linear-gradient(to right, var(--hc-pattern) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--hc-pattern) 1px, transparent 1px);
+  background-size: 0.5em 0.5em;
+  opacity: 0.5;
+  transition: opacity 0.4s ease;
+}
+.hero-card__dots {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background-image: radial-gradient(var(--hc-accent) 1px, transparent 1px);
+  background-size: 1em 1em;
+  background-position: -0.5em -0.5em;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+.hero-card__bold-pattern {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 6em;
+  height: 6em;
+  opacity: 0.15;
+  pointer-events: none;
+  z-index: 1;
+}
+.hero-card__bold-pattern svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* ── Title area ──────────────────────────────────────────── */
+.hero-card__title-area {
+  position: relative;
+  padding: 1.1em 1.2em;
+  background: var(--hc-primary);
+  color: var(--hc-bg);
+  font-weight: 800;
+  font-size: 1.2em;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.6em;
+  border-bottom: 0.35em solid var(--hc-text);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  z-index: 2;
+  overflow: hidden;
+}
+.hero-card__title-area::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    45deg,
+    rgba(0, 0, 0, 0.1),
+    rgba(0, 0, 0, 0.1) 0.5em,
+    transparent 0.5em,
+    transparent 1em
+  );
+  pointer-events: none;
+  opacity: 0.3;
+}
+.hero-card__title {
+  position: relative;
+  z-index: 1;
+  font-family: var(--font-display);
+  line-height: 1;
+}
+.hero-card__tag {
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+  background: var(--hc-bg);
+  color: var(--hc-text);
+  font-size: 0.55em;
+  font-weight: 800;
+  padding: 0.4em 0.7em;
+  border: 0.15em solid var(--hc-text);
+  border-radius: 0.3em;
+  box-shadow: 0.2em 0.2em 0 var(--hc-shadow);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  transform: rotate(3deg);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.hero-card__tag svg {
+  flex-shrink: 0;
+}
+.hero-card:hover .hero-card__tag {
+  transform: rotate(-2deg) scale(1.1);
+  box-shadow: 0.25em 0.25em 0 var(--hc-shadow);
+}
+
+/* ── Body ────────────────────────────────────────────────── */
+/* Grows to fill the card's min-height; the actions row is pushed to the
+   bottom so the extra height opens up between the features and the price. */
+.hero-card__body {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 1.6em 1.4em;
+  z-index: 2;
+}
+.hero-card__body .hero-card__actions { margin-top: auto; }
+.hero-card__description {
+  margin: 0 0 1.4em;
+  color: var(--hc-text);
+  font-size: 0.92em;
+  line-height: 1.45;
+  font-weight: 500;
+  text-wrap: pretty;
+}
+
+/* `auto-fit` rather than a viewport media query: the constraint here is the
+   CARD's width, not the viewport's (the card is em-driven inside a flexible
+   column), so it has to adapt to its own container. Two columns whenever
+   ~19em of body width exists, one below that. */
+.hero-card__feature-grid {
+  list-style: none;
+  margin: 0 0 1.4em;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 13em), 1fr));
+  gap: 0.9em;
+}
+.hero-card__feature {
+  display: flex;
+  align-items: center;
+  gap: 0.55em;
+  min-width: 0;
+  transition: transform 0.2s ease;
+}
+.hero-card__feature:hover {
+  transform: translateX(0.3em);
+}
+.hero-card__feature-icon {
+  flex-shrink: 0;
+  width: 1.7em;
+  height: 1.7em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--hc-secondary);
+  color: #fff;
+  border: 0.12em solid var(--hc-text);
+  border-radius: 0.3em;
+  box-shadow: 0.2em 0.2em 0 rgba(17, 34, 78, 0.2);
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+.hero-card__feature:hover .hero-card__feature-icon {
+  background: var(--hc-secondary-hover);
+  transform: rotate(-5deg);
+}
+.hero-card__feature-icon svg {
+  width: 0.95em;
+  height: 0.95em;
+}
+.hero-card__feature-text {
+  font-size: 0.82em;
+  font-weight: 700;
+  color: var(--hc-text);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* ── Actions — price left, Register button bottom-right ──── */
+.hero-card__actions {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.8em 1em;
+  margin-top: 1.4em;
+  padding-top: 1.2em;
+  border-top: 0.15em dashed rgba(17, 34, 78, 0.2);
+  position: relative;
+}
+.hero-card__actions::before {
+  content: "\2702";
+  position: absolute;
+  top: -0.72em;
+  left: 50%;
+  transform: translateX(-50%) rotate(90deg);
+  background: var(--hc-bg);
+  padding: 0 0.5em;
+  font-size: 1em;
+  color: rgba(17, 34, 78, 0.4);
+}
+.hero-card__price {
+  margin: 0;
+  flex: 1 1 9em;
+  min-width: 0;
+  font-size: 0.95em;
+  font-weight: 700;
+  color: var(--hc-text);
+}
+.hero-card__price-amount {
+  position: relative;
+  font-family: var(--font-display);
+  font-size: 1.6em;
+  font-weight: 700;
+  color: var(--hc-primary);
+  margin-left: 0.15em;
+}
+.hero-card__price-amount::before {
+  content: "";
+  position: absolute;
+  bottom: 0.12em;
+  left: 0;
+  width: 100%;
+  height: 0.2em;
+  background: var(--hc-accent);
+  z-index: -1;
+  opacity: 0.6;
+}
+
+/* Register button, parked at the card's bottom-right on the price row.
+   The card clips overflow (.hero-card { overflow: hidden }), so the corner
+   brackets are tamed: they fly out by --corner-multiplier × --corner-dist
+   (≈10px), and .hero-card__body's 1.4em padding is always larger than that, so
+   nothing is ever cut off. Deliberately NOT absolutely positioned — a
+   corner-anchored button would push the brackets straight into the clip. */
+.hero-card__cta {
+  display: flex;
+  justify-content: flex-end;
+  margin-left: auto;
+  margin-right: 12px;
+  margin-bottom: 14px;
+  flex: 0 0 auto;
+}
+.hero-card__cta .register-button .btn-container {
+  --corner-dist: 9px;
+  --corner-multiplier: 1.1;
+}
+/* register-button.css sizes its padding in `em`, so dropping the font-size
+   shrinks the whole control proportionally. */
+.hero-card__cta .register-button .btn {
+  font-size: 1.1rem;
+  min-width: 9.5em;
+  padding: 0.68em 1.45em;
+  border-radius: 12px;
+}
+.hero-card__cta .register-button .btn-drawer {
+  min-height: 26px;
+  font-size: 0.72em;
+  padding: 0.22em 0.9em;
+  border-radius: 9px 9px 0 0;
+}
+.hero-card__cta .register-button .transition-bottom { border-radius: 0 0 9px 9px; }
+.hero-card__cta .register-button .btn-corner { width: 26px; }
+
+/* ── Decoration ──────────────────────────────────────────── */
+.hero-card__dots-pattern {
+  position: absolute;
+  bottom: 2em;
+  left: -2em;
+  width: 8em;
+  height: 4em;
+  opacity: 0.3;
+  transform: rotate(-10deg);
+  pointer-events: none;
+  z-index: 1;
+}
+.hero-card__accent-shape {
+  position: absolute;
+  width: 2.5em;
+  height: 2.5em;
+  background: var(--hc-secondary);
+  border: 0.15em solid var(--hc-text);
+  border-radius: 0.3em;
+  transform: rotate(45deg);
+  bottom: -1.2em;
+  right: 2em;
+  z-index: 0;
+  transition: transform 0.3s ease;
+}
+.hero-card:hover .hero-card__accent-shape {
+  transform: rotate(55deg) scale(1.1);
+}
+
+.hero-card__corner-slice {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 1.5em;
+  height: 1.5em;
+  background: var(--hc-bg);
+  border-right: 0.25em solid var(--hc-text);
+  border-top: 0.25em solid var(--hc-text);
+  border-radius: 0 0.5em 0 0;
+  z-index: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-card,
+  .hero-card__tag,
+  .hero-card__feature,
+  .hero-card__accent-shape {
+    transition: none;
+  }
+  .hero-card:hover,
+  .hero-card:active {
+    transform: none;
+    box-shadow: 0.7em 0.7em 0 var(--hc-shadow);
+  }
+}
