@@ -3,9 +3,11 @@ import { Router } from "express";
 import { CurrentUser } from "../middleware/auth.js";
 import * as aggregate from "../services/aggregate.js";
 import { getDb } from "../services/firebase.js";
-import { loadPersonRegistrations } from "../services/registrationLookup.js";
+import { loadPersonRegistrations, matchMemberIndex } from "../services/registrationLookup.js";
 import { personalQrPng } from "../services/qr.js";
 import { getAppSettings } from "../services/settings.js";
+import { contentTypeFor, downloadBuffer } from "../services/storage.js";
+import { ApiError } from "../errors.js";
 
 export const router = Router();
 
@@ -18,11 +20,41 @@ router.get("/", ...CurrentUser, async (req, res) => {
   // lookup reads the same roles doc, so there's no second Firestore read here.
   //
   // The payment mode rides along because the registration form has to know
-  // which UI to render (gateway checkout vs. upload a screenshot). Putting it
-  // here rather than on its own endpoint keeps that to zero extra round trips,
-  // and it's cached server-side so it costs nothing per request.
-  const { payment_mode, payment_instructions } = await getAppSettings();
-  res.json({ ...req.user, payment_mode, payment_instructions });
+  // which UI to render (gateway checkout vs. upload a screenshot); registration_open
+  // rides along for the same reason — so the form can show "closed" up front
+  // instead of letting someone fill it out only to get a 403 on submit.
+  // Putting both here rather than their own endpoint keeps that to zero extra
+  // round trips, and it's cached server-side so it costs nothing per request.
+  const s = await getAppSettings();
+  res.json({
+    ...req.user,
+    payment_mode: s.payment_mode,
+    payment_upi_id: s.payment_upi_id,
+    // The boolean, never payment_qr_path — that's an internal bucket address,
+    // and the client only needs to know whether to fetch the image below.
+    // Deriving it from the stored string rather than a bucket exists() check
+    // keeps this endpoint (hit on every page load) free of any Cloud Storage
+    // round trip, and unaffected by a missing STORAGE_BUCKET.
+    has_payment_qr: Boolean(s.payment_qr_path),
+    registration_open: s.registration_open,
+  });
+});
+
+/** The payment QR participants scan to pay in screenshot mode.
+ *
+ * CurrentUser, not AdminUser: this is the one payment-related image that
+ * participants themselves have to see. Admins are CurrentUser too, so their
+ * own preview on the Payment settings page reads the same route — there is
+ * deliberately no second admin-side copy of it.
+ *
+ * Streamed through the API like every other stored object; see the note in
+ * services/storage.js about why there are no signed URLs. */
+router.get("/payment-qr", ...CurrentUser, async (req, res) => {
+  const { payment_qr_path } = await getAppSettings();
+  if (!payment_qr_path) throw new ApiError(404, "No payment QR has been uploaded");
+  const buffer = await downloadBuffer(payment_qr_path);
+  res.set("Content-Type", contentTypeFor(payment_qr_path));
+  res.send(buffer);
 });
 
 router.get("/registrations", ...CurrentUser, async (req, res) => {
@@ -38,6 +70,26 @@ router.get("/registrations", ...CurrentUser, async (req, res) => {
 
   rows.sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""));
   res.json(rows);
+});
+
+/** Download the team's uploaded submission file. Streamed through this
+ * authenticated route (like the QR) — the storage bucket stays private.
+ * Any ticket holder on the registration can fetch it, not just the lead. */
+router.get("/registrations/:registrationId/submission", ...CurrentUser, async (req, res) => {
+  const ref = getDb().collection("registrations").doc(req.params.registrationId);
+  const doc = await ref.get();
+  if (!doc.exists) throw new ApiError(404, "Registration not found");
+  const row = doc.data() ?? {};
+  if (matchMemberIndex(row, { uid: req.user.uid, email: req.user.email }) < 0) {
+    throw new ApiError(403, "Not your registration");
+  }
+  if (!row.submission_path) throw new ApiError(404, "No file has been uploaded yet");
+
+  const buffer = await downloadBuffer(row.submission_path);
+  const name = `${req.params.registrationId}.${row.submission_ext || "bin"}`;
+  res.set("Content-Disposition", `attachment; filename="${name}"`);
+  res.set("Content-Type", "application/octet-stream");
+  res.send(buffer);
 });
 
 /** This person's personal check-in badge — one QR, not one per registration.

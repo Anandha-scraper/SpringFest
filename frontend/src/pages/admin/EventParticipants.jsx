@@ -5,13 +5,14 @@ import StatusPill from "../../components/admin/StatusPill.jsx";
 import { downloadRegistrationsCsv, getEventParticipants } from "../../api/client.js";
 import { useApi } from "../../hooks/useApi.js";
 import { formatDateTime, formatEventTime, rupees } from "../../lib/format.js";
+import Loader from "../../components/Loader.jsx";
 
 export default function EventParticipants() {
   const { id } = useParams();
   const fetcher = useCallback(() => getEventParticipants(id), [id]);
   const { data, error, loading } = useApi(fetcher);
 
-  if (loading) return <div className="spinner" />;
+  if (loading) return <Loader />;
   if (error) {
     return (
       <div className="admin">

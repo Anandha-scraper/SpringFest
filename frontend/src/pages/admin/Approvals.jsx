@@ -10,8 +10,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog.jsx";
+import { useToast } from "@/components/ui/toast.jsx";
+import Loader from "../../components/Loader.jsx";
+import TablePagination from "../../components/admin/TablePagination.jsx";
 import { getApprovals, proofObjectUrl, reviewApproval } from "../../api/client.js";
 import { useApi } from "../../hooks/useApi.js";
+
+// Screenshot proofs are read one at a time, so a short page keeps each
+// thumbnail large enough to actually check against the transaction ID.
+const PAGE_SIZE = 6;
 
 /** The payment screenshot, inline so the queue can be reviewed at a glance.
  *
@@ -54,19 +61,24 @@ export default function Approvals() {
   const { data, error: loadError, loading, reload } = useApi(fetcher);
   const rows = data || [];
 
-  const [error, setError] = useState("");
+  const toast = useToast();
   const [busy, setBusy] = useState("");
   const [rejecting, setRejecting] = useState(null);
   const [note, setNote] = useState("");
+  const [page, setPage] = useState(1);
+
+  const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const pageRows = rows.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   const decide = async (registrationId, decision, reason = "") => {
-    setError("");
     setBusy(registrationId);
     try {
       await reviewApproval(registrationId, decision, reason);
       await reload();
+      toast.ok(decision === "approve" ? "Registration confirmed." : "Payment rejected.");
     } catch (err) {
-      setError(err.message);
+      toast.bad(err.message);
     } finally {
       setBusy("");
     }
@@ -80,24 +92,11 @@ export default function Approvals() {
     if (target) await decide(target.registration_id, "reject", reason);
   };
 
-  if (loading) return <div className="spinner" />;
+  if (loading) return <Loader />;
   if (loadError) return <p className="error">{loadError}</p>;
 
   return (
     <div className="admin">
-      <div className="admin-head">
-        <div>
-          <span className="eyebrow">Organiser view</span>
-          <h1>Approvals</h1>
-          <p className="muted">
-            Screenshot payments waiting on you, oldest first. Approving confirms the
-            registration and issues its QR tickets.
-          </p>
-        </div>
-      </div>
-
-      {error && <p className="error">{error}</p>}
-
       <section className="admin-panel">
         <div className="panel-head">
           <h2>Waiting for review</h2>
@@ -123,7 +122,7 @@ export default function Approvals() {
                 </tr>
               </thead>
               <tbody>
-                {rows.map((r) => (
+                {pageRows.map((r) => (
                   <tr key={r.id}>
                     <td>
                       <strong>{r.name}</strong>
@@ -139,7 +138,10 @@ export default function Approvals() {
                       )}
                     </td>
                     <td>{r.event_name || r.event_id}</td>
-                    <td>₹{r.fee}</td>
+                    <td>
+                      ₹{r.amount_due > 0 ? r.amount_due : r.fee}
+                      {r.amount_due > 0 && <span className="cell-sub">added teammate</span>}
+                    </td>
                     <td className="mono">{r.transaction_id || "—"}</td>
                     <td>
                       {r.proof_uploaded_at
@@ -173,6 +175,8 @@ export default function Approvals() {
             </table>
           </div>
         )}
+
+        <TablePagination page={safePage} totalPages={totalPages} onPage={setPage} />
       </section>
 
       <AlertDialog open={!!rejecting} onOpenChange={(o) => !o && setRejecting(null)}>

@@ -1,4 +1,5 @@
 import { Router } from "express";
+import multer from "multer";
 
 import { ApiError } from "../errors.js";
 import { AdminUser } from "../middleware/auth.js";
@@ -6,9 +7,18 @@ import * as aggregate from "../services/aggregate.js";
 import { getDb } from "../services/firebase.js";
 import * as roles from "../services/roles.js";
 import { MODE_SCREENSHOT, PAYMENT_MODES, getAppSettings, setAppSettings } from "../services/settings.js";
-import { downloadBuffer } from "../services/storage.js";
+import { contentTypeFor, downloadBuffer, uploadBuffer } from "../services/storage.js";
 import { STATUS_AWAITING_APPROVAL, STATUS_COMPLETED, STATUS_REJECTED } from "../statuses.js";
-import { optionalString, requireEmail, requireOneOf, requireString } from "../validate.js";
+import {
+  optionalString,
+  parseParticipantDetails,
+  parseTeamMember,
+  requireBool,
+  requireEmail,
+  requireOneOf,
+  requirePhone,
+  requireString,
+} from "../validate.js";
 import { invalidateVenueNames, slugify as eventSlugify } from "./events.js";
 
 export const router = Router();
@@ -19,13 +29,6 @@ export const CSV_COLUMNS = [
   "payment_mode", "transaction_id", "order_id", "payment_id", "payment_method",
   "created_at", "paid_at",
 ];
-
-/** Proof objects are stored with the extension we validated on upload, so the
- * path is enough to name the type back — no need to store it separately. */
-function contentTypeFor(objectPath) {
-  const ext = objectPath.slice(objectPath.lastIndexOf(".") + 1).toLowerCase();
-  return { png: "image/png", jpg: "image/jpeg", webp: "image/webp" }[ext] || "application/octet-stream";
-}
 
 function applyFilters(rows, eventId, status) {
   if (eventId) rows = rows.filter((r) => r.event_id === eventId);
@@ -38,6 +41,14 @@ router.get("/stats", ...AdminUser, async (req, res) => {
   res.json(await aggregate.buildStats());
 });
 
+/** Signed-in account totals split by staff vs attendee (participant). Gives
+ * organisers a true "how many people signed in" number rather than the
+ * registration-derived `signed_users`, which only counts people who actually
+ * registered. Staff = admins + judges + volunteers. */
+router.get("/auth-users", ...AdminUser, async (req, res) => {
+  res.json(await aggregate.countAuthByRole());
+});
+
 router.get("/participants", ...AdminUser, async (req, res) => {
   // One row per person — the Registrations screen. See services/aggregate.js
   // for why this isn't just the registration list.
@@ -48,6 +59,24 @@ router.get("/venues/rollup", ...AdminUser, async (req, res) => {
   res.json(await aggregate.venueRollup());
 });
 
+/** Per-event attendance and evaluation progress — the Manage Roles view.
+ *
+ * MUST stay above `/events/:eventId` below: Express matches in registration
+ * order, so the parameterised route would otherwise swallow "rollup" and
+ * 404 looking for an event by that id. */
+router.get("/events/rollup", ...AdminUser, async (req, res) => {
+  res.json(await aggregate.eventRollup());
+});
+
+/** One raw event doc, for prefilling the admin edit form — including
+ * `marking_criteria`, which events.js's toEvent() deliberately never emits
+ * because GET /api/events is public. Mirrors /registrations/:id below. */
+router.get("/events/:eventId", ...AdminUser, async (req, res) => {
+  const doc = await getDb().collection("events").doc(req.params.eventId).get();
+  if (!doc.exists) throw new ApiError(404, "Event not found");
+  res.json({ id: doc.id, ...(doc.data() ?? {}) });
+});
+
 router.get("/registrations", ...AdminUser, async (req, res) => {
   // The flat, one-row-per-registration list. Kept alongside /participants
   // because the CSV export and per-event views work at this grain.
@@ -56,6 +85,68 @@ router.get("/registrations", ...AdminUser, async (req, res) => {
   for (const r of rows) r.event_name = aggregate.eventName(data.events, r.event_id || "");
   rows.sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""));
   res.json(rows);
+});
+
+/** One raw registration doc — for prefilling the admin edit form. Unlike
+ * `/registrations` (the flat list) and `/participants` (the per-person
+ * pivot), this is the actual Firestore document, `members[]` included. */
+router.get("/registrations/:registrationId", ...AdminUser, async (req, res) => {
+  const doc = await getDb().collection("registrations").doc(req.params.registrationId).get();
+  if (!doc.exists) throw new ApiError(404, "Registration not found");
+  res.json({ id: doc.id, ...(doc.data() ?? {}) });
+});
+
+/** Fix a typo in a registration's own details: the lead's fields and each
+ * team member's, validated through the exact same rules the public form
+ * uses so an edit can't introduce data the form itself wouldn't accept.
+ *
+ * Deliberately excludes event_id, team_size (derived from members.length,
+ * not settable), fee, status, and every payment field — those stay owned by
+ * the approval flow and payment verification, not this route. Editing a team
+ * member's email takes effect immediately: registration lookups match
+ * live against whatever `members[].email` currently says, so the old email
+ * loses access to this registration the moment this write lands, with no
+ * separate revocation step needed. */
+router.patch("/registrations/:registrationId", ...AdminUser, async (req, res) => {
+  const regRef = getDb().collection("registrations").doc(req.params.registrationId);
+  const doc = await regRef.get();
+  if (!doc.exists) throw new ApiError(404, "Registration not found");
+  const row = doc.data() ?? {};
+  const body = req.body || {};
+
+  const changes = {};
+  if (body.name !== undefined) changes.name = requireString(body.name, { field: "name", minLength: 2 });
+  if (body.email !== undefined) changes.email = requireEmail(body.email);
+  if (body.phone !== undefined) changes.phone = requirePhone(body.phone);
+  if (body.team_name !== undefined) changes.team_name = optionalString(body.team_name);
+  if (
+    body.college !== undefined ||
+    body.department !== undefined ||
+    body.year !== undefined ||
+    body.location !== undefined
+  ) {
+    Object.assign(
+      changes,
+      parseParticipantDetails({
+        college: body.college ?? row.college,
+        department: body.department ?? row.department,
+        year: body.year ?? row.year,
+        location: body.location ?? row.location,
+        location_other: body.location_other,
+      })
+    );
+  }
+  if (body.members !== undefined) {
+    if (!Array.isArray(body.members) || body.members.length !== (row.members || []).length) {
+      throw new ApiError(400, "members: team size can't be changed here — fix existing members' details only");
+    }
+    changes.members = body.members.map(parseTeamMember);
+  }
+  if (!Object.keys(changes).length) throw new ApiError(400, "Nothing to update");
+
+  await regRef.set(changes, { merge: true });
+  aggregate.invalidateLoadAll();
+  res.json({ id: regRef.id, ...row, ...changes });
 });
 
 router.get("/events/:eventId/participants", ...AdminUser, async (req, res) => {
@@ -102,12 +193,25 @@ router.get("/settings", ...AdminUser, async (req, res) => {
 });
 
 router.put("/settings", ...AdminUser, async (req, res) => {
+  const current = await getAppSettings();
   const patch = {};
   if (req.body?.payment_mode !== undefined) {
     patch.payment_mode = requireOneOf(req.body.payment_mode, PAYMENT_MODES, { field: "payment_mode" });
   }
-  if (req.body?.payment_instructions !== undefined) {
-    patch.payment_instructions = optionalString(req.body.payment_instructions);
+  if (req.body?.payment_upi_id !== undefined) {
+    // The lock covers the UPI id and the QR and nothing else. payment_mode
+    // and registration_open stay editable while locked, deliberately — a
+    // locked payment block must never freeze the gateway kill switch.
+    if (current.payment_locked) {
+      throw new ApiError(409, "Payment details are locked — unlock them before editing");
+    }
+    patch.payment_upi_id = optionalString(req.body.payment_upi_id);
+  }
+  if (req.body?.payment_locked !== undefined) {
+    patch.payment_locked = requireBool(req.body.payment_locked);
+  }
+  if (req.body?.registration_open !== undefined) {
+    patch.registration_open = requireBool(req.body.registration_open);
   }
   if (!Object.keys(patch).length) throw new ApiError(400, "Nothing to update");
 
@@ -115,6 +219,50 @@ router.put("/settings", ...AdminUser, async (req, res) => {
   // point (gateway goes down mid-fest). Rows already created keep the mode
   // they were stamped with, so nothing in flight is disturbed.
   res.json(await setAppSettings(patch, req.user.email));
+});
+
+/** The payment QR participants scan. This is the admin router's only
+ * multipart route, so multer is mounted per-route rather than app-wide and
+ * express.json() keeps handling everything else. Mirrors proofUpload in
+ * routes/registrations.js. */
+const QR_TYPES = { "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp" };
+
+const paymentQrUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024, files: 1 },
+  fileFilter: (req, file, cb) => {
+    if (!QR_TYPES[file.mimetype]) {
+      return cb(new ApiError(400, "QR must be a PNG, JPEG or WebP image"));
+    }
+    cb(null, true);
+  },
+}).single("qr");
+
+router.post("/settings/payment-qr", ...AdminUser, paymentQrUpload, async (req, res) => {
+  const current = await getAppSettings();
+  if (current.payment_locked) {
+    throw new ApiError(409, "Payment details are locked — unlock them before editing");
+  }
+  if (!req.file) throw new ApiError(400, "qr: an image file is required");
+
+  // Timestamped, never a fixed path: uploadBuffer sets a one-year
+  // cacheControl, so overwriting a stable path would leave browsers — the
+  // admin's own preview included — showing last week's QR.
+  const path = `payment-qr/${Date.now()}.${QR_TYPES[req.file.mimetype]}`;
+  await uploadBuffer(path, req.file.buffer, req.file.mimetype);
+  const saved = await setAppSettings({ payment_qr_path: path }, req.user.email);
+  res.json({ ...saved, has_payment_qr: true });
+});
+
+router.delete("/settings/payment-qr", ...AdminUser, async (req, res) => {
+  const current = await getAppSettings();
+  if (current.payment_locked) {
+    throw new ApiError(409, "Payment details are locked — unlock them before editing");
+  }
+  // The stored object is left in place. There is no delete helper in
+  // services/storage.js and these are a handful of tiny private files — the
+  // same reasoning that keeps every payment-proof attempt around.
+  res.json(await setAppSettings({ payment_qr_path: "" }, req.user.email));
 });
 
 // ── Screenshot payment approvals ─────────────────────────────
@@ -185,6 +333,8 @@ router.post("/approvals/:registrationId", ...AdminUser, async (req, res) => {
     paid_at: now,
     payment_method: "manual",
     review_note: "",
+    // Clears any teammate top-up that was awaiting this approval.
+    amount_due: 0,
     ...audit,
   });
   aggregate.invalidateLoadAll();
@@ -236,6 +386,32 @@ router.delete("/venues/:venueId", ...AdminUser, async (req, res) => {
 // ── People / role management ─────────────────────────────────
 router.get("/people", ...AdminUser, async (req, res) => {
   res.json(await roles.listPeople(req.query.role));
+});
+
+/** What's already on file for this email, so the "Add a person" form can
+ * warn before silently overwriting a role or missing that the address is
+ * also a participant — surfaced to the admin, not blocked here. */
+router.get("/people/:email/lookup", ...AdminUser, async (req, res) => {
+  const key = roles.normalizeEmail(req.params.email);
+  const seeded = roles.isSeededAdmin(key);
+
+  let role = seeded ? roles.ROLE_ADMIN : null;
+  if (!seeded) {
+    const doc = await getDb().collection(roles.COLLECTION).doc(key).get();
+    const docRole = doc.data()?.role;
+    if (doc.exists && roles.ASSIGNABLE_ROLES.has(docRole)) role = docRole;
+  }
+
+  const data = await aggregate.loadAll();
+  const regs = data.registrations.filter(
+    (r) =>
+      (r.email || "").toLowerCase() === key ||
+      (r.user_email || "").toLowerCase() === key ||
+      (r.members || []).some((m) => (m.email || "").toLowerCase() === key)
+  );
+  const events = [...new Set(regs.map((r) => aggregate.eventName(data.events, r.event_id || "")))];
+
+  res.json({ email: key, role, seeded, registrations_count: regs.length, events });
 });
 
 router.post("/people", ...AdminUser, async (req, res) => {

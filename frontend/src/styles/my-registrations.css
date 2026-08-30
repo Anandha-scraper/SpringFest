@@ -1,0 +1,200 @@
+/* My Registrations — a big entry-pass QR on the left; on the right, the
+   person's / team's details with the event boxes below them. Sizing in
+   rem / % / clamp; the only px are hairline borders. */
+
+.myreg {
+  max-width: var(--page-w);
+  margin-inline: auto;
+  /* Offsets the fixed marketing navbar on the /my-registrations route. */
+  padding: calc(var(--nav-h) + 40px) clamp(1rem, 4vw, 1.5rem) 5rem;
+}
+
+/* Inside the role dashboard there is no navbar and .role-main already pads. */
+.role-main .myreg {
+  max-width: none;
+  padding: 0;
+}
+
+.myreg-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 46rem) minmax(0, 1fr);
+  gap: clamp(1.25rem, 3vw, 2.5rem);
+  align-items: start;
+}
+
+/* ── QR (left) ──────────────────────────────────────────────── */
+.myreg-qr {
+  position: sticky;
+  top: clamp(1rem, 4vw, 2rem);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.85rem;
+  padding: clamp(1rem, 3vw, 1.75rem);
+  text-align: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.myreg-qr__title {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 700;
+}
+
+.myreg-qr img,
+.myreg-qr .ticket-placeholder {
+  width: 100%;
+  max-width: 42rem;
+  aspect-ratio: 1 / 1;
+  height: auto;
+  background: #fff;
+  border-radius: var(--r-sm);
+}
+
+.myreg-qr .muted {
+  font-size: 0.82rem;
+  line-height: 1.5;
+  max-width: 26rem;
+}
+
+/* ── Right column: details, then the event boxes ────────────── */
+.myreg-right {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(1.25rem, 3vw, 2rem);
+  min-width: 0;
+}
+
+.myreg-info {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr));
+  gap: 1rem;
+  align-items: start;
+}
+
+.myreg-info .reg-detail-group {
+  padding: clamp(0.9rem, 2.5vw, 1.25rem);
+  gap: 0.4rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.myreg-info .reg-detail-row > span:last-child {
+  overflow-wrap: anywhere;
+}
+
+/* ── Event boxes ────────────────────────────────────────────── */
+.myreg-events-title {
+  font-size: 1rem;
+  margin-bottom: 0.9rem;
+}
+
+.myreg-events {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 14rem), 1fr));
+  gap: clamp(0.6rem, 1.5vw, 0.9rem);
+}
+
+.myreg-event {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.9rem 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.myreg-event__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.myreg-event__name {
+  font-size: 0.98rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.myreg-event__top-right {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+/* reactbits' PillNav.css also claims `.pill` (height:100%; line-height:0;
+   overflow:hidden) — undo that for the status pill here so its text isn't
+   clipped to a sliver. */
+.myreg-event .pill {
+  height: auto;
+  line-height: 1.5;
+  overflow: visible;
+  font-size: 0.72rem;
+  padding: 3px 10px;
+}
+
+.myreg-event__add {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-full);
+  background: var(--surface);
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.myreg-event__add:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.myreg-event__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.1rem 0.9rem;
+  font-size: 0.8rem;
+  color: var(--ink-faint);
+}
+
+.myreg-event__note {
+  font-size: 0.8rem;
+}
+
+.myreg-event .btn {
+  align-self: flex-start;
+}
+
+@media (max-width: 1100px) {
+  .myreg-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .myreg-qr {
+    position: static;
+  }
+
+  .myreg-info {
+    max-width: none;
+  }
+
+  .myreg-qr img,
+  .myreg-qr .ticket-placeholder {
+    max-width: 24rem;
+  }
+}

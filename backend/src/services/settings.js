@@ -1,4 +1,4 @@
-/** App-wide settings — currently just how participants pay.
+/** App-wide settings — how participants pay, and whether they can register.
  *
  * Stored as a single Firestore document (`settings/app`) rather than an env
  * var because organisers change it *during* the fest: if the payment gateway
@@ -28,7 +28,26 @@ export const PAYMENT_MODES = [MODE_GATEWAY, MODE_SCREENSHOT];
 
 const DEFAULTS = {
   payment_mode: MODE_GATEWAY,
-  payment_instructions: "",
+  // How a screenshot-mode participant is told to pay: the UPI handle they
+  // send money to, and a QR they can scan instead of typing it. Replaces the
+  // free-text instructions block that used to live here — nobody reads a
+  // paragraph at a payment step, and a mistyped handle silently routes real
+  // money to the wrong account.
+  payment_upi_id: "",
+  // Cloud Storage object path. Never sent to a client: the browser gets a
+  // has_payment_qr boolean and streams the bytes from GET /api/me/payment-qr.
+  payment_qr_path: "",
+  // Once the organisers have confirmed the handle and QR are right, they lock
+  // them. Enforced server-side, not just in the UI — the UPI id is the single
+  // highest-consequence string in this app and there is no gateway signature
+  // downstream to catch a wrong one. Covers ONLY the UPI id and the QR;
+  // payment_mode and registration_open must stay switchable mid-fest.
+  payment_locked: false,
+  // Fest-wide switch: closing it stops new registrations (including saving a
+  // new draft, or turning an existing draft into a real one) without
+  // disturbing anything already paid or mid-checkout — see registrations.js.
+  // Each event carries its own flag too; both must be open.
+  registration_open: true,
   updated_at: "",
   updated_by: "",
 };

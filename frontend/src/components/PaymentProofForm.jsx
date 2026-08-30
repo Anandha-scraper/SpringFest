@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { Upload } from "lucide-react";
 
+import PaymentTarget from "./PaymentTarget.jsx";
+
 const MAX_BYTES = 5 * 1024 * 1024;
 const ACCEPTED = ["image/png", "image/jpeg", "image/webp"];
 
@@ -14,7 +16,8 @@ const ACCEPTED = ["image/png", "image/jpeg", "image/webp"];
  */
 export default function PaymentProofForm({
   amount,
-  instructions,
+  upiId,
+  hasQr,
   rejectionNote,
   onSubmit,
   submitting,
@@ -64,17 +67,7 @@ export default function PaymentProofForm({
         </div>
       )}
 
-      <div className="notice">
-        <strong>Pay ₹{amount}, then upload the proof</strong>
-        {instructions ? (
-          <p style={{ whiteSpace: "pre-wrap" }}>{instructions}</p>
-        ) : (
-          <p>
-            Use the payment details the organisers gave you, then enter the reference
-            number and attach a screenshot below.
-          </p>
-        )}
-      </div>
+      <PaymentTarget amount={amount} upiId={upiId} hasQr={hasQr} />
 
       <label htmlFor="pp-txn">Transaction / reference ID</label>
       <input

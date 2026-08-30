@@ -127,7 +127,7 @@
   padding-right: clamp(16px, 2vw, 32px);
 }
 
-/* Events header — heading only (the track pills and the lanyard were removed).
+/* Events header — heading only (the track pills and the 3D badge were removed).
    The flap scrolls horizontally on very narrow screens instead of clipping. */
 .events-top {
   display: block;

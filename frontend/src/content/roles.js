@@ -1,8 +1,8 @@
 // ─────────────────────────────────────────────────────────────
 //  Role config — presentation only.
 //
-//  Which role someone HAS is decided server-side: backend/app/
-//  services/roles.py resolves it from ADMIN_EMAILS (.env) and the
+//  Which role someone HAS is decided server-side: backend/src/
+//  services/roles.js resolves it from ADMIN_EMAILS (.env) and the
 //  Firestore `roles` collection, and it arrives via GET /api/me.
 //  Nothing here grants access; this file only says where each role
 //  goes and what its sidebar looks like.
@@ -33,7 +33,7 @@ export const ROLES = {
 // volunteer means participant.
 export const DEFAULT_ROLE = ROLES.PARTICIPANT;
 
-export const HOME_FOR_ROLE = {
+const HOME_FOR_ROLE = {
   [ROLES.ADMIN]: "/admin",
   [ROLES.JUDGE]: "/judge",
   [ROLES.VOLUNTEER]: "/volunteer",

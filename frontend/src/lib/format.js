@@ -38,11 +38,18 @@ export function formatDateTime(iso) {
 /** "March 14, 2026 · 10:00 AM – 1:00 PM" — an event's schedule line. */
 export function formatEventTime(event) {
   if (!event) return "";
-  const time =
-    event.start_time && event.end_time
-      ? `${fmtTime(event.start_time)} – ${fmtTime(event.end_time)}`
-      : "";
-  return [fmtDate(event.date), time].filter(Boolean).join(" · ");
+  return [formatEventDate(event), formatEventTimeRange(event)].filter(Boolean).join(" · ");
+}
+
+/** Just the date half of an event's schedule — "March 14, 2026". */
+export function formatEventDate(event) {
+  return event ? fmtDate(event.date) : "";
+}
+
+/** Just the time half — "10:00 AM – 1:00 PM", or "" when times aren't set. */
+export function formatEventTimeRange(event) {
+  if (!event?.start_time || !event?.end_time) return "";
+  return `${fmtTime(event.start_time)} – ${fmtTime(event.end_time)}`;
 }
 
 /** Same day and overlapping [start, end). Mirrors the server's own check, so

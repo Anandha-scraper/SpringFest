@@ -1,62 +1,48 @@
 import { useEffect, useState } from "react";
-import { Trash2, UserPlus } from "lucide-react";
+import { ChevronLeft, ChevronRight, Trash2, UserPlus } from "lucide-react";
 import { useAuth } from "../auth/AuthContext.jsx";
-
-const STUDY_YEARS = ["1", "2", "3", "4", "5"];
+import DetailFields from "./registration/DetailFields.jsx";
 
 const blankMember = () => ({
-  name: "", email: "", phone: "", college: "", department: "", year: "", location: "",
+  name: "", email: "", phone: "", college: "", department: "", year: "", location: "", location_other: "",
 });
 
-/** The academic block every participant fills in, lead and teammate alike.
- * Shared so the two can't drift — the backend validates both with the same
- * parseParticipantDetails(). */
-function DetailFields({ idPrefix, values, onChange, labelled }) {
-  const field = (name) => (idPrefix ? `${idPrefix}-${name}` : name);
-  return (
-    <>
-      {labelled && <label htmlFor={field("college")}>College</label>}
-      <input id={field("college")} placeholder="College name" required minLength={2}
-        value={values.college} onChange={(e) => onChange("college", e.target.value)} />
+const blankLead = () => ({
+  name: "", email: "", phone: "", college: "", department: "", year: "", location: "", location_other: "",
+});
 
-      {labelled && <label htmlFor={field("department")}>Department</label>}
-      <input id={field("department")} placeholder="Department" required minLength={2}
-        value={values.department} onChange={(e) => onChange("department", e.target.value)} />
-
-      {labelled && <label htmlFor={field("year")}>Year of study</label>}
-      <select id={field("year")} required
-        value={values.year} onChange={(e) => onChange("year", e.target.value)}>
-        <option value="" disabled>Year of study</option>
-        {STUDY_YEARS.map((y) => (
-          <option key={y} value={y}>Year {y}</option>
-        ))}
-      </select>
-
-      {labelled && <label htmlFor={field("location")}>Location</label>}
-      <input id={field("location")} placeholder="City / town" required minLength={2}
-        value={values.location} onChange={(e) => onChange("location", e.target.value)} />
-    </>
-  );
-}
+const digitsOnly = (v) => v.replace(/\D/g, "").slice(0, 10);
 
 /**
  * The signed-in user is the lead: their details are this form's top fields,
  * and for a team event they add their teammates below. One submission, one
  * payment — teammates never sign in themselves.
+ *
+ * `initialValues` prefills the form when resuming a saved draft (same shape
+ * `onSubmit` produces: lead fields + team_name + members[]).
  */
-export default function RegistrationForm({ onSubmit, submitting, fee = 0, event = {} }) {
+export default function RegistrationForm({
+  onSubmit,
+  onSaveDraft,
+  submitting,
+  fee = 0,
+  event = {},
+  initialValues = null,
+}) {
   const { user } = useAuth();
-  const [form, setForm] = useState({
-    name: "", email: "", phone: "", college: "", department: "", year: "", location: "",
-  });
-  const [teamName, setTeamName] = useState("");
-  const [members, setMembers] = useState([]);
+  const [form, setForm] = useState(() => ({ ...blankLead(), ...initialValues }));
+  const [teamName, setTeamName] = useState(initialValues?.team_name || "");
+  const [members, setMembers] = useState(() =>
+    (initialValues?.members || []).map((m) => ({ ...blankMember(), ...m }))
+  );
 
   const isTeam = !!event.is_team_event;
   const teamMin = event.team_min || 1;
   const teamMax = event.team_max || 1;
 
-  // Prefill from the Google account — the user can still edit these.
+  // Prefill from the Google account — the user can still edit these. Skipped
+  // once a draft has already supplied a name/email, so resuming doesn't
+  // clobber what was saved.
   useEffect(() => {
     if (!user) return;
     setForm((f) => ({
@@ -66,90 +52,175 @@ export default function RegistrationForm({ onSubmit, submitting, fee = 0, event 
     }));
   }, [user]);
 
-  // Open with the minimum viable team, so the smallest legal entry is one click.
+  // Open with the minimum viable team, so the smallest legal entry is one
+  // click — but only when there's no draft already supplying members.
   useEffect(() => {
-    if (isTeam) setMembers(Array.from({ length: Math.max(0, teamMin - 1) }, blankMember));
+    if (isTeam && !initialValues?.members?.length) {
+      setMembers(Array.from({ length: Math.max(0, teamMin - 1) }, blankMember));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isTeam, teamMin]);
-
-  const change = (e) => setForm({ ...form, [e.target.name]: e.target.value });
-  const changeField = (field, value) => setForm((f) => ({ ...f, [field]: value }));
 
   const changeMember = (i, field, value) =>
     setMembers((prev) => prev.map((m, idx) => (idx === i ? { ...m, [field]: value } : m)));
 
-  const submit = (e) => {
-    e.preventDefault();
-    onSubmit(isTeam ? { ...form, team_name: teamName.trim(), members } : form);
+  // For a team event, one person is shown at a time so the card doesn't grow
+  // with team size. `viewing` indexes the roster [lead, ...members] — 0 is you.
+  const [viewing, setViewing] = useState(0);
+  useEffect(() => {
+    setViewing((v) => Math.max(0, Math.min(v, members.length)));
+  }, [members.length]);
+
+  const [teamError, setTeamError] = useState("");
+
+  const addMember = () => {
+    setMembers((prev) => [...prev, blankMember()]);
+    setViewing(members.length + 1); // jump to the new teammate
+  };
+  const removeMember = (memberIdx) => {
+    setMembers((prev) => prev.filter((_, idx) => idx !== memberIdx));
+    setViewing(Math.max(0, memberIdx)); // the clamp effect finishes the job
   };
 
+  const personComplete = (p) =>
+    p.name.trim().length >= 2 &&
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(p.email) &&
+    p.phone.length === 10 &&
+    p.college.trim().length >= 2 &&
+    !!p.department &&
+    !!p.year &&
+    !!p.location &&
+    (p.location !== "Other" || p.location_other.trim().length >= 2);
+
+  const payload = () => (isTeam ? { ...form, team_name: teamName.trim(), members } : form);
+
+  const submit = (e) => {
+    e.preventDefault();
+    if (isTeam) {
+      const bad = [form, ...members].findIndex((p) => !personComplete(p));
+      if (bad !== -1) {
+        setViewing(bad);
+        setTeamError(
+          bad === 0
+            ? "Fill in all of your own details before registering."
+            : `Fill in all of Member ${bad + 1}'s details before registering.`
+        );
+        return;
+      }
+    }
+    setTeamError("");
+    onSubmit(payload());
+  };
+
+  const saveDraft = () => onSaveDraft(payload());
+
   const size = 1 + members.length;
+  const total = fee * size;
+
+  // Name / email / phone row + academic block for one person, bound either to
+  // the lead (`form`) or to members[idx-1].
+  const personFields = (person, isLead, idx) => {
+    const pfx = isLead ? "rf" : `rf-m${idx - 1}`;
+    const set = (field, value) => {
+      const v = field === "phone" ? digitsOnly(value) : value;
+      if (isLead) setForm((f) => ({ ...f, [field]: v }));
+      else changeMember(idx - 1, field, v);
+    };
+    return (
+      <>
+        <div className="field-row field-row--3">
+          <div className="field">
+            <label htmlFor={`${pfx}-name`}>Full name</label>
+            <input id={`${pfx}-name`} placeholder="Full name" required minLength={2}
+              value={person.name} onChange={(e) => set("name", e.target.value)} />
+          </div>
+          <div className="field">
+            <label htmlFor={`${pfx}-email`}>Email</label>
+            <input id={`${pfx}-email`} type="email" placeholder="you@example.com" required
+              value={person.email} onChange={(e) => set("email", e.target.value)} />
+          </div>
+          <div className="field">
+            <label htmlFor={`${pfx}-phone`}>Phone</label>
+            <input id={`${pfx}-phone`} type="tel" inputMode="numeric" pattern="[0-9]{10}"
+              maxLength={10} placeholder="10-digit mobile number" required
+              value={person.phone} onChange={(e) => set("phone", e.target.value)} />
+          </div>
+        </div>
+        <div className="field-row field-row--2">
+          <DetailFields idPrefix={pfx} values={person} onChange={set} labelled />
+        </div>
+      </>
+    );
+  };
 
   return (
-    <form className="form" onSubmit={submit}>
-      <label htmlFor="rf-name">Full name</label>
-      <input id="rf-name" name="name" placeholder="Your full name"
-        value={form.name} onChange={change} required minLength={2} />
-
-      <label htmlFor="rf-email">Email</label>
-      <input id="rf-email" name="email" type="email" placeholder="you@example.com"
-        value={form.email} onChange={change} required />
-
-      <label htmlFor="rf-phone">Phone</label>
-      <input id="rf-phone" name="phone" type="tel" placeholder="10-digit mobile number"
-        value={form.phone} onChange={change} required minLength={8} maxLength={15} />
-
-      <DetailFields idPrefix="rf" values={form} onChange={changeField} labelled />
-
-      {isTeam && (
+    <form className="form register-form" onSubmit={submit}>
+      {!isTeam ? (
+        personFields(form, true, 0)
+      ) : (
         <>
-          <label htmlFor="rf-team">Team name</label>
-          <input id="rf-team" placeholder="Your team's name" required
-            value={teamName} onChange={(e) => setTeamName(e.target.value)} />
+          <div className="field field--wide">
+            <label htmlFor="rf-team">Team name</label>
+            <input id="rf-team" placeholder="Your team's name" required
+              value={teamName} onChange={(e) => setTeamName(e.target.value)} />
+          </div>
 
-          <p className="muted" style={{ fontSize: "0.85rem", margin: "6px 0 0" }}>
-            Teams of {teamMin}–{teamMax}, you included. You're registering and paying for
-            everyone — currently {size} member{size === 1 ? "" : "s"}.
+          <div className="team-member field--wide">
+            <div className="team-pager">
+              <button type="button" className="icon-btn" disabled={viewing === 0}
+                aria-label="Previous person" onClick={() => setViewing(viewing - 1)}>
+                <ChevronLeft size={16} aria-hidden="true" />
+              </button>
+              <strong>
+                {viewing === 0 ? "You" : `Member ${viewing + 1}`} · {viewing + 1} of {size}
+              </strong>
+              <button type="button" className="icon-btn" disabled={viewing >= size - 1}
+                aria-label="Next person" onClick={() => setViewing(viewing + 1)}>
+                <ChevronRight size={16} aria-hidden="true" />
+              </button>
+              {viewing > 0 && size > teamMin && (
+                <button type="button" className="icon-btn team-pager__remove"
+                  aria-label={`Remove member ${viewing + 1}`}
+                  onClick={() => removeMember(viewing - 1)}>
+                  <Trash2 size={15} aria-hidden="true" />
+                </button>
+              )}
+            </div>
+
+            {viewing === 0
+              ? personFields(form, true, 0)
+              : personFields(members[viewing - 1], false, viewing)}
+          </div>
+
+          <p className="muted register-form__hint">
+            Teams of {teamMin}–{teamMax}, you included — {size} member{size === 1 ? "" : "s"} so far
+            {fee > 0 && ` · ₹${fee} × ${size} = ₹${total}`}.
           </p>
 
-          {members.map((m, i) => (
-            <div className="team-member" key={i}>
-              <div className="team-member-head">
-                <strong>Member {i + 2}</strong>
-                {size > teamMin && (
-                  <button type="button" className="icon-btn"
-                    aria-label={`Remove member ${i + 2}`}
-                    onClick={() => setMembers((prev) => prev.filter((_, idx) => idx !== i))}>
-                    <Trash2 size={15} aria-hidden="true" />
-                  </button>
-                )}
-              </div>
-              <input placeholder="Full name" required minLength={2}
-                value={m.name} onChange={(e) => changeMember(i, "name", e.target.value)} />
-              <input type="email" placeholder="Email" required
-                value={m.email} onChange={(e) => changeMember(i, "email", e.target.value)} />
-              <input type="tel" placeholder="Phone" required minLength={8} maxLength={15}
-                value={m.phone} onChange={(e) => changeMember(i, "phone", e.target.value)} />
-              <DetailFields idPrefix={`rf-m${i}`} values={m}
-                onChange={(field, value) => changeMember(i, field, value)} />
-            </div>
-          ))}
+          {teamError && <p className="error">{teamError}</p>}
 
           {size < teamMax && (
-            <button type="button" className="btn btn-ghost btn-sm"
-              onClick={() => setMembers((prev) => [...prev, blankMember()])}>
+            <button type="button" className="btn btn-ghost btn-sm" onClick={addMember}>
               <UserPlus size={15} aria-hidden="true" /> Add a teammate
             </button>
           )}
         </>
       )}
 
-      <button className="btn" type="submit" disabled={submitting}>
-        {submitting
-          ? "Please wait…"
-          : fee > 0
-            ? `Pay ₹${fee} & Register`
-            : "Confirm Registration"}
-      </button>
+      <div className="form-actions-row">
+        <button className="btn" type="submit" disabled={submitting}>
+          {submitting
+            ? "Please wait…"
+            : total > 0
+              ? `Pay ₹${total} & Register`
+              : "Confirm Registration"}
+        </button>
+        {onSaveDraft && (
+          <button className="btn btn-ghost" type="button" disabled={submitting} onClick={saveDraft}>
+            Save as draft
+          </button>
+        )}
+      </div>
     </form>
   );
 }

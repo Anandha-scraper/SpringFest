@@ -139,6 +139,12 @@ img { max-width: 100%; display: block; }
 /* ── Forms ─────────────────────────────────────────────────── */
 .form { display: flex; flex-direction: column; gap: 14px; margin-top: 24px; }
 .form label { font-size: 0.85rem; font-weight: 600; color: var(--ink-soft); margin-bottom: -8px; }
+.form-actions-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+
+/* A labelled control as one unit, so a form can grid its fields without the
+   flat label/input sequence fighting the layout. */
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field > label { margin-bottom: 0; }
 .form input,
 .form select,
 .input {
@@ -186,7 +192,7 @@ img { max-width: 100%; display: block; }
 .page-pad { padding-top: calc(var(--nav-h) + 48px); padding-bottom: 80px; }
 
 @media (max-width: 899px) {
-  /* BubbleMenu sits lower than the desktop pill bar. */
+  /* The mobile menu sits lower than the desktop pill bar. */
   .section { padding: 124px 0 56px; }
 }
 

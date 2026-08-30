@@ -8,7 +8,7 @@ import { homeForRole } from "../content/roles.js";
  * provider the backend verifies tokens for, so the supplied card's GitHub
  * button, email field and separator are dropped.
  */
-export default function SignInModal({ open, onClose, onSignedIn }) {
+export default function SignInModal({ open, onClose, onSignedIn, redirectOnSignIn = true }) {
   const { loginWithGoogle, refreshRole, isFirebaseConfigured, firebaseConfigError } = useAuth();
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -39,7 +39,9 @@ export default function SignInModal({ open, onClose, onSignedIn }) {
       const role = await refreshRole();
       onClose();
       onSignedIn?.(role);
-      navigate(homeForRole(role));
+      // In-place guards (ProtectedRoute) re-render on the same URL once signed
+      // in; the landing-page triggers want to move you to your dashboard.
+      if (redirectOnSignIn) navigate(homeForRole(role));
     } catch (err) {
       if (err.code === "auth/popup-closed-by-user") setError("Sign-in was cancelled.");
       else if (err.code === "auth/popup-blocked")

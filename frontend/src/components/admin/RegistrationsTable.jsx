@@ -1,7 +1,9 @@
-import { useState } from "react";
-import { Eye } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Eye, Pencil } from "lucide-react";
 import StatusPill from "./StatusPill.jsx";
 import { formatDateTime, rupees } from "../../lib/format.js";
+import { getAdminRegistration, updateAdminRegistration } from "../../api/client.js";
+import { DEPARTMENTS, STUDY_YEARS, TN_CITIES, yearLabel } from "../../content/formOptions.js";
 import {
   Sheet,
   SheetContent,
@@ -22,22 +24,183 @@ import {
 const money = (n) => (n > 0 ? rupees(n) : "Free");
 
 // Percentage widths so `table-layout: fixed` keeps columns steady across pages.
-const COLS = [21, 12, 11, 8, 12, 8, 13, 8, 7];
+const COLS = [20, 12, 11, 15, 16, 11, 9, 6];
+
+/** One person's academic block — lead or team member, same rules the public
+ * registration form uses, so an admin edit can't save what it couldn't. */
+function EditDetailFields({ idPrefix, values, onChange }) {
+  const field = (name) => `${idPrefix}-${name}`;
+  return (
+    <>
+      <label htmlFor={field("college")}>College</label>
+      <input id={field("college")} value={values.college || ""} required minLength={2}
+        onChange={(e) => onChange("college", e.target.value)} />
+
+      <label htmlFor={field("department")}>Department</label>
+      <select id={field("department")} value={values.department || ""} required
+        onChange={(e) => onChange("department", e.target.value)}>
+        <option value="" disabled>Department</option>
+        {DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}
+      </select>
+
+      <label htmlFor={field("year")}>Year of study</label>
+      <select id={field("year")} value={values.year || ""} required
+        onChange={(e) => onChange("year", e.target.value)}>
+        <option value="" disabled>Year of study</option>
+        {STUDY_YEARS.map((y) => <option key={y} value={y}>{yearLabel(y)}</option>)}
+      </select>
+
+      <label htmlFor={field("location")}>Location</label>
+      <select id={field("location")} value={values.location || ""} required
+        onChange={(e) => onChange("location", e.target.value)}>
+        <option value="" disabled>City / district</option>
+        {TN_CITIES.map((c) => <option key={c} value={c}>{c}</option>)}
+      </select>
+      {values.location === "Other" && (
+        <input placeholder="City" required minLength={2} value={values.location_other || ""}
+          onChange={(e) => onChange("location_other", e.target.value)} />
+      )}
+    </>
+  );
+}
+
+/** Fixing a typo on one registration — the lead's own fields plus every team
+ * member's. Team size, event, fee and status aren't editable here; those
+ * belong to the approval flow and the event's own rules. */
+function EditRegistrationSheet({ registrationId, onClose, onSaved }) {
+  const [row, setRow] = useState(null);
+  const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    getAdminRegistration(registrationId)
+      .then(setRow)
+      .catch((e) => setError(e.message));
+  }, [registrationId]);
+
+  const changeLead = (field, value) => setRow((r) => ({ ...r, [field]: value }));
+  const changeMember = (i, field, value) =>
+    setRow((r) => ({
+      ...r,
+      members: r.members.map((m, idx) => (idx === i ? { ...m, [field]: value } : m)),
+    }));
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    setError("");
+    try {
+      const patch = {
+        name: row.name,
+        email: row.email,
+        phone: row.phone,
+        college: row.college,
+        department: row.department,
+        year: row.year,
+        location: row.location,
+        location_other: row.location_other,
+        team_name: row.team_name,
+      };
+      if (row.members?.length) patch.members = row.members;
+      await updateAdminRegistration(registrationId, patch);
+      onSaved();
+      onClose();
+    } catch (err) {
+      setError(err.message);
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Sheet open onOpenChange={(open) => !open && onClose()}>
+      <SheetContent className="reg-detail">
+        <SheetHeader className="reg-detail-head">
+          <SheetTitle>Edit registration</SheetTitle>
+          <SheetDescription>Fix a typo in the lead's or a teammate's details.</SheetDescription>
+        </SheetHeader>
+
+        {!row ? (
+          error ? <p className="error">{error}</p> : <div className="spinner" />
+        ) : (
+          <form className="form reg-edit-form" onSubmit={submit}>
+            <h4>Lead</h4>
+            <label htmlFor="edit-name">Full name</label>
+            <input id="edit-name" required minLength={2} value={row.name || ""}
+              onChange={(e) => changeLead("name", e.target.value)} />
+
+            <label htmlFor="edit-email">Email</label>
+            <input id="edit-email" type="email" required value={row.email || ""}
+              onChange={(e) => changeLead("email", e.target.value)} />
+
+            <label htmlFor="edit-phone">Phone</label>
+            <input id="edit-phone" inputMode="numeric" pattern="[0-9]{10}" maxLength={10} required
+              value={row.phone || ""}
+              onChange={(e) => changeLead("phone", e.target.value.replace(/\D/g, "").slice(0, 10))} />
+
+            <EditDetailFields idPrefix="edit-lead" values={row} onChange={changeLead} />
+
+            {row.team_name !== undefined && row.team_name !== "" && (
+              <>
+                <label htmlFor="edit-team">Team name</label>
+                <input id="edit-team" value={row.team_name || ""}
+                  onChange={(e) => changeLead("team_name", e.target.value)} />
+              </>
+            )}
+
+            {(row.members || []).map((m, i) => (
+              <div className="team-member" key={i}>
+                <div className="team-member-head"><strong>Member {i + 2}</strong></div>
+                <label htmlFor={`edit-m${i}-name`}>Full name</label>
+                <input id={`edit-m${i}-name`} required minLength={2} value={m.name || ""}
+                  onChange={(e) => changeMember(i, "name", e.target.value)} />
+
+                <label htmlFor={`edit-m${i}-email`}>Email</label>
+                <input id={`edit-m${i}-email`} type="email" required value={m.email || ""}
+                  onChange={(e) => changeMember(i, "email", e.target.value)} />
+
+                <label htmlFor={`edit-m${i}-phone`}>Phone</label>
+                <input id={`edit-m${i}-phone`} inputMode="numeric" pattern="[0-9]{10}" maxLength={10} required
+                  value={m.phone || ""}
+                  onChange={(e) => changeMember(i, "phone", e.target.value.replace(/\D/g, "").slice(0, 10))} />
+
+                <EditDetailFields idPrefix={`edit-m${i}`} values={m}
+                  onChange={(field, value) => changeMember(i, field, value)} />
+              </div>
+            ))}
+
+            {error && <p className="error">{error}</p>}
+            <div className="form-actions-row">
+              <button className="btn" type="submit" disabled={saving}>
+                {saving ? "Saving…" : "Save changes"}
+              </button>
+              <button className="btn btn-ghost" type="button" onClick={onClose} disabled={saving}>
+                Cancel
+              </button>
+            </div>
+          </form>
+        )}
+      </SheetContent>
+    </Sheet>
+  );
+}
 
 /**
  * One row per *person*, with their registrations rolled up — the shape
  * `GET /admin/participants` returns. A row's Events cell counts how many events
  * they entered and Total paid sums only what actually cleared.
  */
-export default function RegistrationsTable({ rows, minRows = 0 }) {
+export default function RegistrationsTable({ rows, minRows = 0, onSaved }) {
   const [selected, setSelected] = useState(null);
   const [team, setTeam] = useState(null);
+  const [editingId, setEditingId] = useState(null);
 
   if (!rows.length) return <p className="empty-state">No registrations match these filters.</p>;
 
   // Header ≈ 2.6rem + 3.5rem a row: holds the height so a short last page
   // doesn't make the pagination jump.
   const minHeight = minRows ? `${minRows * 3.5 + 2.6}rem` : undefined;
+
+  const handleSaved = () => onSaved?.();
 
   return (
     <>
@@ -53,9 +216,8 @@ export default function RegistrationsTable({ rows, minRows = 0 }) {
               <th>Participant</th>
               <th>Contact</th>
               <th>College</th>
-              <th className="num">Events</th>
-              <th>Team</th>
-              <th className="num">Team size</th>
+              <th>Events</th>
+              <th>Teams</th>
               <th>Status</th>
               <th className="num">Total paid</th>
               <th>Details</th>
@@ -70,22 +232,42 @@ export default function RegistrationsTable({ rows, minRows = 0 }) {
                 </td>
                 <td>{r.phone || "—"}</td>
                 <td>{r.college || "—"}</td>
-                <td className="num">
-                  {r.events_count}
-                  <span className="cell-sub">
-                    {r.events.map((e) => e.event_name).join(", ")}
-                  </span>
-                </td>
+                {/* Events entered alone, by name — a count tells an organiser
+                    nothing they can act on. */}
                 <td>
-                  {r.team_name ? (
-                    <button className="link-btn" type="button" onClick={() => setTeam(r)}>
-                      {r.team_name}
-                    </button>
+                  {r.solo_events.length ? (
+                    <ul className="cell-list">
+                      {r.solo_events.map((name) => (
+                        <li key={name}>{name}</li>
+                      ))}
+                    </ul>
                   ) : (
                     "—"
                   )}
                 </td>
-                <td className="num">{r.team_size > 1 ? r.team_size : "—"}</td>
+                {/* One chip per team registration, not one per person: the
+                    same participant can lead two teams for two events, each
+                    with its own roster. */}
+                <td>
+                  {r.teams.length ? (
+                    <ul className="cell-list">
+                      {r.teams.map((t) => (
+                        <li key={t.registration_id}>
+                          <button
+                            className="link-btn"
+                            type="button"
+                            onClick={() => setTeam({ ...t, lead: r })}
+                          >
+                            {t.team_name}
+                          </button>
+                          <span className="cell-sub">{t.team_size} members</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    "—"
+                  )}
+                </td>
                 <td><StatusPill status={r.status} /></td>
                 <td className="num">{money(r.total_paid)}</td>
                 <td>
@@ -111,13 +293,16 @@ export default function RegistrationsTable({ rows, minRows = 0 }) {
           <AlertDialogHeader>
             <AlertDialogTitle>{team?.team_name}</AlertDialogTitle>
             <AlertDialogDescription>
-              {team?.team_size} members · led by {team?.name}
+              {team?.event_name} · {team?.team_size} members · led by {team?.lead?.name}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <ul className="team-list">
             <li>
-              <span><strong>{team?.name}</strong><span className="pill pill-judge">lead</span></span>
-              <span className="cell-sub">{team?.email} · {team?.phone}</span>
+              <span>
+                <strong>{team?.lead?.name}</strong>
+                <span className="pill pill-judge">lead</span>
+              </span>
+              <span className="cell-sub">{team?.lead?.email} · {team?.lead?.phone}</span>
             </li>
             {(team?.members || []).map((m) => (
               <li key={m.email}>
@@ -152,21 +337,33 @@ export default function RegistrationsTable({ rows, minRows = 0 }) {
                   <div className="reg-detail-row"><span>College</span><span>{selected.college || "—"}</span></div>
                   <div className="reg-detail-row"><span>Department</span><span>{selected.department || "—"}</span></div>
                   <div className="reg-detail-row">
-                    <span>Year</span><span>{selected.year ? `Year ${selected.year}` : "—"}</span>
+                    <span>Year</span><span>{selected.year ? yearLabel(selected.year) : "—"}</span>
                   </div>
                   <div className="reg-detail-row"><span>Location</span><span>{selected.location || "—"}</span></div>
-                  {selected.team_name && (
-                    <div className="reg-detail-row">
+                  {/* Every team they're in, since a person can hold more
+                      than one — each event's block below names its own. */}
+                  {selected.teams.map((t) => (
+                    <div className="reg-detail-row" key={t.registration_id}>
                       <span>Team</span>
-                      <span>{selected.team_name} · {selected.team_size} members</span>
+                      <span>{t.team_name} · {t.team_size} members</span>
                     </div>
-                  )}
+                  ))}
                 </section>
 
                 {/* One block per event: the whole point of the per-person row. */}
                 {selected.events.map((e) => (
                   <section className="reg-detail-group" key={e.registration_id}>
-                    <h4>{e.event_name}</h4>
+                    <div className="reg-detail-group-head">
+                      <h4>{e.event_name}</h4>
+                      <button
+                        className="icon-btn"
+                        type="button"
+                        aria-label={`Edit ${e.event_name} registration`}
+                        onClick={() => setEditingId(e.registration_id)}
+                      >
+                        <Pencil size={14} aria-hidden="true" />
+                      </button>
+                    </div>
                     <div className="reg-detail-row">
                       <span>Status</span><span><StatusPill status={e.status} /></span>
                     </div>
@@ -218,6 +415,14 @@ export default function RegistrationsTable({ rows, minRows = 0 }) {
           )}
         </SheetContent>
       </Sheet>
+
+      {editingId && (
+        <EditRegistrationSheet
+          registrationId={editingId}
+          onClose={() => setEditingId(null)}
+          onSaved={handleSaved}
+        />
+      )}
     </>
   );
 }

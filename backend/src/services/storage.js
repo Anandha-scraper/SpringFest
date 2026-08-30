@@ -47,3 +47,12 @@ export async function downloadBuffer(objectPath) {
   const [buffer] = await file.download();
   return buffer;
 }
+
+/** Objects are stored with the extension we validated on upload, so the path
+ * is enough to name the type back — no need to store it separately. Shared by
+ * every route that streams bytes: payment proofs (admin.js) and the payment
+ * QR (me.js). */
+export function contentTypeFor(objectPath) {
+  const ext = objectPath.slice(objectPath.lastIndexOf(".") + 1).toLowerCase();
+  return { png: "image/png", jpg: "image/jpeg", webp: "image/webp" }[ext] || "application/octet-stream";
+}

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate, useLocation, Link } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { CalendarDays, MapPin, Users, Wallet } from "lucide-react";
 import { getEvent, createRegistration, submitPaymentProof } from "../api/client.js";
 import { openCheckout } from "../api/payment.js";
 import { useAuth } from "../auth/AuthContext.jsx";
@@ -7,11 +8,39 @@ import { formatEventTime } from "../lib/format.js";
 import RegistrationForm from "../components/RegistrationForm.jsx";
 import PaymentProofForm from "../components/PaymentProofForm.jsx";
 
+/** Pull just the form-shaped fields out of a saved draft (or any registration
+ * row) — the row also carries id/status/fee/etc. that the form has no use
+ * for and shouldn't echo back on submit. */
+function draftInitialValues(row) {
+  if (!row) return null;
+  return {
+    name: row.name || "",
+    email: row.email || "",
+    phone: row.phone || "",
+    college: row.college || "",
+    department: row.department || "",
+    year: row.year || "",
+    location: row.location || "",
+    location_other: row.location_other || "",
+    team_name: row.team_name || "",
+    members: (row.members || []).map((m) => ({
+      name: m.name || "",
+      email: m.email || "",
+      phone: m.phone || "",
+      college: m.college || "",
+      department: m.department || "",
+      year: m.year || "",
+      location: m.location || "",
+      location_other: m.location_other || "",
+    })),
+  };
+}
+
 export default function EventDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const { paymentInstructions } = useAuth();
+  const { paymentUpiId, hasPaymentQr, registrationOpen } = useAuth();
 
   const [event, setEvent] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -20,23 +49,27 @@ export default function EventDetail() {
   // proof — this is what swaps the details form for the upload step.
   const [awaitingProof, setAwaitingProof] = useState(null);
 
-  // MyRegistrations links back here to resubmit after a rejection, handing
-  // over the registration so we can skip straight to the upload step.
+  // MyRegistrations links back here to resume a saved draft or resubmit
+  // after a rejection, handing over the registration so we can pick up
+  // where it left off instead of starting blank.
   const resume = location.state?.resumeRegistration;
+  const isDraftResume = resume?.status === "draft";
 
   useEffect(() => {
     getEvent(id).then(setEvent).catch((e) => setError(e.message));
   }, [id]);
 
   useEffect(() => {
-    if (resume) {
+    // A draft goes back into the form itself (prefilled); anything else
+    // being resumed (a rejected screenshot) skips straight to the proof step.
+    if (resume && !isDraftResume) {
       setAwaitingProof({
         registrationId: resume.id,
         amount: resume.fee,
         rejectionNote: resume.review_note || "",
       });
     }
-  }, [resume]);
+  }, [resume, isDraftResume]);
 
   const handleSubmit = async (form) => {
     setSubmitting(true);
@@ -73,6 +106,18 @@ export default function EventDetail() {
     }
   };
 
+  const handleSaveDraft = async (form) => {
+    setSubmitting(true);
+    setError("");
+    try {
+      await createRegistration({ event_id: id, ...form, save_as_draft: true });
+      navigate("/my-registrations");
+    } catch (e) {
+      setError(e.message);
+      setSubmitting(false);
+    }
+  };
+
   const handleProof = async ({ transactionId, file }) => {
     setSubmitting(true);
     setError("");
@@ -89,34 +134,23 @@ export default function EventDetail() {
 
   if (error && !event) {
     return (
-      <div className="container narrow">
+      <div className="container">
         <p className="error">{error}</p>
-        <Link to="/#events" className="btn btn-ghost">← All events</Link>
       </div>
     );
   }
   if (!event) return <div className="spinner" />;
 
   return (
-    <div className="container narrow">
-      <Link to="/#events" className="back-link">← All events</Link>
-
-      <div className="detail-head">
-        {event.category && <span className="tag">{event.category}</span>}
-        <h1>{event.name}</h1>
-        <p className="muted">{event.description}</p>
-        <div className="detail-meta">
-          {/* Dates are stored ISO now, so format rather than printing raw. */}
-          <span>📅 {formatEventTime(event) || "Date to be announced"}</span>
-          {event.venue_name && <span>📍 {event.venue_name}</span>}
-          <span className="price">{event.fee > 0 ? `₹${event.fee}` : "Free entry"}</span>
-        </div>
-      </div>
-
-      {error && <p className="error">{error}</p>}
-
+    <div className="container event-register">
       <div className="detail-card">
-        {awaitingProof ? (
+        {error && <p className="error">{error}</p>}
+        {!registrationOpen && !awaitingProof ? (
+          <div className="notice notice-warn">
+            <strong>Registration is closed</strong>
+            <p>The organisers aren't accepting new sign-ups right now.</p>
+          </div>
+        ) : awaitingProof ? (
           <>
             <h2>Confirm your payment</h2>
             <p className="muted" style={{ fontSize: "0.9rem" }}>
@@ -125,7 +159,8 @@ export default function EventDetail() {
             </p>
             <PaymentProofForm
               amount={awaitingProof.amount || event.fee}
-              instructions={paymentInstructions}
+              upiId={paymentUpiId}
+              hasQr={hasPaymentQr}
               rejectionNote={awaitingProof.rejectionNote}
               onSubmit={handleProof}
               submitting={submitting}
@@ -141,13 +176,47 @@ export default function EventDetail() {
             </p>
             <RegistrationForm
               onSubmit={handleSubmit}
+              onSaveDraft={handleSaveDraft}
               submitting={submitting}
               fee={event.fee}
               event={event}
+              initialValues={isDraftResume ? draftInitialValues(resume) : null}
             />
           </>
         )}
       </div>
+
+      <aside className="event-summary">
+        {event.category && <span className="tag">{event.category}</span>}
+        <h1>{event.name}</h1>
+        <ul className="event-summary__meta">
+          <li>
+            <CalendarDays size={15} aria-hidden="true" />
+            <span>{formatEventTime(event) || "Date to be announced"}</span>
+          </li>
+          {event.venue_name && (
+            <li>
+              <MapPin size={15} aria-hidden="true" />
+              <span>{event.venue_name}</span>
+            </li>
+          )}
+          <li>
+            <Wallet size={15} aria-hidden="true" />
+            <span>
+              {event.fee > 0
+                ? `₹${event.fee}${event.is_team_event ? " / person" : ""}`
+                : "Free entry"}
+            </span>
+          </li>
+          {event.is_team_event && (
+            <li>
+              <Users size={15} aria-hidden="true" />
+              <span>Teams of {event.team_min}–{event.team_max}</span>
+            </li>
+          )}
+        </ul>
+        {event.description && <p className="muted">{event.description}</p>}
+      </aside>
     </div>
   );
 }

@@ -1,51 +1,56 @@
 import { useCallback } from "react";
 import { Link } from "react-router-dom";
+import Loader from "../../components/Loader.jsx";
 import StatCard from "../../components/admin/StatCard.jsx";
 import ParticipationChart from "../../components/admin/ParticipationChart.jsx";
-import { getAdminStats, getVenueRollup } from "../../api/client.js";
+import { getAdminStats, getAuthUsers, getVenueRollup } from "../../api/client.js";
 import { useApi } from "../../hooks/useApi.js";
 
-const load = () => Promise.all([getAdminStats(), getVenueRollup()]);
+const load = () => Promise.all([getAdminStats(), getAuthUsers(), getVenueRollup()]);
 
 export default function AdminDashboard() {
   const fetcher = useCallback(load, []);
   const { data, error, loading } = useApi(fetcher);
-  const [stats, venues] = data || [];
+  const [stats, authUsers, venues] = data || [];
 
-  if (loading) return <div className="spinner" />;
+  if (loading) return <Loader />;
   if (error) return <p className="error">{error}</p>;
 
   return (
     <div className="admin">
-      <div className="admin-head">
-        <div>
-          <span className="eyebrow">Organiser view</span>
-          <h1>Admin Dashboard</h1>
-          <p className="muted">Registrations, payments and participation at a glance.</p>
+      {/* Headline numbers down the left, chart filling the right. */}
+      <div className="overview-grid">
+        <div className="stat-cards">
+          {/* Sign-ins, not registration rows: every non-staff Google account. */}
+          <StatCard label="Signed-in Users" value={authUsers?.participants ?? stats.signed_users} />
+          {/* People, not rows: someone who enters four events is one signed user. */}
+          <StatCard label="Registered Users" value={stats.signed_users} />
+          {/* Evaluated by a judge — not "paid". Reads 0 until the judging
+              phase starts writing evaluated_at, so it says so rather than
+              looking like a broken number mid-fest. */}
+          <StatCard
+            label="Completed"
+            value={stats.evaluated_users}
+            tone="ok"
+            note={stats.evaluated_users ? "" : "Judging hasn't started yet"}
+          />
+          <StatCard label="Revenue Collected" value={stats.revenue} prefix="₹" tone="accent" />
         </div>
-        <Link to="/admin/registrations" className="btn btn-ghost">
-          View all registrations
-        </Link>
-      </div>
 
-      <div className="stat-cards">
-        {/* People, not rows: someone who enters four events is one signed user. */}
-        <StatCard label="Signed Users" value={stats.signed_users} />
-        <StatCard label="Completed" value={stats.completed_users} tone="ok" />
-        <StatCard label="Revenue Collected" value={stats.revenue} prefix="₹" tone="accent" />
+        <section className="admin-panel">
+          <div className="panel-head">
+            <h2>Participation by event</h2>
+            <Link to="/admin/registrations" className="btn btn-ghost btn-sm">
+              View all registrations
+            </Link>
+          </div>
+          {!stats.per_event.length ? (
+            <p className="empty-state">No events yet. Create one from the Events page.</p>
+          ) : (
+            <ParticipationChart data={stats.per_event} />
+          )}
+        </section>
       </div>
-
-      <section className="admin-panel">
-        <div className="panel-head">
-          <h2>Participation by event</h2>
-          <Link to="/admin/events" className="btn btn-ghost btn-sm">Manage events</Link>
-        </div>
-        {!stats.per_event.length ? (
-          <p className="empty-state">No events yet. Create one from the Events page.</p>
-        ) : (
-          <ParticipationChart data={stats.per_event} />
-        )}
-      </section>
 
       <section className="admin-panel">
         <div className="panel-head">

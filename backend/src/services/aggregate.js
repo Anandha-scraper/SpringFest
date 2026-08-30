@@ -13,10 +13,28 @@
  */
 
 import { cached, invalidate } from "./cache.js";
-import { getDb } from "./firebase.js";
-import { listPeople, ROLE_JUDGE, ROLE_VOLUNTEER } from "./roles.js";
+import { settings } from "../config.js";
+import { getAuth, getDb } from "./firebase.js";
+import { listPeople, normalizeEmail, ROLE_ADMIN, ROLE_JUDGE, ROLE_VOLUNTEER } from "./roles.js";
 
 export const STATUS_COMPLETED = "completed";
+
+/** Judged, as opposed to paid.
+ *
+ * `status === "completed"` means the *money* cleared, and it must keep
+ * meaning exactly that everywhere it is already used — revenue, the CSV, the
+ * approvals queue, the venue rollup, the check-in guard. Evaluation is a
+ * separate axis on its own field.
+ *
+ * Nothing writes `evaluated_at` yet: the judging phase will, along with a
+ * score and the judge's identity. Until then every count below reads 0, which
+ * is the honest answer to "how many have been evaluated" before judging has
+ * started. A timestamp rather than a boolean because that is how this codebase
+ * records state everywhere else (paid_at, reviewed_at, proof_uploaded_at) and
+ * it answers "when" for free. */
+export function isEvaluated(r) {
+  return Boolean(r.evaluated_at);
+}
 
 // Short TTL: just long enough to collapse the near-simultaneous calls one
 // page load makes (the admin dashboard's own parallel fetches) into a single
@@ -110,9 +128,7 @@ export async function participantRows(data) {
     const regs = [...regsIn].sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""));
     const latest = regs[0];
     const completed = regs.filter((r) => r.status === STATUS_COMPLETED);
-    // The most recent team registration supplies the table's team columns;
-    // the full per-event breakdown is in `events`.
-    const team = regs.find((r) => r.team_name);
+    const views = regs.map((r) => registrationView(r, events));
 
     rows.push({
       uid,
@@ -124,13 +140,27 @@ export async function participantRows(data) {
       year: latest.year || "",
       location: latest.location || "",
       events_count: regs.length,
-      events: regs.map((r) => registrationView(r, events)),
+      events: views,
+      // Solo and team entries are split here rather than in the table because
+      // they are genuinely different things to an organiser: a solo entry is
+      // one name against one event, a team entry is a roster. Someone can
+      // hold both at once — and can lead two different teams for two
+      // different events — so neither can be a single value on the person.
+      solo_events: views.filter((v) => !v.team_name).map((v) => v.event_name),
+      teams: views
+        .filter((v) => v.team_name)
+        .map((v) => ({
+          registration_id: v.registration_id,
+          event_id: v.event_id,
+          event_name: v.event_name,
+          team_name: v.team_name,
+          team_size: v.team_size,
+          members: v.members,
+          status: v.status,
+        })),
       total_paid: completed.reduce((sum, r) => sum + (r.fee || 0), 0),
       status: completed.length ? STATUS_COMPLETED : latest.status || "",
       checked_in: regs.some((r) => r.checked_in),
-      team_name: team?.team_name || "",
-      team_size: team?.team_size ?? 1,
-      members: team?.members || [],
       created_at: latest.created_at || "",
     });
   }
@@ -153,6 +183,7 @@ export function perEventCounts(data) {
       name: event.name || eid,
       count: regs.length,
       completed: done.length,
+      evaluated: regs.filter(isEvaluated).length,
       revenue: done.reduce((sum, r) => sum + (r.fee || 0), 0),
     };
   });
@@ -175,12 +206,61 @@ export async function buildStats(data) {
     signed_users: new Set(registrations.map(personKey)).size,
     // Of those, the ones who paid for at least one event.
     completed_users: new Set(completed.map(personKey)).size,
+    // And of *those*, the ones a judge has actually evaluated. Reads 0 until
+    // the judging phase writes evaluated_at — see isEvaluated. Kept beside
+    // completed_users rather than replacing it: revenue, the CSV and the
+    // approvals queue all still mean "paid".
+    evaluated_users: new Set(registrations.filter(isEvaluated).map(personKey)).size,
     revenue: completed.reduce((sum, r) => sum + (r.fee || 0), 0),
     checked_in: registrations.filter((r) => r.checked_in).length,
     total_registrations: registrations.length,
     events_count: Object.keys(events).length,
     per_event: perEventCounts(data),
   };
+}
+
+/** Every Firebase account, classified by role, with the participant count.
+ *
+ * The organisers want a real "how many people signed in" headline, but an
+ * attendee is anyone with a Google account on the project, and the project
+ * also holds the organisers' own accounts (admins/judges/volunteers) who are
+ * staff, not attendees. So this enumerates auth and subtracts staff — a login
+ * that isn't admin, judge or volunteer is a participant by definition (see
+ * roles.js: no record = participant).
+ *
+ * Enumeration is `listUsers`, paginated, matching the account's `email`. Staff
+ * is the union of seeded `ADMIN_EMAILS` plus every document in the `roles`
+ * collection whose role is admin/judge/volunteer. Returns both the participant
+ * count and the raw staff count so callers could probe either.
+ */
+export async function countAuthByRole() {
+  const db = getDb();
+
+  const staffEmails = new Set(settings.ADMIN_EMAILS);
+  const rolesSnap = await db.collection("roles").get();
+  for (const doc of rolesSnap.docs) {
+    const role = doc.data()?.role;
+    if (role === ROLE_ADMIN || role === ROLE_JUDGE || role === ROLE_VOLUNTEER) {
+      staffEmails.add(normalizeEmail(doc.id));
+    }
+  }
+
+  let total = 0;
+  let staff = 0;
+  let nextPageToken;
+  do {
+    // 1000 is the max page size for auth listUsers.
+    const { users, pageToken } = await getAuth().listUsers(1000, nextPageToken);
+    for (const u of users) {
+      const email = normalizeEmail(u.email);
+      if (!email) continue; // provider accounts without an email aren't Google sign-ins
+      total += 1;
+      if (staffEmails.has(email)) staff += 1;
+    }
+    nextPageToken = pageToken;
+  } while (nextPageToken);
+
+  return { total, staff, participants: total - staff };
 }
 
 /** Per venue: the event held there, its headcount, and who is staffing it. */
@@ -215,5 +295,85 @@ export async function venueRollup(data) {
   }
 
   rows.sort((a, b) => a.name.localeCompare(b.name));
+  return rows;
+}
+
+/** The fest runs in one place, and the admin form writes wall-clock strings. */
+const FEST_TIMEZONE = "Asia/Kolkata";
+
+/** Has this event started yet?
+ *
+ * An event's `date` ("YYYY-MM-DD") and `start_time` ("HH:MM") are local
+ * wall-clock strings with no zone — that is what the admin form's date and
+ * time pickers produce. Everything else in this codebase timestamps with
+ * `new Date().toISOString()`, which is UTC. Comparing the two naively would
+ * make every event look five and a half hours late, so `now` is rendered in
+ * the fest's own zone before the string compare.
+ *
+ * Deliberately not reused for created_at / paid_at / reviewed_at: those are
+ * genuine UTC instants and must keep being compared as such. */
+function eventStarted(event, now = new Date()) {
+  if (!event.date) return false; // an undated event never auto-starts
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: FEST_TIMEZONE,
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", hour12: false,
+  }).formatToParts(now);
+  const p = Object.fromEntries(parts.map((x) => [x.type, x.value]));
+  return `${event.date}T${event.start_time || "00:00"}` <= `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}`;
+}
+
+/** Per event: headcount, attendance and evaluation progress, plus who is
+ * staffing it — the Manage Roles progress view.
+ *
+ * A sibling of venueRollup() rather than an extension of perEventCounts(),
+ * because that one is shared with the participant-facing GET /me/schedule and
+ * should stay lean; venue joins and start-time maths have no business in a
+ * participant's payload.
+ *
+ * `progress` is explicitly null before the event starts. Null and 0 are
+ * different facts to an organiser — "hasn't begun" versus "begun and nothing
+ * judged yet" — and the UI shouldn't have to re-derive which it's looking at. */
+export async function eventRollup(data) {
+  data = data || (await loadAll());
+  const { registrations, events, venues, people } = data;
+
+  const rows = Object.entries(events).map(([eid, event]) => {
+    const regs = registrations.filter((r) => r.event_id === eid);
+    const evaluated = regs.filter(isEvaluated).length;
+    const started = eventStarted(event);
+
+    return {
+      event_id: eid,
+      name: event.name || eid,
+      category: event.category || "",
+      venue_id: event.venue_id || "",
+      venue_name: venues[event.venue_id || ""]?.name || "",
+      date: event.date || "",
+      start_time: event.start_time || "",
+      end_time: event.end_time || "",
+      registrations: regs.length,
+      checked_in: regs.filter((r) => r.checked_in).length,
+      // Payment, unchanged — kept so the card can show who actually paid.
+      completed: regs.filter((r) => r.status === STATUS_COMPLETED).length,
+      evaluated,
+      judges: people
+        .filter((p) => p.role === ROLE_JUDGE && (p.event_ids || []).includes(eid))
+        .map((p) => p.name || p.email),
+      volunteers: people
+        .filter((p) => p.role === ROLE_VOLUNTEER && p.venue_id === event.venue_id)
+        .map((p) => p.name || p.email),
+      started,
+      progress: started && regs.length ? evaluated / regs.length : null,
+    };
+  });
+
+  // A schedule view, so chronological — unlike venueRollup(), which is by name.
+  rows.sort(
+    (a, b) =>
+      (a.date || "").localeCompare(b.date || "") ||
+      (a.start_time || "").localeCompare(b.start_time || "") ||
+      a.name.localeCompare(b.name),
+  );
   return rows;
 }

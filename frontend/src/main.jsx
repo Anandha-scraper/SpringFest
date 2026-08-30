@@ -3,10 +3,12 @@ import ReactDOM from "react-dom/client";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import { AuthProvider } from "./auth/AuthContext.jsx";
+import { ToastProvider } from "./components/ui/toast.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import ErrorBoundary from "./components/ErrorBoundary.jsx";
 import GlyphMatrix from "./components/GlyphMatrix.jsx";
 import Layout from "./components/layout/Layout.jsx";
+import Loader from "./components/Loader.jsx";
 import ClickSpark from "./components/reactbits/ClickSpark.jsx";
 
 // Route-level code splitting: each page becomes its own chunk, fetched only
@@ -15,7 +17,6 @@ import ClickSpark from "./components/reactbits/ClickSpark.jsx";
 // front for every anonymous landing-page visitor.
 const Landing = lazy(() => import("./pages/Landing.jsx"));
 const EventDetail = lazy(() => import("./pages/EventDetail.jsx"));
-const Login = lazy(() => import("./pages/Login.jsx"));
 const MyRegistrations = lazy(() => import("./pages/MyRegistrations.jsx"));
 const Success = lazy(() => import("./pages/Success.jsx"));
 const NotFound = lazy(() => import("./pages/NotFound.jsx"));
@@ -46,8 +47,14 @@ import "./styles/layout.css";
 import "./styles/landing.css";
 import "./styles/track-card.css";
 import "./styles/admin.css";
+import "./styles/event-card.css";
+import "./styles/my-registrations.css";
+import "./styles/role-sidebar.css";
 import "./styles/register-button.css";
 import "./styles/sign-in-modal.css";
+import "./styles/custom-date-picker.css";
+import "./styles/custom-time-picker.css";
+import "./styles/toast.css";
 // Utilities only — preflight is off, so this can't touch the reset above.
 import "./styles/tailwind.css";
 
@@ -67,12 +74,13 @@ ReactDOM.createRoot(document.getElementById("root")).render(
       </div>
 
       <AuthProvider>
+      <ToastProvider>
       <BrowserRouter>
         <ClickSpark sparkColor="#f87b1b" sparkSize={9} sparkRadius={16} sparkCount={7} duration={420}>
           {/* One boundary for every route chunk — a lazy page's own load
-              looks like the same spinner ProtectedRoute already shows while
+              looks like the same loader ProtectedRoute already shows while
               resolving auth, not a new loading UI. */}
-          <Suspense fallback={<div className="spinner" />}>
+          <Suspense fallback={<Loader />}>
           <Routes>
             <Route element={<Layout />}>
               <Route path="/" element={<Landing />} />
@@ -88,9 +96,6 @@ ReactDOM.createRoot(document.getElementById("root")).render(
               />
               <Route path="*" element={<NotFound />} />
             </Route>
-
-            {/* Full-bleed, no navbar/footer */}
-            <Route path="/login" element={<Login />} />
 
             {/* Event detail + registration — sidebar shell (like the role
                 dashboards) rather than the marketing navbar/footer. */}
@@ -167,6 +172,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
           </Suspense>
         </ClickSpark>
       </BrowserRouter>
+      </ToastProvider>
       </AuthProvider>
     </ErrorBoundary>
   </React.StrictMode>

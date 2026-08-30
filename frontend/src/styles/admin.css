@@ -2,17 +2,17 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
-  gap: 20px;
+  gap: 1.25rem;
   flex-wrap: wrap;
-  margin-bottom: 32px;
+  margin-bottom: 2rem;
 }
-.admin-head h1 { font-size: clamp(1.7rem, 3.5vw, 2.3rem); margin-bottom: 4px; }
+.admin-head h1 { font-size: clamp(1.7rem, 3.5vw, 2.3rem); margin-bottom: 0.25rem; }
 
 .back-link {
   display: inline-block;
   font-size: 0.88rem;
   color: var(--ink-soft);
-  margin-bottom: 20px;
+  margin-bottom: 1.25rem;
   transition: color 0.16s ease;
 }
 .back-link:hover { color: var(--accent); }
@@ -20,19 +20,19 @@
 /* ── Stat cards ────────────────────────────────────────────── */
 .stat-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-  gap: 16px;
-  margin-bottom: 32px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 11.875rem), 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
 }
 .stat-card {
   background: var(--surface);
   border: 1px solid var(--border);
   border-left: 4px solid var(--lilac);
   border-radius: var(--r-md);
-  padding: 20px 22px;
+  padding: 1.25rem 1.375rem;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 0.375rem;
   box-shadow: var(--shadow-sm);
 }
 .stat-card.ok     { border-left-color: var(--ok); }
@@ -59,47 +59,29 @@
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--r-lg);
-  padding: 26px;
-  margin-bottom: 26px;
+  padding: 1.625rem;
+  margin-bottom: 1.625rem;
   box-shadow: var(--shadow-sm);
 }
 .admin-panel h2 {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 0.5rem;
   font-size: 1.2rem;
-  margin-bottom: 20px;
+  margin-bottom: 1.25rem;
 }
 .panel-head {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  gap: 16px;
+  gap: 1rem;
   flex-wrap: wrap;
 }
 .panel-head h2 { margin-bottom: 0; }
 
-/* ── Participation bars ────────────────────────────────────── */
-.bars { display: flex; flex-direction: column; gap: 4px; }
-.bar-row {
-  display: grid;
-  grid-template-columns: minmax(120px, 1.4fr) 3fr minmax(90px, auto);
-  align-items: center;
-  gap: 16px;
-  padding: 11px 12px;
-  border-radius: var(--r-sm);
-  transition: background 0.16s ease;
-}
-.bar-row:hover { background: var(--surface-2); }
-.bar-name {
-  font-size: 0.92rem;
-  font-weight: 600;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
+/* ── Progress bars (Manage Roles per-event cards) ──────────── */
 .bar-track {
-  height: 10px;
+  height: 0.625rem;
   background: var(--border);
   border-radius: var(--r-full);
   overflow: hidden;
@@ -110,45 +92,213 @@
   border-radius: var(--r-full);
   background: linear-gradient(90deg, var(--pink-deep), var(--peach-deep));
   transition: width 0.5s ease;
-  min-width: 4px;
+  min-width: 0.25rem;
 }
-.bar-count {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  line-height: 1.3;
-}
-.bar-count strong { font-size: 1rem; }
 
 /* ── Participation pie (Chart.js) ──────────────────────────── */
 .participation-chart {
   position: relative;
-  height: 320px;
-  margin-top: 8px;
+  height: 20rem;
+  margin-top: 0.5rem;
 }
-@media (max-width: 640px) {
-  .participation-chart { height: 380px; }
+@media (max-width: 899px) {
+  .participation-chart { height: 23.75rem; }
 }
+
+/* ── Overview: stat cards beside the chart ─────────────────────
+   Laptop: the four headline numbers form a 2×2 block on the left —
+   Signed-in / Registered on top, Completed / Revenue below — each
+   keeping the 4px accent border that marks its kind, with the chart
+   panel to the right. The block stretches to the chart panel's
+   height and grid-auto-rows: 1fr splits that into two equal rows,
+   so the two line up. Tablet/phone: everything stacks. */
+.overview-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 28rem) minmax(0, 1fr);
+  gap: 1.625rem;
+  align-items: stretch;
+  margin-bottom: 1.625rem;
+}
+.overview-grid .stat-cards {
+  grid-template-columns: 1fr 1fr;
+  grid-auto-rows: 1fr;
+  margin-bottom: 0;
+}
+.overview-grid > .admin-panel {
+  margin-bottom: 0;
+  display: flex;
+  flex-direction: column;
+}
+.overview-grid .participation-chart { flex: 1; min-height: 17rem; }
+
+/* Roomier laptops: give the chart more of the row. */
+@media (min-width: 1280px) {
+  .overview-grid { grid-template-columns: minmax(0, 26rem) minmax(0, 1fr); }
+}
+
+@media (max-width: 899px) {
+  .overview-grid { grid-template-columns: minmax(0, 1fr); gap: 1.25rem; }
+  .overview-grid .stat-cards {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 11.875rem), 1fr));
+    grid-auto-rows: auto;
+  }
+  .overview-grid .participation-chart { min-height: 22rem; }
+}
+
+/* A stat whose number isn't meaningful yet (evaluation before judging
+   starts) says so, so 0 doesn't read as a broken feed. */
+.stat-card-note {
+  font-size: 0.76rem;
+  color: var(--ink-faint);
+}
+
+/* ── Payment settings ──────────────────────────────────────────
+   Laptop: the two runtime switches (method + registration window)
+   stack down the left, and "where participants pay" fills the
+   right. One column below laptop width. */
+.pay-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 27rem) minmax(0, 1fr);
+  gap: 1.625rem;
+  align-items: start;
+  margin-bottom: 1.625rem;
+}
+.pay-grid-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 1.625rem;
+}
+.pay-grid .admin-panel { margin-bottom: 0; }
+
+@media (max-width: 899px) {
+  .pay-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+.event-toggles { margin-top: 1.25rem; border-top: 1px solid var(--border); padding-top: 1rem; }
+.event-toggles h3 { font-size: 0.95rem; margin-bottom: 0.5rem; }
+/* Closed fest-wide: the per-event switches still work, but say so. */
+.event-toggles.is-disabled { opacity: 0.6; }
+
+.event-toggle-list {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  max-height: 18rem;
+  overflow-y: auto;
+}
+.event-toggle-list > li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.5rem 0.625rem;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+}
+.event-toggle-name { display: flex; flex-direction: column; min-width: 0; }
+
+.pay-hint { font-size: 0.85rem; margin: 0.25rem 0 0; }
+
+.pay-qr-preview {
+  display: block;
+  width: min(100%, 13rem);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  padding: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.pay-locked { display: flex; flex-direction: column; gap: 0.75rem; align-items: flex-start; }
+.pay-locked-row { display: flex; align-items: center; gap: 0.625rem; flex-wrap: wrap; }
+
+/* ── Where-to-pay block (participant side, components/PaymentTarget) ── */
+.pay-target {
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: var(--r-sm);
+  background: var(--accent-soft);
+  padding: 0.9rem 1rem;
+  margin-bottom: 1rem;
+}
+.pay-target-head { display: flex; flex-direction: column; gap: 0.15rem; margin-bottom: 0.75rem; }
+.pay-target-body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+}
+.pay-target-qr { margin: 0; }
+.pay-target-qr img {
+  display: block;
+  width: min(100%, 11rem);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  padding: 0.4rem;
+}
+.pay-target-qr figcaption {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.78rem;
+  margin-top: 0.3rem;
+}
+.pay-target-upi {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+  min-width: 0;
+}
+.pay-target-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.pay-target-id {
+  font-size: 1rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+/* Several values stacked inside one table cell — the solo event names and
+   the team chips on the Registrations table. */
+.cell-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.cell-list > li { min-width: 0; }
+.cell-list .cell-sub { display: block; }
 
 /* ── Filters ───────────────────────────────────────────────── */
 .filter-bar {
   display: flex;
-  gap: 12px;
+  gap: 0.75rem;
   flex-wrap: wrap;
   align-items: center;
-  margin-bottom: 24px;
+  margin-bottom: 1.5rem;
 }
-.filter-bar .input { flex: 1 1 220px; min-width: 180px; max-width: 100%; min-height: 40px; }
-.filter-bar select.input { flex: 0 1 190px; cursor: pointer; }
+.filter-bar .input { flex: 1 1 13.75rem; min-width: 11.25rem; max-width: 100%; min-height: 2.5rem; }
+.filter-bar select.input { flex: 0 1 11.875rem; cursor: pointer; }
 .filter-bar .btn,
 .filter-bar .form-actions { flex: 0 0 auto; margin: 0; }
 
-.chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+.chips { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; }
 .chip {
   font-family: var(--font-body);
   font-size: 0.85rem;
   font-weight: 600;
-  padding: 8px 16px;
+  padding: 0.5rem 1rem;
   border-radius: var(--r-full);
   border: 1px solid var(--border-strong);
   background: var(--surface);
@@ -168,21 +318,23 @@
   overflow-x: auto;
   border: 1px solid var(--border);
   border-radius: var(--r-md);
+  min-width: 0;
+  max-width: 100%;
 }
 .data-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.89rem;
-  min-width: 780px;
+  min-width: 48.75rem;
 }
 /* Column widths come from a <colgroup> and hold steady across pages. */
 .data-table--fixed { table-layout: fixed; }
 .data-table--fixed td { overflow-wrap: anywhere; }
 /* Tighter cells so the status pill and the icon button fit their columns. */
 .data-table--fixed th,
-.data-table--fixed td { padding: 12px 10px; }
-/* Narrow tables (3–4 cols) don't need the full 780px scroll floor. */
-.data-table--compact { min-width: 480px; }
+.data-table--fixed td { padding: 0.75rem 0.625rem; }
+/* Narrow tables (3–4 cols) don't need the full 48.75rem scroll floor. */
+.data-table--compact { min-width: 30rem; }
 .data-table th {
   text-align: center;
   font-size: 0.72rem;
@@ -191,12 +343,12 @@
   text-transform: uppercase;
   color: var(--ink-faint);
   background: var(--surface-2);
-  padding: 12px 16px;
+  padding: 0.75rem 1rem;
   border-bottom: 1px solid var(--border);
   white-space: nowrap;
 }
 .data-table td {
-  padding: 13px 16px;
+  padding: 0.8125rem 1rem;
   border-bottom: 1px solid var(--border);
   vertical-align: middle;
   text-align: center;
@@ -217,19 +369,18 @@
 
 /* ── Status pills ──────────────────────────────────────────── */
 .pill {
-  display: inline-block;
   font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: capitalize;
-  padding: 3px 10px;
+  padding: 0.1875rem 0.625rem;
   border-radius: var(--r-full);
   white-space: nowrap;
 }
 .pill-completed { background: var(--ok-bg);   color: var(--ok); }
-.pill-confirmed { background: var(--ok-bg);   color: var(--ok); }
 .pill-pending   { background: var(--warn-bg); color: var(--warn); }
 .pill-failed    { background: var(--bad-bg);  color: var(--bad); }
+.pill-draft     { background: var(--surface-2); color: var(--ink-soft); }
 .pill-unknown   { background: var(--border);  color: var(--ink-faint); }
 
 /* Role pills (Manage People). */
@@ -241,71 +392,8 @@
 .empty-state {
   text-align: center;
   color: var(--ink-faint);
-  padding: 48px 20px;
+  padding: 3rem 1.25rem;
   font-size: 0.95rem;
-}
-
-/* ── Auth page ─────────────────────────────────────────────── */
-.auth-page {
-  min-height: 100svh;
-  display: grid;
-  place-items: center;
-  padding: calc(var(--nav-h) + 40px) 24px 60px;
-  position: relative;
-  overflow: hidden;
-}
-.auth-blobs { position: absolute; inset: 0; z-index: 0; }
-.auth-page .blob { opacity: 0.4; }
-.auth-page .blob-pink { top: -10%; left: -10%; }
-.auth-page .blob-mint { bottom: -15%; right: -8%; }
-
-.auth-card {
-  position: relative;
-  z-index: 1;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--r-lg);
-  box-shadow: var(--shadow-lg);
-  padding: 44px 38px;
-  width: 100%;
-  max-width: 420px;
-  text-align: center;
-}
-.auth-mark { font-size: 2.4rem; display: block; margin-bottom: 14px; }
-.auth-card h1 { font-size: 1.8rem; margin-bottom: 10px; }
-.auth-card h1 em { font-style: normal; color: var(--accent); }
-.auth-card > .muted { font-size: 0.93rem; margin-bottom: 28px; }
-
-.google-btn {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  font-family: var(--font-body);
-  font-size: 0.96rem;
-  font-weight: 600;
-  color: var(--ink);
-  background: var(--surface);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--r-full);
-  padding: 14px 22px;
-  cursor: pointer;
-  transition: all 0.16s ease;
-  box-shadow: var(--shadow-sm);
-}
-.google-btn:hover:not(:disabled) {
-  border-color: var(--accent);
-  box-shadow: var(--shadow-md);
-  transform: translateY(-1px);
-}
-.google-btn:disabled { opacity: 0.6; cursor: not-allowed; }
-
-.auth-note {
-  font-size: 0.8rem;
-  color: var(--ink-faint);
-  margin-top: 20px;
-  line-height: 1.6;
 }
 
 /* ── Misc shared ───────────────────────────────────────────── */
@@ -317,60 +405,168 @@
   text-transform: uppercase;
   color: var(--lilac-deep);
   background: #f2ecfd;
-  padding: 4px 10px;
+  padding: 0.25rem 0.625rem;
   border-radius: var(--r-full);
 }
-.event-tile .btn { align-self: flex-start; margin-top: 6px; }
 
-@media (max-width: 720px) {
-  .bar-row { grid-template-columns: 1fr auto; gap: 8px 12px; }
-  .bar-track { grid-column: 1 / -1; order: 3; }
-  .admin-panel { padding: 20px 16px; }
+@media (max-width: 899px) {
+  .admin-panel { padding: 1.25rem 1rem; }
 
-  .admin-head { flex-direction: column; align-items: stretch; gap: 12px; }
+  .admin-head { flex-direction: column; align-items: stretch; gap: 0.75rem; }
   .admin-head .btn { align-self: flex-start; }
-  .panel-head { gap: 10px; }
+  .panel-head { gap: 0.625rem; }
   .stat-cards { grid-template-columns: 1fr; }
   /* search on its own line; total + export share the next row */
   .reg-toolbar { flex-wrap: wrap; }
   .reg-search { flex-basis: 100%; }
   .reg-total { flex: 1 1 auto; }
 
-  .schedule-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+  .schedule-row { flex-direction: column; align-items: flex-start; gap: 0.375rem; }
 }
 
 /* ── Event detail / success ────────────────────────────────── */
-.detail-head { margin-bottom: 28px; }
-.detail-head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); margin: 10px 0 10px; }
-.detail-meta {
-  display: flex;
-  gap: 20px;
-  align-items: center;
-  flex-wrap: wrap;
-  margin-top: 16px;
-  font-size: 0.92rem;
-  color: var(--ink-soft);
-}
+.detail-head { margin-bottom: 1.75rem; }
+.detail-head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); margin: 0.625rem 0 0.625rem; }
 
 .detail-card {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--r-lg);
-  padding: 28px;
+  padding: clamp(1.25rem, 4vw, 2rem);
   box-shadow: var(--shadow-sm);
 }
-.detail-card h2 { font-size: 1.15rem; margin-bottom: 4px; }
+.detail-card h2 { font-size: 1.15rem; margin-bottom: 0.25rem; }
 
-.success-mark { font-size: 3.4rem; margin-bottom: 8px; }
+/* ── Register-for-an-event page ────────────────────────────── */
+/* Two columns: the form to fill in on the left, the event's own details on
+   the right. Stacks (form first) on narrow screens. */
+.container.event-register {
+  max-width: none;
+  padding: 0;
+  display: grid;
+  /* Hug the left edge, grow the form into the space instead of centring with
+     wide margins. */
+  grid-template-columns: minmax(0, 1fr) minmax(0, 22rem);
+  justify-content: start;
+  gap: clamp(1rem, 3vw, 2rem);
+  align-items: start;
+}
+
+@media (max-width: 899px) {
+  .container.event-register {
+    grid-template-columns: 1fr;
+  }
+}
+
+.event-summary {
+  position: sticky;
+  top: clamp(1rem, 4vw, 2rem);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: clamp(1rem, 3vw, 1.5rem);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.event-summary h1 {
+  font-size: clamp(1.25rem, 3vw, 1.6rem);
+  line-height: 1.2;
+  margin: 0;
+}
+
+.event-summary__meta {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+}
+
+.event-summary__meta li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.event-summary__meta svg {
+  flex-shrink: 0;
+  margin-top: 0.15rem;
+  color: var(--ink-faint);
+}
+
+.event-summary .muted {
+  font-size: 0.88rem;
+  line-height: 1.55;
+  border-top: 1px solid var(--border);
+  padding-top: 0.75rem;
+  margin: 0;
+}
+
+@media (max-width: 899px) {
+  .event-summary {
+    position: static;
+    order: -1; /* show what you're registering for first */
+  }
+}
+
+.register-form__hint {
+  font-size: 0.85rem;
+  margin: 0.125rem 0 0;
+}
+
+/* Grouped rows (name/email/phone) span the form; stack on narrow screens. */
+.field-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+
+/* Two-up the short fields once there's room; identity fields and any
+   team-member blocks stay full width. */
+@media (min-width: 560px) {
+  .register-form {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem 1.25rem;
+    align-items: start;
+  }
+  .register-form > .field-row,
+  .register-form > .field--wide,
+  .register-form > .team-member,
+  .register-form > .form-actions-row,
+  .register-form > .register-form__hint,
+  .register-form > .btn-ghost,
+  .register-form > .error {
+    grid-column: 1 / -1;
+  }
+  .field-row {
+    display: grid;
+    gap: 1rem 1.25rem;
+  }
+  .field-row--2 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .field-row--3 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.success-mark { font-size: 3.4rem; margin-bottom: 0.5rem; }
 .reg-id {
   display: block;
   font-size: 1.05rem;
   font-weight: 700;
   color: var(--accent);
   background: var(--accent-soft);
-  padding: 12px 18px;
+  padding: 0.75rem 1.125rem;
   border-radius: var(--r-sm);
-  margin-top: 8px;
+  margin-top: 0.5rem;
   word-break: break-all;
 }
 
@@ -380,7 +576,7 @@
   min-height: 100svh;
   display: grid;
   place-items: center;
-  padding: 40px 24px;
+  padding: 2.5rem 1.5rem;
   background: var(--cream);
 }
 .crash-card {
@@ -388,19 +584,19 @@
   border: 1px solid var(--border);
   border-radius: var(--r-lg);
   box-shadow: var(--shadow-lg);
-  padding: 40px 34px;
-  max-width: 560px;
+  padding: 2.5rem 2.125rem;
+  max-width: 35rem;
   text-align: center;
 }
-.crash-mark { font-size: 2.8rem; display: block; margin-bottom: 12px; }
-.crash-card h1 { font-size: 1.5rem; margin-bottom: 10px; }
+.crash-mark { font-size: 2.8rem; display: block; margin-bottom: 0.75rem; }
+.crash-card h1 { font-size: 1.5rem; margin-bottom: 0.625rem; }
 .crash-trace {
   text-align: left;
   background: var(--surface-2);
   border: 1px solid var(--border);
   border-radius: var(--r-sm);
-  padding: 14px 16px;
-  margin: 20px 0 24px;
+  padding: 0.875rem 1rem;
+  margin: 1.25rem 0 1.5rem;
   font-size: 0.82rem;
   color: var(--bad);
   overflow-x: auto;
@@ -413,7 +609,7 @@
    container with its own gap, so this only needs its own box — no
    margin or vertical-align hack to line up with the sibling text. */
 .division-count {
-  padding: 1px 9px;
+  padding: 1px 0.5625rem;
   border-radius: var(--r-full);
   background: var(--surface-2);
   border: 1px solid var(--border);
@@ -422,56 +618,137 @@
   color: var(--ink-faint);
 }
 
-/* Deliberate 2-column grid; the wide fields and the schedule row span both,
-   and it drops to a single column on narrow screens. */
+/* A vertical stack of rows; each row below is its own proportional grid. */
 .event-form {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  margin-top: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 0.25rem;
 }
-.event-form .event-form-wide,
-.event-form .event-form-when,
-.event-form .form-actions { grid-column: 1 / -1; }
 
-/* Line up plain inputs with the shadcn DatePicker / TimePicker triggers,
+/* The form's own heading, once venues and the form share a panel. */
+.event-form-head { margin-top: 1.5rem; border-top: 1px solid var(--border); padding-top: 1.25rem; }
+
+/* Name · category · venue · fee across one row on a laptop, two up on a
+   tablet, stacked on a phone — auto-fit rather than fixed columns so it
+   reflows on its own instead of at a hand-picked breakpoint. */
+.event-form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr));
+  gap: 0.75rem;
+}
+
+/* Date · start · end · short description, one row on a laptop. The date and
+   times get less width than the description; all fractional so it scales. */
+.event-form-schedule {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.85fr) minmax(0, 0.85fr) minmax(0, 1.7fr);
+  gap: 0.75rem;
+  align-items: start;
+}
+@media (max-width: 899px) {
+  .event-form-schedule { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 560px) {
+  .event-form-schedule { grid-template-columns: 1fr; }
+}
+
+/* Mark allocation (left) beside instructions (right); stacks below laptop. */
+.event-form-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  align-items: start;
+}
+@media (max-width: 899px) {
+  .event-form-split { grid-template-columns: 1fr; }
+}
+
+.event-form .field textarea.input { resize: vertical; min-height: 5.5rem; }
+.field-label {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+/* ── Mark-allocation criteria editor ──────────────────────────
+   One row per scoring parameter: name, max mark, remove. The total
+   below is the live sum of the marks. */
+.criteria-editor { display: flex; flex-direction: column; gap: 0.5rem; }
+.criteria-row {
+  display: grid;
+  grid-template-columns: 1fr minmax(4rem, 18%) auto;
+  gap: 0.5rem;
+  align-items: center;
+}
+.criteria-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.criteria-total { font-size: 0.9rem; color: var(--ink-soft); }
+.criteria-total strong { font-size: 1rem; color: var(--ink); }
+
+@media (max-width: 560px) {
+  /* Parameter name on its own line, marks + delete beneath it. */
+  .criteria-row { grid-template-columns: 1fr auto; }
+  .criteria-row > input:first-child { grid-column: 1 / -1; }
+}
+
+/* Category listings — exactly two per row on a laptop:
+   Technical + Non-Technical (row 1), Hackathon + Workshop (row 2).
+   Below laptop width they collapse to a single column. */
+.event-category-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.625rem;
+  align-items: start;
+}
+/* min-width:0 lets a panel shrink below its table's intrinsic width so the
+   grid tracks stay equal — the table scrolls inside .table-wrap instead of
+   stretching its column. */
+.event-category-grid > .admin-panel {
+  margin-bottom: 0;
+  min-width: 0;
+}
+
+@media (min-width: 900px) {
+  .event-category-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Line up plain inputs with the DatePicker / TimePicker triggers,
    which render at their own height otherwise. */
 .event-form .input,
 .event-form > button,
-.event-form .event-form-when button { min-height: 40px; }
+.event-form-schedule button { min-height: 2.5rem; }
 
-@media (max-width: 640px) {
-  .event-form { grid-template-columns: 1fr; }
-}
-
-/* Shared Save / Cancel row — spans the whole form grid, sits at the end. */
+/* Shared Save / Cancel row — full width, sits at the end of the stack. */
 .form-actions {
   display: flex;
-  gap: 8px;
+  gap: 0.5rem;
   align-items: center;
   flex-wrap: wrap;
-  grid-column: 1 / -1;
-  margin-top: 4px;
+  margin-top: 0.25rem;
 }
 
-/* Date + start/end time on one row, each field flexing to share the width. */
-.event-form-when {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px;
-}
-.event-form-when > *:not(.event-form-time-sep) { flex: 1 1 150px; min-width: 0; }
+/* The "to" between the team-size min/max inputs. */
 .event-form-time-sep { color: var(--ink-faint); flex-shrink: 0; }
 
-.row-actions { display: flex; gap: 6px; justify-content: center; }
+.row-actions { display: flex; gap: 0.375rem; justify-content: center; }
 
 /* Compact square button for a single icon action inside a table cell. */
 .icon-btn {
   display: inline-grid;
   place-items: center;
-  width: 30px;
-  height: 30px;
+  width: 1.875rem;
+  height: 1.875rem;
   border: 1px solid var(--border-strong);
   border-radius: var(--r-sm);
   background: var(--surface);
@@ -500,24 +777,24 @@
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin: 4px 0;
+  gap: 0.5rem;
+  margin: 0.25rem 0;
   max-height: 50vh;
   overflow-y: auto;
 }
 .team-list li {
-  padding: 10px 12px;
+  padding: 0.625rem 0.75rem;
   border: 1px solid var(--border);
   border-radius: var(--r-sm);
   background: var(--surface-2);
   font-size: 0.9rem;
 }
-.team-list li > span:first-child { display: flex; align-items: center; gap: 8px; }
+.team-list li > span:first-child { display: flex; align-items: center; gap: 0.5rem; }
 
 /* Explains why some form fields are disabled. */
 .notice {
-  margin: 0 0 14px;
-  padding: 10px 14px;
+  margin: 0 0 0.875rem;
+  padding: 0.625rem 0.875rem;
   border: 1px solid var(--warn);
   border-radius: var(--r-sm);
   background: var(--warn-bg);
@@ -531,20 +808,20 @@
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 0.5rem;
   font-size: 0.9rem;
   color: var(--ink-soft);
 }
-.check-row input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--accent); }
-.check-row .input-sm { max-width: 90px; }
+.check-row input[type="checkbox"] { width: 1rem; height: 1rem; accent-color: var(--accent); }
+.check-row .input-sm { max-width: 5.625rem; }
 
 /* A teammate's fields on the public registration form. */
 .team-member {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 12px 14px;
-  margin-top: 10px;
+  gap: 0.5rem;
+  padding: 0.75rem 0.875rem;
+  margin-top: 0.625rem;
   border: 1px solid var(--border);
   border-radius: var(--r-sm);
   background: var(--surface-2);
@@ -556,19 +833,51 @@
   font-size: 0.85rem;
 }
 
+/* One teammate at a time, paged with prev/next — the card stays a fixed
+   size no matter how big the team is. */
+.team-pager {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+.team-pager strong {
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+.team-pager .icon-btn {
+  width: 1.75rem;
+  height: 1.75rem;
+}
+.team-pager .icon-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  border-color: var(--border);
+  color: var(--ink-faint);
+}
+.team-pager__remove {
+  margin-left: auto;
+  color: var(--bad);
+  border-color: var(--bad-bg);
+}
+.team-pager__remove:hover {
+  border-color: var(--bad);
+  color: var(--bad);
+}
+
 /* Venues on the Events page: a name, what's held there, and a delete. */
 .venue-chip-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 10px;
-  margin-top: 4px;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 13.75rem), 1fr));
+  gap: 0.625rem;
+  margin-top: 0.25rem;
 }
 .venue-chip {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  padding: 10px 12px;
+  gap: 0.625rem;
+  padding: 0.625rem 0.75rem;
   border: 1px solid var(--border);
   border-radius: var(--r-sm);
   background: var(--surface-2);
@@ -580,29 +889,48 @@
    Volunteers panels above the grid. */
 .venue-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 18px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18.75rem), 1fr));
+  gap: 1.125rem;
 }
-.venue-card { margin-top: 0; padding: 22px; }
-.venue-load { display: block; margin: 4px 0 6px; }
+.venue-card { margin-top: 0; padding: 1.375rem; }
+
+/* Two overlaid fills on one track: attendance in green, evaluation on top of
+   it in the accent. Both measure against the same total, so the accent bar
+   can never exceed the green one and the pair reads as one progression
+   rather than two competing bars. */
+.event-progress {
+  display: block;
+  position: relative;
+  margin: 0.5rem 0 0.5rem;
+}
+.event-progress .bar-fill {
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  min-width: 0;
+}
+.bar-fill--in { background: var(--ok); }
+.bar-fill--done { background: var(--accent); }
+/* An empty track still needs its height when the event hasn't started. */
+.event-progress:empty { min-height: 0.625rem; }
 
 /* completed/total · checked-in line on each venue card. */
 .venue-stat-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 16px;
-  margin: 6px 0 2px;
+  gap: 0.25rem 1rem;
+  margin: 0.375rem 0 0.125rem;
   font-size: 0.82rem;
   color: var(--ink-soft);
 }
 .venue-stat-row strong { color: var(--ink); }
 
-.venue-staff { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.venue-staff { display: flex; flex-wrap: wrap; gap: 0.375rem; margin-top: 0.625rem; }
 .venue-staff .pill { font-weight: 600; }
 
-.input-sm { padding: 5px 8px; font-size: 0.8rem; max-width: 150px; }
-/* Inside a table cell the choices carry an event name + time — 150px clips them. */
-.data-table .input-sm { max-width: 240px; }
+.input-sm { padding: 0.3125rem 0.5rem; font-size: 0.8rem; max-width: 9.375rem; }
+/* Inside a table cell the choices carry an event name + time — 9.375rem clips them. */
+.data-table .input-sm { max-width: 15rem; }
 
 /* Capacity warning, reused on the Overview venues table. */
 .over { color: var(--bad); font-weight: 600; }
@@ -612,14 +940,14 @@
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 0.375rem;
 }
 .assignment-chip {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 8px 10px;
+  gap: 0.75rem;
+  padding: 0.5rem 0.625rem;
   border: 1px solid var(--border);
   border-radius: var(--r-sm);
   background: var(--surface-2);
@@ -628,15 +956,15 @@
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: 8px;
+  gap: 0.5rem;
   min-width: 0;
 }
 .assignment-chip .tag { align-self: center; }
 
 .chip-remove {
   flex-shrink: 0;
-  width: 22px;
-  height: 22px;
+  width: 1.375rem;
+  height: 1.375rem;
   display: grid;
   place-items: center;
   border: none;
@@ -649,12 +977,12 @@
 }
 .chip-remove:hover { background: var(--bad-bg); color: var(--bad); }
 
-.assignment-error { margin-top: 8px; font-size: 0.82rem; }
+.assignment-error { margin-top: 0.5rem; font-size: 0.82rem; }
 
 /* Judge's own Overview: same chip, more breathing room since it's the
    only content on the page rather than one cell in a table. */
-.assignment-list-lg .assignment-chip { padding: 12px 14px; }
-.assignment-list-lg .assignment-chip > span:first-child { gap: 10px; }
+.assignment-list-lg .assignment-chip { padding: 0.75rem 0.875rem; }
+.assignment-list-lg .assignment-chip > span:first-child { gap: 0.625rem; }
 
 .cell-nowrap { white-space: nowrap; }
 
@@ -662,17 +990,17 @@
 .reg-toolbar {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin: 0 0 16px;
+  gap: 0.75rem;
+  margin: 0 0 1rem;
 }
-.reg-search { flex: 1 1 240px; min-width: 0; }
+.reg-search { flex: 1 1 15rem; min-width: 0; }
 .reg-total {
   flex: 0 1 auto;
   font-size: 0.85rem;
   color: var(--ink-faint);
   white-space: nowrap;
 }
-.reg-pagination { margin-top: 20px; }
+.reg-pagination { margin-top: 1.25rem; }
 
 /* ── Registration detail sheet (payment / Razorpay info) ────── */
 .reg-detail {
@@ -680,29 +1008,40 @@
   flex-direction: column;
   padding: 0;
   width: 100%;
-  max-width: min(420px, 92vw);
+  max-width: min(26.25rem, 92vw);
 }
-.reg-detail-head { padding: 20px 20px 0; }
+.reg-detail-head { padding: 1.25rem 1.25rem 0; }
 .reg-detail-body {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 1.125rem;
   overflow-y: auto;
-  padding: 16px 20px 24px;
+  padding: 1rem 1.25rem 1.5rem;
 }
-.reg-detail-group { display: flex; flex-direction: column; gap: 5px; }
+.reg-detail-group { display: flex; flex-direction: column; gap: 0.3125rem; }
 .reg-detail-group h4 {
   font-size: 0.7rem;
   font-weight: 700;
   letter-spacing: 0.09em;
   text-transform: uppercase;
   color: var(--ink-faint);
-  margin-bottom: 3px;
+  margin-bottom: 0.1875rem;
+}
+.reg-detail-group-head { display: flex; align-items: center; justify-content: space-between; }
+.reg-detail-group-head h4 { margin-bottom: 0; }
+.reg-edit-form { padding: 0 1.25rem 1.5rem; overflow-y: auto; }
+.reg-edit-form h4 {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin: 0.625rem 0 -0.25rem;
 }
 .reg-detail-row {
   display: flex;
   justify-content: space-between;
-  gap: 16px;
+  gap: 1rem;
   align-items: baseline;
   font-size: 0.88rem;
 }
@@ -731,21 +1070,21 @@
   background: var(--bad-bg);
   color: var(--bad);
 }
-.notice strong { display: block; margin-bottom: 4px; }
+.notice strong { display: block; margin-bottom: 0.25rem; }
 .notice p { margin: 0; }
 
 /* Payment-method chooser: two large, clickable cards. */
 .mode-grid {
   display: grid;
-  gap: 12px;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 16.25rem), 1fr));
 }
 .mode-card {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 0.375rem;
   text-align: left;
-  padding: 16px;
+  padding: 1rem;
   border: 1px solid var(--border);
   border-radius: var(--r-sm);
   background: var(--surface);
@@ -760,7 +1099,7 @@
   background: var(--accent-soft);
   cursor: default;
 }
-.mode-card-head { display: flex; align-items: center; gap: 8px; }
+.mode-card-head { display: flex; align-items: center; gap: 0.5rem; }
 .mode-card-head strong { font-size: 0.95rem; }
 .mode-card .muted { font-size: 0.85rem; line-height: 1.5; }
 
@@ -771,25 +1110,10 @@
 }
 
 /* ── Personal entry-pass QR (My Registrations) ───────────────── */
-.personal-qr {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  gap: 10px;
-}
-.personal-qr .card-meta { justify-content: center; }
-/* The QR is generated on a white ground, so it keeps one in dark mode too —
-   inverting it would break scanners. */
-.personal-qr img {
-  background: #fff;
-  border-radius: var(--r-sm);
-  display: block;
-  max-width: 100%;
-  height: auto;
-}
+/* Layout lives in styles/my-registrations.css (.myreg-hero__qr). This is just
+   the fallback tile shown while the QR blob loads or errors. */
 .ticket-placeholder {
-  width: 220px;
+  width: 13.75rem;
   max-width: 100%;
   aspect-ratio: 1 / 1;
   display: grid;
@@ -803,7 +1127,7 @@
 .schedule-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 0.625rem;
   list-style: none;
   margin: 0;
   padding: 0;
@@ -812,45 +1136,67 @@
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 6px 20px;
-  padding: 14px 16px;
+  gap: 0.375rem 1.25rem;
+  padding: 0.875rem 1rem;
   border: 1px solid var(--border);
   border-radius: var(--r-sm);
   background: var(--surface);
 }
-.schedule-name { flex: 1 1 220px; }
+.schedule-name { flex: 1 1 13.75rem; }
 .schedule-meta {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 0.375rem;
   font-size: 0.85rem;
   color: var(--ink-soft);
   white-space: nowrap;
 }
 
+.schedule-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
+  margin-bottom: 1.375rem;
+}
+.schedule-filters label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4375rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.schedule-group + .schedule-group {
+  margin-top: 1.5rem;
+}
+.schedule-group h3 {
+  font-size: 0.98rem;
+  margin-bottom: 0.75rem;
+}
+
 /* ── Volunteer check-in ──────────────────────────────────────── */
 /* Built mobile-first: this runs on a phone at a check-in desk, not a
    desktop shrunk down. */
-.checkin-mode-toggle { display: flex; gap: 8px; }
+.checkin-mode-toggle { display: flex; gap: 0.5rem; }
 .qr-scanner {
   width: 100%;
-  max-width: 420px;
+  max-width: 26.25rem;
   margin: 0 auto;
   border-radius: var(--r-sm);
   overflow: hidden;
   background: var(--surface-2);
 }
-.checkin-manual-form { max-width: 420px; margin: 0 auto; }
+.checkin-manual-form { max-width: 26.25rem; margin: 0 auto; }
 .checkin-person {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  margin-top: 8px;
+  gap: 1rem;
+  margin-top: 0.5rem;
 }
-.checkin-person-head { display: flex; align-items: center; gap: 12px; }
+.checkin-person-head { display: flex; align-items: center; gap: 0.75rem; }
 .checkin-avatar {
-  width: 44px;
-  height: 44px;
+  width: 2.75rem;
+  height: 2.75rem;
   border-radius: 50%;
   object-fit: cover;
   flex-shrink: 0;
@@ -865,7 +1211,7 @@
 .checkin-row-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 0.625rem;
   list-style: none;
   margin: 0;
   padding: 0;
@@ -874,18 +1220,18 @@
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 10px;
-  padding: 14px 16px;
+  gap: 0.625rem;
+  padding: 0.875rem 1rem;
   border: 1px solid var(--border);
   border-radius: var(--r-sm);
   background: var(--surface);
 }
-.checkin-row-info { display: flex; flex-direction: column; gap: 4px; }
+.checkin-row-info { display: flex; flex-direction: column; gap: 0.25rem; }
 .checkin-row .btn { width: 100%; justify-content: center; }
 
 /* From tablet width up, the toggle can sit beside the details instead of
    stacking under them — but the stacked layout above stays the default. */
-@media (min-width: 520px) {
+@media (min-width: 560px) {
   .checkin-row { flex-direction: row; align-items: center; justify-content: space-between; }
   .checkin-row .btn { width: auto; }
 }
@@ -893,8 +1239,8 @@
 /* Payment screenshot thumbnails in the approval queue. */
 .proof-thumb {
   display: block;
-  width: 72px;
-  height: 72px;
+  width: 4.5rem;
+  height: 4.5rem;
   object-fit: cover;
   border-radius: var(--r-sm);
   border: 1px solid var(--border);

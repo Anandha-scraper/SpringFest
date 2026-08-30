@@ -1,4 +1,5 @@
 import { useLocation, Link } from "react-router-dom";
+import { CheckCircle2, Clock3 } from "lucide-react";
 import { fest } from "../content/fest.js";
 
 export default function Success() {
@@ -9,7 +10,11 @@ export default function Success() {
 
   return (
     <div className="container narrow page-pad center">
-      <div className="success-mark">{awaiting ? "⏳" : "✅"}</div>
+      <div className="success-mark">
+        {awaiting
+          ? <Clock3 size={60} strokeWidth={1.5} aria-hidden="true" />
+          : <CheckCircle2 size={60} strokeWidth={1.5} aria-hidden="true" />}
+      </div>
       <h1>{awaiting ? "Payment submitted" : "You're in!"}</h1>
       <p className="muted" style={{ margin: "12px 0 24px" }}>
         {awaiting ? (

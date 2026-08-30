@@ -5,3 +5,4 @@ serviceAccountKey.json
 .firebase/
 firebase-debug.log
 CLAUDE.md
+firestore-backup-*.json
