@@ -64,6 +64,8 @@
   right: 0.75rem;
   top: 50%;
   transform: translateY(-50%);
+  display: flex;
+  align-items: center;
   cursor: pointer;
   font-size: 18px;
   pointer-events: none;
@@ -480,4 +482,11 @@
     font-size: 11px;
     min-height: 26px;
   }
+}
+
+/* Matches the input's own :disabled treatment — the icon is a span, so it
+   can't use the pseudo-class. */
+.calendar-icon--disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
 }

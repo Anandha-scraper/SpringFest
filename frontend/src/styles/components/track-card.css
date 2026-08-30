@@ -132,3 +132,6 @@ button.track-card:focus-visible {
   border-radius: 4px;
   display: block;
 }
+/* Per-track colours, passed in from the TRACKS list in EventsPreview. */
+.track-header { background: var(--track-tint, #f4dbda); }
+.track-icon { background: var(--track-accent, var(--accent)); color: #fff; }

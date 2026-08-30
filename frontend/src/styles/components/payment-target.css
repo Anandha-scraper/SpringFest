@@ -65,3 +65,14 @@
 .cell-list > li { min-width: 0; }
 .cell-list .cell-sub { display: block; }
 
+
+/* ── Proof upload (components/registration/PaymentProofForm.jsx) ── */
+.proof-hint { font-size: 0.85rem; margin: 0.25rem 0 0; }
+
+/* Inline preview of the screenshot the participant just picked. Capped by
+   height so a tall phone screenshot doesn't push the submit button off-screen. */
+.proof-preview {
+  max-height: 15rem;
+  border-radius: var(--r-sm);
+  margin-top: 0.5rem;
+}

@@ -78,3 +78,12 @@
   color: var(--ink-faint);
 }
 
+
+/* Secondary text on the scan panel: the team a row belongs to, the scanned
+   person's email, and the "point the camera here" hint under the reader. */
+.checkin-row__team { font-size: 0.8rem; }
+
+.checkin-note { font-size: 0.85rem; }
+.checkin-note--spaced { margin-top: 0.75rem; }
+/* Nudges the inline icon onto the text baseline. */
+.checkin-note__icon { vertical-align: -2px; margin-right: 0.25rem; }

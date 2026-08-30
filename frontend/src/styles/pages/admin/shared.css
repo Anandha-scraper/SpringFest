@@ -94,6 +94,8 @@
 .bar-fill {
   display: block;
   height: 100%;
+  /* Set by the component from live data (ManageRoles). */
+  width: var(--bar-pct, 0%);
   border-radius: var(--r-full);
   background: linear-gradient(90deg, var(--pink-deep), var(--peach-deep));
   transition: width 0.5s ease;
@@ -462,3 +464,10 @@
 /* Capacity warning, reused on the Overview venues table. */
 .over { color: var(--bad); font-weight: 600; }
 
+
+/* Values that come from live data: the component passes a number in through a
+   custom property, the declaration itself stays here.
+
+   Holds the table's height steady across pages so the pager doesn't jump. */
+.reg-table-wrap { min-height: var(--reg-table-min-h, auto); }
+.data-table--fixed col { width: var(--col-w, auto); }

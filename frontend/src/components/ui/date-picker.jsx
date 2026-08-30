@@ -388,13 +388,14 @@ const CustomDatePicker = forwardRef(
             placeholder="e.g: DD/MM/YYYY"
             readOnly
             disabled={disabled}
-            style={{ ...style, ...(disabled ? { backgroundColor: "#f1f5f9", cursor: "not-allowed", opacity: 0.8 } : {}) }}
+            // The disabled look is `.date-input:disabled` in CSS; `style`
+            // stays a passthrough for a caller that needs to override.
+            style={style}
             className="date-input"
           />
           <span
-            className="calendar-icon"
+            className={`calendar-icon${disabled ? " calendar-icon--disabled" : ""}`}
             onClick={() => !disabled && setIsOpen(!isOpen)}
-            style={{ cursor: disabled ? "not-allowed" : "pointer", opacity: disabled ? 0.6 : 1, display: "flex", alignItems: "center" }}
           >
             <CalendarSearch size={18} color="#5B9AA9" strokeWidth={2} />
           </span>

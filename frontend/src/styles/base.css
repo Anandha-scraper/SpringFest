@@ -16,6 +16,14 @@ html { scroll-behavior: smooth; scroll-padding-top: 0; }
   opacity: 0.5;
 }
 
+/* The canvas GlyphMatrix draws into — it fills whatever box it is given, and
+   the component sizes its backing buffer from the rendered dimensions. */
+.glyph-matrix {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
 body {
   font-family: var(--font-body);
   background: var(--cream);

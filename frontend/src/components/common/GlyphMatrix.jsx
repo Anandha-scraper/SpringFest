@@ -144,7 +144,9 @@ export default function GlyphMatrix({
     <canvas
       ref={canvasRef}
       className={`glyph-matrix ${className}`.trim()}
-      style={{ width: "100%", height: "100%", display: "block", ...style }}
+      // Sizing lives in .glyph-matrix; `style` stays a passthrough so a caller
+      // can still override it per instance.
+      style={style}
       aria-hidden="true"
       {...props}
     />

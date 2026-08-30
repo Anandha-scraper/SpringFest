@@ -204,11 +204,11 @@ export default function RegistrationsTable({ rows, minRows = 0, onSaved }) {
 
   return (
     <>
-      <div className="table-wrap" style={{ minHeight }}>
+      <div className="table-wrap reg-table-wrap" style={{ "--reg-table-min-h": minHeight }}>
         <table className="data-table data-table--fixed">
           <colgroup>
             {COLS.map((w, i) => (
-              <col key={i} style={{ width: `${w}%` }} />
+              <col key={i} style={{ "--col-w": `${w}%` }} />
             ))}
           </colgroup>
           <thead>

@@ -147,3 +147,16 @@
   word-break: break-all;
 }
 
+
+/* ── Post-submit confirmation (pages/Success.jsx) ───────────── */
+.success-lead { margin: 0.75rem 0 1.5rem; }
+
+/* The ticket block is the one centred card on the page — the registration id
+   is meant to be read aloud at the desk, so it sits on its own axis. */
+.success-ticket { text-align: center; }
+.success-ticket__hint { font-size: 0.85rem; margin-top: 0.625rem; }
+
+.success-actions { margin-top: 2rem; margin-bottom: 0; }
+
+/* The "what happens next" line under each step of the register flow. */
+.register-note { font-size: 0.9rem; }

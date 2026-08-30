@@ -154,7 +154,7 @@ export default function EventDetail() {
         ) : awaitingProof ? (
           <>
             <h2>Confirm your payment</h2>
-            <p className="muted" style={{ fontSize: "0.9rem" }}>
+            <p className="muted register-note">
               Your place is held. An organiser checks the proof and confirms you —
               you'll see the result under My Registrations.
             </p>
@@ -170,7 +170,7 @@ export default function EventDetail() {
         ) : (
           <>
             <h2>Your details</h2>
-            <p className="muted" style={{ fontSize: "0.9rem" }}>
+            <p className="muted register-note">
               {event.fee > 0
                 ? "You'll confirm payment after this step."
                 : "This event is free — you'll be confirmed instantly."}

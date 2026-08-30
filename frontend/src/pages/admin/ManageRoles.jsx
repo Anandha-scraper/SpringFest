@@ -256,11 +256,11 @@ export default function ManageRoles() {
                   <span className="bar-track event-progress">
                     <span
                       className="bar-fill bar-fill--in"
-                      style={{ width: `${pct(ev.checked_in)}%` }}
+                      style={{ "--bar-pct": `${pct(ev.checked_in)}%` }}
                     />
                     <span
                       className="bar-fill bar-fill--done"
-                      style={{ width: `${pct(ev.evaluated)}%` }}
+                      style={{ "--bar-pct": `${pct(ev.evaluated)}%` }}
                     />
                   </span>
                   <div className="venue-stat-row">

@@ -40,9 +40,9 @@ export default function TrackCard({ label, image, accent, tint, onClick }) {
 
   return (
     <button type="button" className="card-sm track-card" onClick={onClick}>
-      <div className="block-header track-header" style={{ background: tint }}>
+      <div className="block-header track-header" style={{ "--track-tint": tint }}>
         <div className="block-title">
-          <span className="track-icon" style={{ background: accent, color: "#fff" }}>
+          <span className="track-icon" style={{ "--track-accent": accent }}>
             {TRACK_ICONS[label.toLowerCase()]}
           </span>
           <p className="block-title-text">{label}</p>

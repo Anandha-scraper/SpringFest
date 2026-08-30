@@ -87,7 +87,7 @@ export default function PaymentProofForm({
         required
         onChange={pick}
       />
-      <p className="muted" style={{ fontSize: "0.85rem", margin: "4px 0 0" }}>
+      <p className="muted proof-hint">
         PNG, JPEG or WebP, up to 5 MB.
       </p>
 
@@ -95,7 +95,7 @@ export default function PaymentProofForm({
         <img
           src={preview}
           alt="Your payment screenshot"
-          style={{ maxHeight: 240, borderRadius: 8, marginTop: 8 }}
+          className="proof-preview"
         />
       )}
 
