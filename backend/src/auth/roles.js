@@ -12,16 +12,16 @@
  * signs in and isn't a judge, volunteer or admin simply is one.
  */
 
-import { settings } from "../config.js";
-import { getDb } from "./firebase.js";
+import { settings } from "../config/index.js";
+import { getDb } from "../config/firebase.js";
 
 export const ROLE_ADMIN = "admin";
 export const ROLE_JUDGE = "judge";
 export const ROLE_VOLUNTEER = "volunteer";
-export const ROLE_PARTICIPANT = "participant";
+const ROLE_PARTICIPANT = "participant";
 
 // Every role resolveRoleAndAssignments may read back out of a stored document.
-export const KNOWN_ROLES = new Set([ROLE_ADMIN, ROLE_JUDGE, ROLE_VOLUNTEER, ROLE_PARTICIPANT]);
+const KNOWN_ROLES = new Set([ROLE_ADMIN, ROLE_JUDGE, ROLE_VOLUNTEER, ROLE_PARTICIPANT]);
 
 // What an admin may hand out. "participant" is absent on purpose: it's the
 // absence of a record, so demoting someone is a DELETE, not a write.
@@ -118,7 +118,7 @@ export function isSeededAdmin(email) {
 
 /** Same day and overlapping [start, end). Times are "HH:MM", so a plain
  * string comparison is also a chronological one. */
-export function eventsOverlap(a, b) {
+function eventsOverlap(a, b) {
   if (!a || !b || a.date !== b.date) return false;
   const aStart = a.start_time || "", aEnd = a.end_time || "";
   const bStart = b.start_time || "", bEnd = b.end_time || "";

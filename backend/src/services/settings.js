@@ -14,8 +14,11 @@
  * every request to POST /api/registrations needs this, and the TTL is only a
  * backstop behind the explicit invalidate on write.
  */
+import { getDb } from "../config/firebase.js";
+import { ApiError } from "../utils/ApiError.js";
+import { optionalString, requireBool, requireOneOf } from "../utils/validate.js";
 import { cached, invalidate } from "./cache.js";
-import { getDb } from "./firebase.js";
+import { uploadBuffer } from "./storage.js";
 
 const COLLECTION = "settings";
 const DOC_ID = "app";
@@ -69,6 +72,63 @@ export async function setAppSettings(patch, actorEmail = "") {
   return getAppSettings();
 }
 
-export function invalidateAppSettings() {
+function invalidateAppSettings() {
   invalidate(CACHE_KEY);
+}
+
+/** The lock covers the UPI id and the QR and nothing else. payment_mode and
+ * registration_open stay editable while locked, deliberately — a locked
+ * payment block must never freeze the gateway kill switch. */
+function assertUnlocked(current) {
+  if (current.payment_locked) {
+    throw new ApiError(409, "Payment details are locked — unlock them before editing");
+  }
+}
+
+/** Admin edit of the settings singleton.
+ *
+ * Deliberately no lock on existing registrations: switching modes is the whole
+ * point (gateway goes down mid-fest). Rows already created keep the mode they
+ * were stamped with, so nothing in flight is disturbed. */
+export async function applySettingsPatch(body, actorEmail) {
+  const current = await getAppSettings();
+  const patch = {};
+  if (body.payment_mode !== undefined) {
+    patch.payment_mode = requireOneOf(body.payment_mode, PAYMENT_MODES, { field: "payment_mode" });
+  }
+  if (body.payment_upi_id !== undefined) {
+    assertUnlocked(current);
+    patch.payment_upi_id = optionalString(body.payment_upi_id);
+  }
+  if (body.payment_locked !== undefined) {
+    patch.payment_locked = requireBool(body.payment_locked);
+  }
+  if (body.registration_open !== undefined) {
+    patch.registration_open = requireBool(body.registration_open);
+  }
+  if (!Object.keys(patch).length) throw new ApiError(400, "Nothing to update");
+
+  return setAppSettings(patch, actorEmail);
+}
+
+/** Store the payment QR participants scan. */
+export async function savePaymentQr({ file, extension, actorEmail }) {
+  assertUnlocked(await getAppSettings());
+  if (!file) throw new ApiError(400, "qr: an image file is required");
+
+  // Timestamped, never a fixed path: uploadBuffer sets a one-year
+  // cacheControl, so overwriting a stable path would leave browsers — the
+  // admin's own preview included — showing last week's QR.
+  const path = `payment-qr/${Date.now()}.${extension}`;
+  await uploadBuffer(path, file.buffer, file.mimetype);
+  const saved = await setAppSettings({ payment_qr_path: path }, actorEmail);
+  return { ...saved, has_payment_qr: true };
+}
+
+/** Forget the payment QR. The stored object is left in place: there is no
+ * delete helper in services/storage.js and these are a handful of tiny private
+ * files — the same reasoning that keeps every payment-proof attempt around. */
+export async function clearPaymentQr(actorEmail) {
+  assertUnlocked(await getAppSettings());
+  return setAppSettings({ payment_qr_path: "" }, actorEmail);
 }

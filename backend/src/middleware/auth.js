@@ -1,11 +1,11 @@
-import { ApiError } from "../errors.js";
-import { getAuth } from "../services/firebase.js";
-import { ROLE_ADMIN, resolveRoleAndAssignments } from "../services/roles.js";
+import { ROLE_ADMIN, resolveRoleAndAssignments } from "../auth/roles.js";
+import { getAuth } from "../config/firebase.js";
+import { ApiError } from "../utils/ApiError.js";
 
 /** Verify the Firebase ID token from the Authorization: Bearer <token>
  * header and attach the caller's role.
  *
- * The role is resolved server-side on every request (see services/roles.js)
+ * The role is resolved server-side on every request (see auth/roles.js)
  * — one Firestore read, which keeps role changes effective immediately. */
 export async function currentUser(req, res, next) {
   const authorization = req.headers.authorization || "";
@@ -62,10 +62,9 @@ function adminOnly(req, res, next) {
   next();
 }
 
-// Convenience middleware chains for `router.get(path, ...AdminUser, handler)`,
-// mirroring the CurrentUser/AdminUser/JudgeUser/VolunteerUser dependency
-// shorthands in deps.py.
+// Convenience middleware chains for `router.get(path, ...AdminUser, handler)`.
+// There is no JudgeUser: admins pass every role check and judges read through
+// /api/me/*, so no route has ever needed one.
 export const CurrentUser = [currentUser];
 export const AdminUser = [currentUser, adminOnly];
-export const JudgeUser = [currentUser, requireRoles("judge")];
 export const VolunteerUser = [currentUser, requireRoles("volunteer")];

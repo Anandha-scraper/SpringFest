@@ -11,18 +11,14 @@
  * sides rather than just the one flag the old whole-registration fallback
  * used to flip.
  */
-import { Router } from "express";
-
-import { ApiError } from "../errors.js";
-import { VolunteerUser } from "../middleware/auth.js";
-import * as aggregate from "../services/aggregate.js";
-import { getAuth, getDb } from "../services/firebase.js";
-import { loadPersonRegistrations } from "../services/registrationLookup.js";
-import { ticketHolders, verifyPersonToken } from "../services/qr.js";
-import { STATUS_COMPLETED } from "../statuses.js";
-import { requireBool, requireInt, requireString } from "../validate.js";
-
-export const router = Router();
+import { verifyPersonToken } from "../auth/qrToken.js";
+import { getAuth, getDb } from "../config/firebase.js";
+import { ApiError } from "../utils/ApiError.js";
+import { STATUS_COMPLETED } from "../utils/statuses.js";
+import { requireBool, requireInt, requireString } from "../utils/validate.js";
+import * as aggregate from "./aggregate.js";
+import { ticketHolders } from "./qr.js";
+import { loadPersonRegistrations } from "./registrationLookup.js";
 
 function isCheckedIn(entry) {
   return !!entry && !entry.checked_out_at;
@@ -31,9 +27,9 @@ function isCheckedIn(entry) {
 /** Scan someone's personal QR: who they are, and every event they're
  * registered for (as lead or as a team member), with each one's current
  * check-in state. */
-router.post("/scan", ...VolunteerUser, async (req, res) => {
-  const token = requireString(req.body?.token, { field: "token" });
-  const claim = verifyPersonToken(token);
+export async function scan({ token }) {
+  const raw = requireString(token, { field: "token" });
+  const claim = verifyPersonToken(raw);
   if (!claim) throw new ApiError(400, "That QR code isn't valid");
 
   let account;
@@ -70,22 +66,22 @@ router.post("/scan", ...VolunteerUser, async (req, res) => {
     };
   });
 
-  res.json({
+  return {
     uid: claim.uid,
     name: account.displayName || "",
     email: account.email || "",
     picture: account.photoURL || "",
     registrations,
-  });
-});
+  };
+}
 
 /** Check a specific member of a specific registration in or out. The only
  * check-in write path — a "no ticket, just their id" desk fallback is just
  * this call with `member_index: 0` (the lead). */
-router.post("/check-in/toggle", ...VolunteerUser, async (req, res) => {
-  const registrationId = requireString(req.body?.registration_id, { field: "registration_id" });
-  const memberIndex = requireInt(req.body?.member_index, { field: "member_index", min: 0 });
-  const checkedIn = requireBool(req.body?.checked_in, true);
+export async function toggle({ actorEmail, body }) {
+  const registrationId = requireString(body.registration_id, { field: "registration_id" });
+  const memberIndex = requireInt(body.member_index, { field: "member_index", min: 0 });
+  const checkedIn = requireBool(body.checked_in, true);
 
   const ref = getDb().collection("registrations").doc(registrationId);
   const doc = await ref.get();
@@ -93,7 +89,10 @@ router.post("/check-in/toggle", ...VolunteerUser, async (req, res) => {
   const row = doc.data() ?? {};
 
   if (row.status !== STATUS_COMPLETED) {
-    throw new ApiError(409, "This registration is not confirmed — payment is still pending or was rejected");
+    throw new ApiError(
+      409,
+      "This registration is not confirmed — payment is still pending or was rejected"
+    );
   }
   const holder = ticketHolders(row)[memberIndex];
   if (!holder) throw new ApiError(404, "No such member on this registration");
@@ -118,7 +117,7 @@ router.post("/check-in/toggle", ...VolunteerUser, async (req, res) => {
         member_index: memberIndex,
         name: holder.name,
         at: now,
-        by: req.user.email,
+        by: actorEmail,
         checked_out_at: null,
         checked_out_by: null,
       };
@@ -129,7 +128,7 @@ router.post("/check-in/toggle", ...VolunteerUser, async (req, res) => {
       alreadyDone = true;
       entry = checkins[existingIdx] || null;
     } else {
-      entry = { ...checkins[existingIdx], checked_out_at: now, checked_out_by: req.user.email };
+      entry = { ...checkins[existingIdx], checked_out_at: now, checked_out_by: actorEmail };
       checkins[existingIdx] = entry;
     }
   }
@@ -137,13 +136,15 @@ router.post("/check-in/toggle", ...VolunteerUser, async (req, res) => {
   await ref.set(
     {
       member_checkins: checkins,
+      // "At least one member currently has no checked_out_at" — the flag every
+      // existing aggregate, stat card and CSV column already reads.
       checked_in: checkins.some(isCheckedIn),
     },
     { merge: true }
   );
   aggregate.invalidateLoadAll();
 
-  res.json({
+  return {
     registration_id: registrationId,
     already_done: alreadyDone,
     member: entry
@@ -157,5 +158,5 @@ router.post("/check-in/toggle", ...VolunteerUser, async (req, res) => {
           checked_out_by: entry.checked_out_by || null,
         }
       : null,
-  });
-});
+  };
+}

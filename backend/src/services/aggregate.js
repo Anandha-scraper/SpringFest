@@ -12,12 +12,15 @@
  * registration since the first version).
  */
 
+import { listPeople, normalizeEmail, ROLE_ADMIN, ROLE_JUDGE, ROLE_VOLUNTEER } from "../auth/roles.js";
+import { getAuth, getDb } from "../config/firebase.js";
+import { settings } from "../config/index.js";
+import { STATUS_COMPLETED } from "../utils/statuses.js";
 import { cached, invalidate } from "./cache.js";
-import { settings } from "../config.js";
-import { getAuth, getDb } from "./firebase.js";
-import { listPeople, normalizeEmail, ROLE_ADMIN, ROLE_JUDGE, ROLE_VOLUNTEER } from "./roles.js";
 
-export const STATUS_COMPLETED = "completed";
+// Re-exported because the admin read models filter on it and importing it
+// from here keeps them to one import; utils/statuses.js is the single source.
+export { STATUS_COMPLETED };
 
 /** Judged, as opposed to paid.
  *
@@ -32,7 +35,7 @@ export const STATUS_COMPLETED = "completed";
  * started. A timestamp rather than a boolean because that is how this codebase
  * records state everywhere else (paid_at, reviewed_at, proof_uploaded_at) and
  * it answers "when" for free. */
-export function isEvaluated(r) {
+function isEvaluated(r) {
   return Boolean(r.evaluated_at);
 }
 

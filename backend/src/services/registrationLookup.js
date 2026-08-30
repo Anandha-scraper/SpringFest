@@ -8,7 +8,7 @@
  * `registrations` scan either way — the same cost class as `aggregate.js`'s
  * own scans, just uncached.
  */
-import { getDb } from "./firebase.js";
+import { getDb } from "../config/firebase.js";
 
 /** The index into `ticketHolders(row)` this person occupies on this
  * registration, or -1 if they're not on it at all. Index 0 is the lead

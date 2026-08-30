@@ -6,13 +6,9 @@ import compression from "compression";
 import cors from "cors";
 import express from "express";
 
-import { settings } from "./config.js";
-import { errorHandler } from "./errors.js";
-import { router as adminRouter } from "./routes/admin.js";
-import { router as eventsRouter } from "./routes/events.js";
-import { router as meRouter } from "./routes/me.js";
-import { router as registrationsRouter } from "./routes/registrations.js";
-import { router as volunteerRouter } from "./routes/volunteer.js";
+import { settings } from "./config/index.js";
+import { errorHandler } from "./middleware/errorHandler.js";
+import { router as apiRouter } from "./routes/index.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // The SPA's build output. Present in the App Hosting runtime image (the root
@@ -35,15 +31,9 @@ app.use(cors({ origin: settings.CORS_ORIGINS }));
 app.use(compression({ threshold: 500 }));
 app.use(express.json());
 
-// Health check. Kept under /api so `/` is free for the SPA.
-app.get("/api/health", (req, res) => res.json({ status: "ok" }));
-
 // Every router is mounted under /api; the frontend's client.js talks to /api.
-app.use("/api/events", eventsRouter);
-app.use("/api/registrations", registrationsRouter);
-app.use("/api/me", meRouter);
-app.use("/api/volunteer", volunteerRouter);
-app.use("/api/admin", adminRouter);
+// See routes/index.js for the full URL layout.
+app.use("/api", apiRouter);
 
 if (existsSync(clientDir)) {
   // Serve the built SPA from the same origin as the API.

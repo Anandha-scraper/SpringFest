@@ -1,14 +1,15 @@
-import { Router } from "express";
-import multer from "multer";
-
-import { settings } from "../config.js";
-import { ApiError } from "../errors.js";
-import { CurrentUser } from "../middleware/auth.js";
-import * as aggregate from "../services/aggregate.js";
-import { getDb } from "../services/firebase.js";
-import { createOrder, fetchPaymentMethod, verifySignature } from "../services/payment.js";
-import { MODE_GATEWAY, MODE_SCREENSHOT, getAppSettings } from "../services/settings.js";
-import { uploadBuffer } from "../services/storage.js";
+/** Everything a participant can do to their own registration: create or
+ * resume it, upload proof of an out-of-band payment, attach a submission
+ * file, add a teammate, and finish a gateway payment.
+ *
+ * All the rules live here rather than in the HTTP layer — the fee is always
+ * `event.fee * headcount` computed server-side, team size comes from the
+ * event, and status only ever advances here. See utils/statuses.js for the
+ * lifecycle diagram.
+ */
+import { getDb } from "../config/firebase.js";
+import { settings } from "../config/index.js";
+import { ApiError } from "../utils/ApiError.js";
 import {
   LIVE_STATUSES,
   PROOF_SUBMITTABLE,
@@ -18,7 +19,7 @@ import {
   STATUS_FAILED,
   STATUS_PENDING,
   STATUS_REJECTED,
-} from "../statuses.js";
+} from "../utils/statuses.js";
 import {
   optionalString,
   parseParticipantDetails,
@@ -26,45 +27,11 @@ import {
   requireEmail,
   requirePhone,
   requireString,
-} from "../validate.js";
-
-export const router = Router();
-
-const PROOF_TYPES = { "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp" };
-const PROOF_MAX_BYTES = 5 * 1024 * 1024;
-
-const SUBMISSION_TYPES = {
-  "application/pdf": "pdf",
-  "application/vnd.ms-powerpoint": "ppt",
-  "application/vnd.openxmlformats-officedocument.presentationml.presentation": "pptx",
-  "application/msword": "doc",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
-};
-const SUBMISSION_MAX_BYTES = 25 * 1024 * 1024;
-
-const submissionUpload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: SUBMISSION_MAX_BYTES, files: 1 },
-  fileFilter: (req, file, cb) => {
-    if (!SUBMISSION_TYPES[file.mimetype]) {
-      return cb(new ApiError(400, "Submission must be a PDF, PPT/PPTX or DOC/DOCX file"));
-    }
-    cb(null, true);
-  },
-}).single("file");
-
-/** Multipart is mounted on this one route rather than app-wide so
- * express.json() keeps handling every other endpoint untouched. */
-const proofUpload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: PROOF_MAX_BYTES, files: 1 },
-  fileFilter: (req, file, cb) => {
-    if (!PROOF_TYPES[file.mimetype]) {
-      return cb(new ApiError(400, "Screenshot must be a PNG, JPEG or WebP image"));
-    }
-    cb(null, true);
-  },
-}).single("screenshot");
+} from "../utils/validate.js";
+import * as aggregate from "./aggregate.js";
+import { createOrder, fetchPaymentMethod, verifySignature } from "./payment.js";
+import { MODE_GATEWAY, MODE_SCREENSHOT, getAppSettings } from "./settings.js";
+import { uploadBuffer } from "./storage.js";
 
 /** This user's live registration for this event, if there is one.
  *
@@ -95,9 +62,9 @@ async function existingRegistration(db, uid, eventId) {
  * `!== false` for the same reason toEvent() uses it: events created before the
  * field existed have no value and must read as open.
  *
- * Deliberately NOT called from /verify, /:id/proof or /:id/topup — a payment
- * already in flight has to be able to finish after an organiser closes an
- * event, which is the same rationale as the global switch. */
+ * Deliberately NOT called from verifyPayment, submitProof or resumeTopUp — a
+ * payment already in flight has to be able to finish after an organiser closes
+ * an event, which is the same rationale as the global switch. */
 function assertEventOpen(eventData) {
   if (eventData.registration_open === false) {
     throw new ApiError(403, `Registration for "${eventData.name || "this event"}" is closed`);
@@ -117,18 +84,42 @@ function parseRegistrationCreate(body) {
   };
 }
 
-router.post("/", ...CurrentUser, async (req, res) => {
-  const body = req.body || {};
-  // A saved draft doesn't commit to paying, so it's exempt from nothing
-  // else — full validation still applies (a draft is a real, valid
-  // registration, just without a fee/order attached yet).
+/** The caller's own registration, or a 403/404. Every route below this point
+ * is scoped to one document the signed-in user owns. */
+async function ownedRegistration(db, registrationId, uid, denial = "Not your registration") {
+  const regRef = db.collection("registrations").doc(registrationId);
+  const reg = await regRef.get();
+  if (!reg.exists) throw new ApiError(404, "Registration not found");
+  const row = reg.data() ?? {};
+  if (row.uid !== uid) throw new ApiError(403, denial);
+  return { regRef, row };
+}
+
+/** A gateway order, with the "keys aren't set up" case turned into a 503 the
+ * participant can act on rather than a raw SDK failure. */
+async function openOrder(amount, receipt, unavailable) {
+  try {
+    return await createOrder(amount, receipt);
+  } catch (err) {
+    if (/not configured/i.test(err.message)) throw new ApiError(503, unavailable);
+    throw err;
+  }
+}
+
+/** Create a registration, resume an abandoned one, or save it as a draft.
+ *
+ * A saved draft doesn't commit to paying, so it's exempt from nothing else —
+ * full validation still applies (a draft is a real, valid registration, just
+ * without a fee/order attached yet). */
+export async function createOrResume({ user, body }) {
   const saveAsDraft = body.save_as_draft === true;
 
   const appSettings = await getAppSettings();
   if (!appSettings.registration_open) {
     // Only new commitments are blocked — a payment already in flight
     // (an existing order, or a screenshot for an already-pending row)
-    // finishes through /verify or /:id/proof, neither of which checks this.
+    // finishes through verifyPayment or submitProof, neither of which
+    // checks this.
     throw new ApiError(403, "Registration is closed");
   }
 
@@ -148,9 +139,14 @@ router.post("/", ...CurrentUser, async (req, res) => {
     const size = 1 + members.length;
     const teamMin = eventData.team_min ?? 1;
     const teamMax = eventData.team_max ?? 1;
-    if (!payload.team_name.trim()) throw new ApiError(400, "This is a team event — give your team a name");
+    if (!payload.team_name.trim()) {
+      throw new ApiError(400, "This is a team event — give your team a name");
+    }
     if (size < teamMin || size > teamMax) {
-      throw new ApiError(400, `Teams for this event must have ${teamMin}–${teamMax} members (you have ${size})`);
+      throw new ApiError(
+        400,
+        `Teams for this event must have ${teamMin}–${teamMax} members (you have ${size})`
+      );
     }
   } else if (members.length || payload.team_name) {
     throw new ApiError(400, "This event is for individuals, not teams");
@@ -163,12 +159,13 @@ router.post("/", ...CurrentUser, async (req, res) => {
   const paymentMode = appSettings.payment_mode;
   const isScreenshot = paymentMode === MODE_SCREENSHOT;
 
-  const user = req.user;
   let regRef;
   const existing = await existingRegistration(db, user.uid, payload.event_id);
   if (existing) {
     const row = existing.data() ?? {};
-    if (row.status === STATUS_COMPLETED) throw new ApiError(409, "You have already registered for this event");
+    if (row.status === STATUS_COMPLETED) {
+      throw new ApiError(409, "You have already registered for this event");
+    }
     if (row.status === STATUS_AWAITING_APPROVAL) {
       throw new ApiError(409, "Your payment proof is already submitted and waiting for approval");
     }
@@ -178,14 +175,14 @@ router.post("/", ...CurrentUser, async (req, res) => {
     regRef = existing.ref;
     const orderId = row.order_id || "";
     if (!saveAsDraft && !isScreenshot && orderId) {
-      return res.json({
+      return {
         registration_id: regRef.id,
         payment_mode: paymentMode,
         order_id: orderId,
         amount: fee * 100,
         currency: "INR",
         key_id: settings.PAYMENT_KEY_ID,
-      });
+      };
     }
   } else {
     regRef = db.collection("registrations").doc();
@@ -193,7 +190,7 @@ router.post("/", ...CurrentUser, async (req, res) => {
 
   if (saveAsDraft) {
     // No fee, no order — a draft is just the form, persisted. Submitting it
-    // for real later (a normal, non-draft POST here) is what turns it into a
+    // for real later (a normal, non-draft create) is what turns it into a
     // pending registration and computes the actual charge.
     await regRef.set({
       ...payload,
@@ -206,7 +203,7 @@ router.post("/", ...CurrentUser, async (req, res) => {
       created_at: new Date().toISOString(),
     });
     aggregate.invalidateLoadAll();
-    return res.json({ registration_id: regRef.id, status: STATUS_DRAFT });
+    return { registration_id: regRef.id, status: STATUS_DRAFT };
   }
 
   await regRef.set({
@@ -224,54 +221,43 @@ router.post("/", ...CurrentUser, async (req, res) => {
 
   if (isScreenshot) {
     // No gateway order at all. The participant pays out-of-band and comes
-    // back to POST /:id/proof; an admin advances it from there.
-    return res.json({
+    // back to submitProof; an admin advances it from there.
+    return {
       registration_id: regRef.id,
       payment_mode: paymentMode,
       order_id: "",
       amount: fee * 100,
       currency: "INR",
       key_id: "",
-    });
+    };
   }
 
-  let order;
-  try {
-    order = await createOrder(fee, regRef.id);
-  } catch (err) {
-    if (/not configured/i.test(err.message)) {
-      throw new ApiError(503, "Paid registrations are temporarily unavailable — payments aren't configured");
-    }
-    throw err;
-  }
+  const order = await openOrder(
+    fee,
+    regRef.id,
+    "Paid registrations are temporarily unavailable — payments aren't configured"
+  );
   await regRef.update({ order_id: order.id });
-  res.json({
+  return {
     registration_id: regRef.id,
     payment_mode: paymentMode,
     order_id: order.id,
     amount: order.amount,
     currency: order.currency,
     key_id: settings.PAYMENT_KEY_ID,
-  });
-});
+  };
+}
 
 /** Submit (or resubmit) proof of an out-of-band payment: a transaction id
  * and a screenshot. Moves the row into the admin approval queue. */
-router.post("/:registrationId/proof", ...CurrentUser, proofUpload, async (req, res) => {
-  const registrationId = requireString(req.params.registrationId, { field: "registration_id" });
+export async function submitProof({ user, registrationId, transactionId, file, extension }) {
+  const id = requireString(registrationId, { field: "registration_id" });
   // multipart text fields arrive as strings on req.body, same validators apply.
-  const transactionId = requireString(req.body?.transaction_id, {
-    field: "transaction_id",
-    minLength: 4,
-  });
-  if (!req.file) throw new ApiError(400, "screenshot: a payment screenshot is required");
+  const txnId = requireString(transactionId, { field: "transaction_id", minLength: 4 });
+  if (!file) throw new ApiError(400, "screenshot: a payment screenshot is required");
 
   const db = getDb();
-  const regRef = db.collection("registrations").doc(registrationId);
-  const reg = await regRef.get();
-  if (!reg.exists) throw new ApiError(404, "Registration not found");
-  const row = reg.data() ?? {};
-  if (row.uid !== req.user.uid) throw new ApiError(403, "Not your registration");
+  const { regRef, row } = await ownedRegistration(db, id, user.uid);
   if (row.payment_mode !== MODE_SCREENSHOT) {
     throw new ApiError(400, "This registration is being paid through the payment gateway");
   }
@@ -280,15 +266,14 @@ router.post("/:registrationId/proof", ...CurrentUser, proofUpload, async (req, r
   }
 
   const uploadedAt = new Date().toISOString();
-  const ext = PROOF_TYPES[req.file.mimetype];
   // Timestamped rather than overwritten: a resubmission after a rejection
   // keeps the earlier attempt, so an admin can see what changed.
-  const proofPath = `payment-proofs/${registrationId}/${Date.now()}.${ext}`;
-  await uploadBuffer(proofPath, req.file.buffer, req.file.mimetype);
+  const proofPath = `payment-proofs/${id}/${Date.now()}.${extension}`;
+  await uploadBuffer(proofPath, file.buffer, file.mimetype);
 
   const update = {
     status: STATUS_AWAITING_APPROVAL,
-    transaction_id: transactionId,
+    transaction_id: txnId,
     proof_path: proofPath,
     proof_uploaded_at: uploadedAt,
     // Clear the previous verdict so a resubmission doesn't still show the
@@ -299,58 +284,61 @@ router.post("/:registrationId/proof", ...CurrentUser, proofUpload, async (req, r
   };
   await regRef.update(update);
   aggregate.invalidateLoadAll();
-  res.json({ registration_id: registrationId, ...update });
-});
+  return { registration_id: id, ...update };
+}
 
 /** Attach (or replace) the team's presentation file for an event that opts in
  * to submissions. The stored object is named by the registration id — one
  * file per team, latest overwrites — unlike a payment proof, which is kept
  * per-attempt. */
-router.post("/:registrationId/submission", ...CurrentUser, submissionUpload, async (req, res) => {
-  const registrationId = requireString(req.params.registrationId, { field: "registration_id" });
-  if (!req.file) throw new ApiError(400, "file: a submission file is required");
+export async function submitFile({ user, registrationId, file, extension }) {
+  const id = requireString(registrationId, { field: "registration_id" });
+  if (!file) throw new ApiError(400, "file: a submission file is required");
 
   const db = getDb();
-  const regRef = db.collection("registrations").doc(registrationId);
-  const reg = await regRef.get();
-  if (!reg.exists) throw new ApiError(404, "Registration not found");
-  const row = reg.data() ?? {};
-  if (row.uid !== req.user.uid) throw new ApiError(403, "Only the team lead can upload the submission");
-  if (row.status === STATUS_DRAFT) throw new ApiError(409, "Finish your registration before uploading a file");
+  const { regRef, row } = await ownedRegistration(
+    db,
+    id,
+    user.uid,
+    "Only the team lead can upload the submission"
+  );
+  if (row.status === STATUS_DRAFT) {
+    throw new ApiError(409, "Finish your registration before uploading a file");
+  }
 
   const event = await db.collection("events").doc(row.event_id).get();
   if (!event.data()?.allow_submissions) {
     throw new ApiError(400, "This event isn't accepting file uploads");
   }
 
-  const ext = SUBMISSION_TYPES[req.file.mimetype];
-  const objectPath = `submissions/${registrationId}.${ext}`;
-  await uploadBuffer(objectPath, req.file.buffer, req.file.mimetype);
+  const objectPath = `submissions/${id}.${extension}`;
+  await uploadBuffer(objectPath, file.buffer, file.mimetype);
 
   const update = {
     submission_path: objectPath,
-    submission_ext: ext,
-    submission_filename: req.file.originalname || `${registrationId}.${ext}`,
+    submission_ext: extension,
+    submission_filename: file.originalname || `${id}.${extension}`,
     submission_uploaded_at: new Date().toISOString(),
   };
   await regRef.update(update);
   aggregate.invalidateLoadAll();
-  res.json({ registration_id: registrationId, ...update });
-});
+  return { registration_id: id, ...update };
+}
 
 /** Add one more teammate to an already-confirmed team registration while
  * registration is still open. Costs one extra person's fee, collected through
  * the same payment flow the registration used. The row drops back to `pending`
  * with `amount_due` set to just the top-up, and finishes via the existing
- * `/proof` (+ admin approval) or `/verify` route. */
-router.post("/:registrationId/members", ...CurrentUser, async (req, res) => {
-  const registrationId = requireString(req.params.registrationId, { field: "registration_id" });
+ * proof (+ admin approval) or verify path. */
+export async function addMember({ user, registrationId, body }) {
+  const id = requireString(registrationId, { field: "registration_id" });
   const db = getDb();
-  const regRef = db.collection("registrations").doc(registrationId);
-  const reg = await regRef.get();
-  if (!reg.exists) throw new ApiError(404, "Registration not found");
-  const row = reg.data() ?? {};
-  if (row.uid !== req.user.uid) throw new ApiError(403, "Only the team lead can add a teammate");
+  const { regRef, row } = await ownedRegistration(
+    db,
+    id,
+    user.uid,
+    "Only the team lead can add a teammate"
+  );
 
   const { registration_open } = await getAppSettings();
   if (!registration_open) throw new ApiError(403, "Registration is closed");
@@ -368,7 +356,7 @@ router.post("/:registrationId/members", ...CurrentUser, async (req, res) => {
   const teamMax = eventData.team_max ?? 1;
   if (newSize > teamMax) throw new ApiError(400, `Your team is full (max ${teamMax})`);
 
-  const member = parseTeamMember(req.body || {}, members.length);
+  const member = parseTeamMember(body, members.length);
   const topUp = eventData.fee || 0;
   const update = {
     members: [...members, member],
@@ -379,7 +367,7 @@ router.post("/:registrationId/members", ...CurrentUser, async (req, res) => {
   if (topUp <= 0) {
     await regRef.update(update);
     aggregate.invalidateLoadAll();
-    return res.json({ registration_id: registrationId, status: STATUS_COMPLETED, amount: 0 });
+    return { registration_id: id, status: STATUS_COMPLETED, amount: 0 };
   }
 
   update.amount_due = topUp;
@@ -388,48 +376,36 @@ router.post("/:registrationId/members", ...CurrentUser, async (req, res) => {
   if (row.payment_mode === MODE_SCREENSHOT) {
     await regRef.update(update);
     aggregate.invalidateLoadAll();
-    return res.json({
-      registration_id: registrationId,
+    return {
+      registration_id: id,
       payment_mode: MODE_SCREENSHOT,
       amount: topUp * 100,
       currency: "INR",
       status: STATUS_PENDING,
-    });
+    };
   }
 
-  let order;
-  try {
-    order = await createOrder(topUp, regRef.id);
-  } catch (err) {
-    if (/not configured/i.test(err.message)) {
-      throw new ApiError(503, "Online payments are not configured right now");
-    }
-    throw err;
-  }
+  const order = await openOrder(topUp, regRef.id, "Online payments are not configured right now");
   update.order_id = order.id;
   await regRef.update(update);
   aggregate.invalidateLoadAll();
-  res.json({
-    registration_id: registrationId,
+  return {
+    registration_id: id,
     payment_mode: MODE_GATEWAY,
     order_id: order.id,
     amount: order.amount,
     currency: order.currency,
     key_id: settings.PAYMENT_KEY_ID,
     status: STATUS_PENDING,
-  });
-});
+  };
+}
 
 /** Payment details for resuming an in-progress teammate top-up (the lead
  * closed the sheet before paying). */
-router.get("/:registrationId/topup", ...CurrentUser, async (req, res) => {
-  const registrationId = requireString(req.params.registrationId, { field: "registration_id" });
+export async function resumeTopUp({ user, registrationId }) {
+  const id = requireString(registrationId, { field: "registration_id" });
   const db = getDb();
-  const regRef = db.collection("registrations").doc(registrationId);
-  const reg = await regRef.get();
-  if (!reg.exists) throw new ApiError(404, "Registration not found");
-  const row = reg.data() ?? {};
-  if (row.uid !== req.user.uid) throw new ApiError(403, "Not your registration");
+  const { regRef, row } = await ownedRegistration(db, id, user.uid);
 
   const amountDue = row.amount_due || 0;
   const resumable = amountDue > 0 && [STATUS_PENDING, STATUS_REJECTED].includes(row.status);
@@ -437,49 +413,40 @@ router.get("/:registrationId/topup", ...CurrentUser, async (req, res) => {
 
   if (row.payment_mode === MODE_SCREENSHOT) {
     const { payment_upi_id, payment_qr_path } = await getAppSettings();
-    return res.json({
+    return {
       payment_mode: MODE_SCREENSHOT,
       amount_due: amountDue,
       upi_id: payment_upi_id || "",
       has_qr: Boolean(payment_qr_path),
       rejection_note: row.review_note || "",
-    });
+    };
   }
 
-  let order;
-  try {
-    order = await createOrder(amountDue, regRef.id);
-  } catch (err) {
-    if (/not configured/i.test(err.message)) {
-      throw new ApiError(503, "Online payments are not configured right now");
-    }
-    throw err;
-  }
+  const order = await openOrder(amountDue, regRef.id, "Online payments are not configured right now");
   await regRef.update({ order_id: order.id });
   aggregate.invalidateLoadAll();
-  res.json({
+  return {
     payment_mode: MODE_GATEWAY,
     amount_due: amountDue,
     amount: order.amount,
     order_id: order.id,
     currency: order.currency,
     key_id: settings.PAYMENT_KEY_ID,
-  });
-});
+  };
+}
 
-router.post("/verify", ...CurrentUser, async (req, res) => {
-  const body = req.body || {};
+/** Finish a gateway payment. The signature is re-checked server-side before
+ * anything advances — the client's word that it paid is never enough. */
+export async function verifyPayment({ user, body }) {
   const registrationId = requireString(body.registration_id, { field: "registration_id" });
   const razorpayOrderId = requireString(body.razorpay_order_id, { field: "razorpay_order_id" });
-  const razorpayPaymentId = requireString(body.razorpay_payment_id, { field: "razorpay_payment_id" });
+  const razorpayPaymentId = requireString(body.razorpay_payment_id, {
+    field: "razorpay_payment_id",
+  });
   const razorpaySignature = requireString(body.razorpay_signature, { field: "razorpay_signature" });
 
   const db = getDb();
-  const regRef = db.collection("registrations").doc(registrationId);
-  const reg = await regRef.get();
-  if (!reg.exists) throw new ApiError(404, "Registration not found");
-  const row = reg.data() ?? {};
-  if (row.uid !== req.user.uid) throw new ApiError(403, "Not your registration");
+  const { regRef, row } = await ownedRegistration(db, registrationId, user.uid);
   // The order the client reports must be the one we created for this row.
   if (row.order_id && row.order_id !== razorpayOrderId) {
     throw new ApiError(400, "Order does not match this registration");
@@ -501,5 +468,5 @@ router.post("/verify", ...CurrentUser, async (req, res) => {
     amount_due: 0,
   });
   aggregate.invalidateLoadAll();
-  res.json({ status: STATUS_COMPLETED, registration_id: registrationId });
-});
+  return { status: STATUS_COMPLETED, registration_id: registrationId };
+}

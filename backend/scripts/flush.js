@@ -10,8 +10,8 @@
  * backend/.env (FIRESTORE_DATABASE_ID, STORAGE_BUCKET) through src/config.js.
  * Irreversible.
  */
-import { settings } from "../src/config.js";
-import { getDb, getStorage } from "../src/services/firebase.js";
+import { settings } from "../src/config/index.js";
+import { getDb, getStorage } from "../src/config/firebase.js";
 
 const CONFIRM = process.argv.includes("--yes");
 const FULL_WIPE_COLLECTIONS = ["events", "registrations", "venues"];

@@ -11,11 +11,11 @@
  * Like services/payment.js, a missing configuration degrades to a 503 on the
  * routes that need it rather than crashing the server at boot.
  */
-import { ApiError } from "../errors.js";
-import { settings } from "../config.js";
-import { getStorage } from "./firebase.js";
+import { ApiError } from "../utils/ApiError.js";
+import { settings } from "../config/index.js";
+import { getStorage } from "../config/firebase.js";
 
-export function getBucket() {
+function getBucket() {
   if (!settings.STORAGE_BUCKET) {
     throw new ApiError(503, "File storage is not configured (STORAGE_BUCKET)");
   }

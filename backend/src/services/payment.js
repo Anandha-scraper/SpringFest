@@ -2,7 +2,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 
 import Razorpay from "razorpay";
 
-import { settings } from "../config.js";
+import { settings } from "../config/index.js";
 
 /** Lazily construct the Razorpay client.
  *

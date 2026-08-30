@@ -3,7 +3,7 @@
  * the same kind of message FastAPI/Pydantic would have produced, so routes
  * stay a single readable list of checks instead of duplicating regexes.
  */
-import { ApiError } from "./errors.js";
+import { ApiError } from "./ApiError.js";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 

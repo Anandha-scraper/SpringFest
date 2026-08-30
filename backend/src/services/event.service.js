@@ -1,10 +1,15 @@
-import { Router } from "express";
-
-import { ApiError } from "../errors.js";
-import { AdminUser } from "../middleware/auth.js";
-import * as aggregate from "../services/aggregate.js";
-import { cached, invalidate } from "../services/cache.js";
-import { getDb } from "../services/firebase.js";
+/** Event reads and the admin write rules — everything `POST/PATCH/DELETE
+ * /api/events` does once the HTTP layer has handed over a body.
+ *
+ * Also owns the venue-name lookup cache: venues rarely change, but the scan
+ * runs on every public GET /events hit (the most-visited endpoint in the app),
+ * so it gets a longer TTL than aggregate.loadAll()'s.
+ */
+import * as aggregate from "./aggregate.js";
+import { cached, invalidate } from "./cache.js";
+import { getDb } from "../config/firebase.js";
+import { ApiError } from "../utils/ApiError.js";
+import { slugify } from "../utils/slugify.js";
 import {
   EVENT_CATEGORIES,
   optionalInt,
@@ -14,23 +19,10 @@ import {
   requireInt,
   requireOneOf,
   requireString,
-} from "../validate.js";
+} from "../utils/validate.js";
 
-export const router = Router();
-
-// venues rarely change, but this scan runs on every public GET /events hit
-// (the most-visited endpoint in the app), so it's worth a longer TTL than
-// aggregate.loadAll()'s.
 const VENUE_NAMES_KEY = "events:venue_names";
 const VENUE_NAMES_TTL_SECONDS = 60;
-
-export function slugify(value) {
-  return value
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
-}
 
 async function scanVenueNames() {
   const snap = await getDb().collection("venues").get();
@@ -48,11 +40,23 @@ export function invalidateVenueNames() {
 
 // Changing any of these after someone has registered would rewrite the deal
 // they signed up to, so they freeze. Venue and time can still move.
-export const LOCKED_FIELDS = new Set(["name", "fee", "date", "category", "is_team_event", "team_min", "team_max"]);
+export const LOCKED_FIELDS = new Set([
+  "name",
+  "fee",
+  "date",
+  "category",
+  "is_team_event",
+  "team_min",
+  "team_max",
+]);
 
 /** One doc is enough to know an event is live — no need to count them all. */
 async function hasRegistrations(eventId) {
-  const snap = await getDb().collection("registrations").where("event_id", "==", eventId).limit(1).get();
+  const snap = await getDb()
+    .collection("registrations")
+    .where("event_id", "==", eventId)
+    .limit(1)
+    .get();
   return !snap.empty;
 }
 
@@ -122,24 +126,65 @@ function parseEventCreate(body) {
   };
 }
 
-// ── Public reads ─────────────────────────────────────────────
-router.get("/", async (req, res) => {
-  const [venues, snap] = await Promise.all([venueNames(), getDb().collection("events").get()]);
-  res.json(snap.docs.map((d) => toEvent(d.id, d.data() ?? {}, venues)));
-});
+/** Only what a PATCH body actually sent — "every field optional, only what's
+ * sent is changed" (FastAPI's exclude_unset). */
+function parseEventPatch(body) {
+  const changes = {};
+  if (body.name !== undefined) {
+    changes.name = requireString(body.name, { field: "name", minLength: 2 });
+  }
+  if (body.description !== undefined) changes.description = optionalString(body.description);
+  if (body.category !== undefined) {
+    changes.category = requireOneOf(body.category, EVENT_CATEGORIES, { field: "category" });
+  }
+  if (body.venue_id !== undefined) changes.venue_id = optionalString(body.venue_id);
+  if (body.date !== undefined) changes.date = optionalString(body.date);
+  if (body.start_time !== undefined) changes.start_time = optionalString(body.start_time);
+  if (body.end_time !== undefined) changes.end_time = optionalString(body.end_time);
+  if (body.fee !== undefined) changes.fee = requireInt(body.fee, { field: "fee", min: 0 });
+  if (body.is_team_event !== undefined) changes.is_team_event = requireBool(body.is_team_event);
+  if (body.team_min !== undefined) {
+    changes.team_min = requireInt(body.team_min, { field: "team_min", min: 1 });
+  }
+  if (body.team_max !== undefined) {
+    changes.team_max = requireInt(body.team_max, { field: "team_max", min: 1 });
+  }
+  // None of these are in LOCKED_FIELDS — organisers can change file uploads,
+  // the participant-facing instructions, the judges' marking criteria and
+  // whether the event is still accepting entries at any point in the fest.
+  if (body.allow_submissions !== undefined) {
+    changes.allow_submissions = requireBool(body.allow_submissions);
+  }
+  if (body.instructions !== undefined) changes.instructions = optionalString(body.instructions);
+  if (body.marking_criteria !== undefined) {
+    changes.marking_criteria = parseMarkingCriteria(body.marking_criteria);
+  }
+  if (body.registration_open !== undefined) {
+    changes.registration_open = requireBool(body.registration_open);
+  }
+  return changes;
+}
 
-router.get("/:eventId", async (req, res) => {
-  const doc = await getDb().collection("events").doc(req.params.eventId).get();
+// ── Public reads ─────────────────────────────────────────────
+
+export async function listEvents() {
+  const [venues, snap] = await Promise.all([venueNames(), getDb().collection("events").get()]);
+  return snap.docs.map((d) => toEvent(d.id, d.data() ?? {}, venues));
+}
+
+export async function getEvent(eventId) {
+  const doc = await getDb().collection("events").doc(eventId).get();
   if (!doc.exists) throw new ApiError(404, "Event not found");
   // `locked` only matters when editing, so it's resolved on the single-event
   // read (where the admin form gets its values) and not on the list.
   const [venues, locked] = await Promise.all([venueNames(), hasRegistrations(doc.id)]);
-  res.json(toEvent(doc.id, doc.data() ?? {}, venues, locked));
-});
+  return toEvent(doc.id, doc.data() ?? {}, venues, locked);
+}
 
 // ── Admin writes ─────────────────────────────────────────────
-router.post("/", ...AdminUser, async (req, res) => {
-  const payload = parseEventCreate(req.body || {});
+
+export async function createEvent(body) {
+  const payload = parseEventCreate(body);
   const eventId = slugify(payload.name);
   if (!eventId) throw new ApiError(400, "Event name must contain letters or numbers");
 
@@ -163,41 +208,19 @@ router.post("/", ...AdminUser, async (req, res) => {
   await db.collection("events").doc(eventId).set(data);
   aggregate.invalidateLoadAll();
 
-  res.status(201).json(toEvent(eventId, data, await venueNames()));
-});
+  return toEvent(eventId, data, await venueNames());
+}
 
-router.patch("/:eventId", ...AdminUser, async (req, res) => {
+export async function updateEvent(eventId, body) {
   const db = getDb();
-  const ref = db.collection("events").doc(req.params.eventId);
+  const ref = db.collection("events").doc(eventId);
   const doc = await ref.get();
   if (!doc.exists) throw new ApiError(404, "Event not found");
 
   const current = doc.data() ?? {};
-  const body = req.body || {};
-  const changes = {};
-  // "Every field optional — only what's sent is changed" (exclude_unset).
-  if (body.name !== undefined) changes.name = requireString(body.name, { field: "name", minLength: 2 });
-  if (body.description !== undefined) changes.description = optionalString(body.description);
-  if (body.category !== undefined) {
-    changes.category = requireOneOf(body.category, EVENT_CATEGORIES, { field: "category" });
-  }
-  if (body.venue_id !== undefined) changes.venue_id = optionalString(body.venue_id);
-  if (body.date !== undefined) changes.date = optionalString(body.date);
-  if (body.start_time !== undefined) changes.start_time = optionalString(body.start_time);
-  if (body.end_time !== undefined) changes.end_time = optionalString(body.end_time);
-  if (body.fee !== undefined) changes.fee = requireInt(body.fee, { field: "fee", min: 0 });
-  if (body.is_team_event !== undefined) changes.is_team_event = requireBool(body.is_team_event);
-  if (body.team_min !== undefined) changes.team_min = requireInt(body.team_min, { field: "team_min", min: 1 });
-  if (body.team_max !== undefined) changes.team_max = requireInt(body.team_max, { field: "team_max", min: 1 });
-  // None of these are in LOCKED_FIELDS — organisers can change file uploads,
-  // the participant-facing instructions, the judges' marking criteria and
-  // whether the event is still accepting entries at any point in the fest.
-  if (body.allow_submissions !== undefined) changes.allow_submissions = requireBool(body.allow_submissions);
-  if (body.instructions !== undefined) changes.instructions = optionalString(body.instructions);
-  if (body.marking_criteria !== undefined) changes.marking_criteria = parseMarkingCriteria(body.marking_criteria);
-  if (body.registration_open !== undefined) changes.registration_open = requireBool(body.registration_open);
+  const changes = parseEventPatch(body);
 
-  const locked = await hasRegistrations(req.params.eventId);
+  const locked = await hasRegistrations(eventId);
   if (locked) {
     // People have already paid against this event's terms, so the terms
     // stop being editable. Venue, time and description still move.
@@ -214,7 +237,7 @@ router.patch("/:eventId", ...AdminUser, async (req, res) => {
   }
 
   if (changes.venue_id !== undefined) {
-    const takenBy = await venueTakenBy(changes.venue_id, req.params.eventId);
+    const takenBy = await venueTakenBy(changes.venue_id, eventId);
     if (takenBy) throw new ApiError(409, `That venue is already used by "${takenBy}"`);
   }
 
@@ -226,17 +249,19 @@ router.patch("/:eventId", ...AdminUser, async (req, res) => {
   await ref.set(changes, { merge: true });
   aggregate.invalidateLoadAll();
 
-  res.json(toEvent(req.params.eventId, { ...current, ...changes }, await venueNames(), locked));
-});
+  return toEvent(eventId, { ...current, ...changes }, await venueNames(), locked);
+}
 
-router.delete("/:eventId", ...AdminUser, async (req, res) => {
+export async function deleteEvent(eventId) {
   const db = getDb();
-  const ref = db.collection("events").doc(req.params.eventId);
+  const ref = db.collection("events").doc(eventId);
   if (!(await ref.get()).exists) throw new ApiError(404, "Event not found");
-  if (await hasRegistrations(req.params.eventId)) {
-    throw new ApiError(409, "This event has registrations and can't be deleted. Ask an organiser first.");
+  if (await hasRegistrations(eventId)) {
+    throw new ApiError(
+      409,
+      "This event has registrations and can't be deleted. Ask an organiser first."
+    );
   }
   await ref.delete();
   aggregate.invalidateLoadAll();
-  res.status(204).end();
-});
+}

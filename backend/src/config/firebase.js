@@ -3,7 +3,7 @@ import { existsSync } from "node:fs";
 import admin from "firebase-admin";
 import { getFirestore } from "firebase-admin/firestore";
 
-import { settings } from "../config.js";
+import { settings } from "./index.js";
 
 let db = null;
 
