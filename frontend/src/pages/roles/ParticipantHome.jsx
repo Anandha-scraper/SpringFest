@@ -1,8 +1,9 @@
 import { useCallback } from "react";
 import { Link } from "react-router-dom";
-import { getEvents, getMyRegistrations } from "../../api/client.js";
-import EventCard from "../../components/EventCard.jsx";
-import { useApi } from "../../hooks/useApi.js";
+import { getEvents, getMyRegistrations } from "@/api/client.js";
+import EventCard from "@/components/common/EventCard.jsx";
+import { useApi } from "@/hooks/useApi.js";
+import Loader from "@/components/common/Loader.jsx";
 
 const load = () => Promise.all([getEvents(), getMyRegistrations()]);
 
@@ -11,7 +12,7 @@ export default function ParticipantHome() {
   const { data, error, loading } = useApi(fetcher);
   const [events, registrations] = data || [[], []];
 
-  if (loading) return <div className="spinner" />;
+  if (loading) return <Loader />;
   if (error) return <p className="error">{error}</p>;
 
   // One lookup for "have I already signed up for this?", so each tile can
@@ -23,24 +24,13 @@ export default function ParticipantHome() {
 
   return (
     <div className="admin">
-      <div className="admin-head">
-        <div>
-          <span className="eyebrow">Your fest</span>
-          <h1>Overview</h1>
-          <p className="muted">
-            Everything running at Spring Fest. Pick an event to register — you'll find
-            your entry passes under My Registrations.
-          </p>
-        </div>
-      </div>
-
       {!!registered.length && (
         <section className="admin-panel">
           <div className="panel-head">
             <h2>You're registered for</h2>
             <span className="muted">{registered.length}</span>
           </div>
-          <div className="grid">
+          <div className="event-grid">
             {registered.map((e) => (
               <EventCard key={e.id} event={e} registration={mine.get(e.id)} />
             ))}
@@ -64,7 +54,7 @@ export default function ParticipantHome() {
             <Link to="/participant/registrations">My Registrations</Link>.
           </p>
         ) : (
-          <div className="grid">
+          <div className="event-grid">
             {open.map((e) => (
               <EventCard key={e.id} event={e} />
             ))}

@@ -1,0 +1,9 @@
+/* 404 page. */
+
+.not-found__mark {
+  font-size: 3rem;
+  display: block;
+  margin-bottom: 0.75rem;
+}
+
+.not-found__lead { margin: 0.75rem 0 1.75rem; }

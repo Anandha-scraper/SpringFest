@@ -1,8 +1,10 @@
 import { useCallback, useState } from "react";
-import FormActions from "../../components/admin/FormActions.jsx";
-import { ROLES } from "../../content/roles.js";
-import { addPerson, getPeople, removePerson } from "../../api/client.js";
-import { useApi } from "../../hooks/useApi.js";
+import Loader from "@/components/common/Loader.jsx";
+import FormActions from "@/components/admin/FormActions.jsx";
+import { useToast } from "@/components/ui/toast.jsx";
+import { ROLES } from "@/content/roles.js";
+import { addPerson, checkPersonConflicts, getPeople, removePerson } from "@/api/client.js";
+import { useApi } from "@/hooks/useApi.js";
 
 const FILTERS = [
   { label: "All", value: "" },
@@ -20,8 +22,8 @@ export default function AddRoles() {
   const { data, error: loadError, loading, reload } = useApi(fetcher);
   const people = data || [];
 
+  const toast = useToast();
   const [filter, setFilter] = useState("");
-  const [error, setError] = useState("");
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [role, setRole] = useState(ROLES.JUDGE);
@@ -32,52 +34,73 @@ export default function AddRoles() {
     e.preventDefault();
     const key = email.trim().toLowerCase();
     if (!key) return;
-    setError("");
-
-    // Admin grants every /api/admin/* endpoint, including the CSV export of
-    // every registrant's contact details. Worth a beat of friction.
-    if (
-      role === ROLES.ADMIN &&
-      !window.confirm(
-        `Make ${key} an admin? They will be able to see and export every registration.`
-      )
-    ) return;
 
     try {
+      // Check what's already on file for this address before committing to
+      // anything — upsertPerson would otherwise silently overwrite an
+      // existing role, and giving someone a staff role doesn't clear their
+      // own event registrations, which is easy to lose track of.
+      const info = await checkPersonConflicts(key);
+
+      if (info.seeded) {
+        toast.bad(`${key} is a seeded admin (set in ADMIN_EMAILS) — their role can't be changed here.`);
+        return;
+      }
+
+      if (info.role && info.role !== role) {
+        if (
+          !window.confirm(
+            `${key} is already ${info.role === "admin" ? "an" : "a"} ${info.role}. ` +
+              `Change them to ${role} instead?`
+          )
+        ) return;
+      }
+
+      if (info.registrations_count > 0) {
+        const list = info.events.length ? ` (${info.events.join(", ")})` : "";
+        const n = info.registrations_count;
+        if (
+          !window.confirm(
+            `${key} already has ${n} event registration${n === 1 ? "" : "s"}${list} as a participant. ` +
+              `They'll keep ${n === 1 ? "it" : "them"} after becoming a ${role}. Continue?`
+          )
+        ) return;
+      }
+
+      // Admin grants every /api/admin/* endpoint, including the CSV export of
+      // every registrant's contact details. Worth a beat of friction.
+      if (
+        role === ROLES.ADMIN &&
+        !window.confirm(
+          `Make ${key} an admin? They will be able to see and export every registration.`
+        )
+      ) return;
+
       await addPerson({ email: key, name: name.trim(), role });
       setEmail("");
       setName("");
       await reload();
+      toast.ok(`${key} added as ${role}.`);
     } catch (err) {
-      setError(err.message);
+      toast.bad(err.message);
     }
   };
 
   const remove = async (person) => {
-    setError("");
     try {
       await removePerson(person.email);
       await reload();
+      toast.ok(`${person.email} is a participant again.`);
     } catch (err) {
-      setError(err.message);
+      toast.bad(err.message);
     }
   };
 
-  if (loading) return <div className="spinner" />;
+  if (loading) return <Loader />;
   if (loadError) return <p className="error">{loadError}</p>;
 
   return (
     <div className="admin">
-      <div className="admin-head">
-        <div>
-          <span className="eyebrow">Organiser view</span>
-          <h1>Add Roles</h1>
-          <p className="muted">
-            Add judges and volunteers. Anyone not listed here signs in as a participant.
-          </p>
-        </div>
-      </div>
-
       <section className="admin-panel">
         <div className="panel-head">
           <h2>Add a person</h2>
@@ -108,8 +131,6 @@ export default function AddRoles() {
           </select>
           <FormActions saveLabel="Add person" />
         </form>
-
-        {error && <p className="error">{error}</p>}
       </section>
 
       <section className="admin-panel">

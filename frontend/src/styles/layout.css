@@ -61,6 +61,25 @@
   padding-right: 4px;
 }
 
+/* ── Register button — always on the right of the desktop pill bar ── */
+.site-pillnav .pill-trailing .register-button .btn-container {
+  --corner-dist: 14px;
+  --corner-multiplier: 1;
+}
+.site-pillnav .pill-trailing .register-button .btn {
+  min-width: 96px;
+  min-height: calc(14px * 2);
+  border-radius: 12px;
+  font-size: 0.82rem;
+  box-shadow: none;
+}
+.site-pillnav .pill-trailing .register-button .btn-drawer {
+  border-radius: 10px;
+}
+.site-pillnav .pill-trailing .register-button .btn-text {
+  font-size: 0.82rem;
+}
+
 .nav-user-pill {
   display: inline-flex;
   align-items: center;
@@ -290,13 +309,22 @@
 
 /* The panel is white; match the site's type instead of the component's. */
 .nav-mobile .staggered-menu-panel { background: var(--cream); }
+/* The panel content box is (viewport − 2×2em panel padding) and the item adds
+   `padding-right: 1.4em` for the numbering; `.sm-panel-itemWrap` clips at
+   `overflow: hidden`, so an over-wide word is cut, not wrapped. At 320–360px
+   the old 2.4rem floor put "SCHEDULE" (Fraunces 600, a wide serif) past that
+   box. Lower the floor and let 9.5vw do the work below ~400px. */
 .nav-mobile .sm-panel-item {
   font-family: var(--font-display);
   font-weight: 600;
-  font-size: clamp(2.4rem, 11vw, 3.5rem);
+  font-size: clamp(1.75rem, 9.5vw, 3.5rem);
   letter-spacing: -0.01em;
   text-transform: none;
   color: var(--ink);
+}
+@media (max-width: 400px) {
+  .nav-mobile .staggered-menu-panel { padding-left: 1.35em; padding-right: 1.35em; }
+  .nav-mobile .sm-panel-item { padding-right: 1.1em; }
 }
 .nav-mobile .sm-socials-title,
 .nav-mobile .sm-socials-link { font-family: var(--font-body); }

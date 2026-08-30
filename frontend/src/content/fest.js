@@ -10,7 +10,6 @@ export const fest = {
   blurb:
     "The annual inter-collegiate technical symposium — 24 events, 30+ colleges, one campus in full bloom.",
   dates: "March 14–15, 2026",
-  venue: "Main Campus Auditorium",
 
   institution: {
     name: "Your Institution Name",
@@ -20,27 +19,8 @@ export const fest = {
     website: "https://example.edu",
   },
 
-  // Hero counters
-  stats: [
-    { label: "Events", value: 24, suffix: "" },
-    { label: "Colleges", value: 30, suffix: "+" },
-    { label: "Participants", value: 1500, suffix: "+" },
-    { label: "Prize Pool", value: 1, prefix: "₹", suffix: "L" },
-  ],
-
-  about: [
-    "Spring Fest 2k26 is the flagship technical symposium of the Department of Computer Science & Engineering, bringing together students from across the state for three days of competition, learning and celebration.",
-    "From 24-hour hackathons and paper presentations to robotics showdowns and a closing cultural night, there is something here whether you write code, design, debate or just want a very good weekend.",
-  ],
-
-  highlights: [
-    { icon: "🏆", title: "₹1 Lakh Prize Pool", text: "Across 24 technical and non-technical events." },
-    { icon: "🎓", title: "Industry Workshops", text: "Hands-on sessions led by engineers from top product companies." },
-    { icon: "🤝", title: "30+ Colleges", text: "Meet and compete with the best from across the region." },
-    { icon: "🎤", title: "Cultural Night", text: "Live band, stand-up and the closing awards ceremony." },
-  ],
-
-
+  // UNUSED — the landing Schedule section is built from the real events API
+  // (see components/sections/ScheduleFlow.jsx). Kept as reference copy only.
   schedule: [
     {
       day: "Day 1",
@@ -67,15 +47,6 @@ export const fest = {
   ],
 
 
-  faqs: [
-    { q: "Who can participate?", a: "Any student currently enrolled in an undergraduate or postgraduate programme. Carry your college ID to the venue." },
-    { q: "How do I register?", a: "Sign in with your Google account, pick an event, and complete payment online. You'll get a registration ID instantly." },
-    { q: "Can I register for multiple events?", a: "Yes. Register for each event separately — just check the schedule so your timings don't clash." },
-    { q: "Is accommodation provided?", a: "Yes, for outstation participants on a first-come basis. Mention it in the registration form and our team will reach out." },
-    { q: "What about refunds?", a: "Registration fees are non-refundable, but transferable to another participant up to 48 hours before the event." },
-    { q: "Will I get a certificate?", a: "All participants receive a digital participation certificate. Winners receive merit certificates and cash prizes." },
-  ],
-
   // Placeholder partner wordmarks for the hero LogoLoop — swap for real
   // sponsors (or { src, alt } image entries) when you have them.
   partners: [
@@ -87,12 +58,6 @@ export const fest = {
     "Stark Digital",
     "Wayne Analytics",
     "Hooli Cloud",
-  ],
-
-  contacts: [
-    { role: "Student Convenor", name: "Convenor Name", phone: "+91 90000 00001", email: "convenor@example.edu" },
-    { role: "Faculty Coordinator", name: "Coordinator Name", phone: "+91 90000 00002", email: "faculty@example.edu" },
-    { role: "Registrations", name: "Registration Desk", phone: "+91 90000 00003", email: "register@example.edu" },
   ],
 
   contact: {
@@ -121,18 +86,3 @@ export const navLinks = [
   { label: "Schedule", href: "/#schedule" },
   { label: "Contact", href: "/#contact" },
 ];
-
-// BubbleMenu (mobile) needs rotation + hover colours per item.
-const BUBBLE_HOVERS = [
-  { bgColor: "#f87b1b", textColor: "#ffffff" },  // orange
-  { bgColor: "#11224e", textColor: "#eeeeee" },  // navy
-  { bgColor: "#cbd99b", textColor: "#11224e" },  // sage
-];
-
-export const bubbleNavItems = navLinks.map((link, i) => ({
-  label: link.label,
-  href: link.href,
-  ariaLabel: link.label,
-  rotation: i % 2 === 0 ? -8 : 8,
-  hoverStyles: BUBBLE_HOVERS[i % BUBBLE_HOVERS.length],
-}));

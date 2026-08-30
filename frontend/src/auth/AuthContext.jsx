@@ -1,8 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut } from "firebase/auth";
-import { auth, isFirebaseConfigured, firebaseConfigError } from "./firebase.js";
-import { getMe } from "../api/client.js";
-import { DEFAULT_ROLE, ROLES } from "../content/roles.js";
+import { auth, isFirebaseConfigured, firebaseConfigError } from "@/auth/firebase.js";
+import { getMe } from "@/api/client.js";
+import { DEFAULT_ROLE, ROLES } from "@/content/roles.js";
 
 const AuthContext = createContext(null);
 
@@ -20,10 +20,17 @@ export function AuthProvider({ children }) {
   const [role, setRole] = useState(null);
   const [roleError, setRoleError] = useState("");
   const [loading, setLoading] = useState(isFirebaseConfigured);
-  // How registrations are being paid for right now. Rides along on /api/me
-  // because the registration form has to know which flow to render, and an
-  // organiser can flip it mid-fest if the gateway goes down.
-  const [payment, setPayment] = useState({ payment_mode: "", payment_instructions: "" });
+  // How registrations are being paid for right now, and whether new ones are
+  // even being accepted. Both ride along on /api/me because the registration
+  // form has to know before rendering, and an organiser can flip either mid-fest.
+  // `registration_open` defaults true so the form doesn't flash "closed"
+  // while this is still loading.
+  const [payment, setPayment] = useState({
+    payment_mode: "",
+    payment_upi_id: "",
+    has_payment_qr: false,
+    registration_open: true,
+  });
 
   // Returns the role as well as storing it: the sign-in flows need the value
   // immediately and can't wait for a re-render to redirect.
@@ -39,7 +46,9 @@ export function AuthProvider({ children }) {
       setRole(resolved);
       setPayment({
         payment_mode: me?.payment_mode || "",
-        payment_instructions: me?.payment_instructions || "",
+        payment_upi_id: me?.payment_upi_id || "",
+        has_payment_qr: Boolean(me?.has_payment_qr),
+        registration_open: me?.registration_open !== false,
       });
       setRoleError("");
       return resolved;
@@ -80,7 +89,9 @@ export function AuthProvider({ children }) {
     roleError,
     isAdmin: role === ROLES.ADMIN,
     paymentMode: payment.payment_mode,
-    paymentInstructions: payment.payment_instructions,
+    paymentUpiId: payment.payment_upi_id,
+    hasPaymentQr: payment.has_payment_qr,
+    registrationOpen: payment.registration_open,
     loading,
     isFirebaseConfigured,
     firebaseConfigError,

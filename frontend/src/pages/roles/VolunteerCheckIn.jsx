@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
+import "@/styles/pages/volunteer-check-in.css";
 import { CheckCircle2, Circle, Keyboard, MapPin, ScanLine, XCircle } from "lucide-react";
-import { scanPersonToken, toggleCheckIn } from "../../api/client.js";
-import { formatEventTime } from "../../lib/format.js";
+import { scanPersonToken, toggleCheckIn } from "@/api/client.js";
+import { formatEventTime } from "@/utils/format.js";
 
 const SCANNER_ID = "volunteer-qr-scanner";
 // Ignore repeat decodes of the same code while it's still sitting in frame —
@@ -21,7 +22,7 @@ function EventRow({ reg, onToggle, busy }) {
             {reg.venue_name}
           </span>
         )}
-        {reg.team_name && <span className="muted" style={{ fontSize: "0.8rem" }}>Team: {reg.team_name}</span>}
+        {reg.team_name && <span className="muted checkin-row__team">Team: {reg.team_name}</span>}
       </div>
       <button
         type="button"
@@ -186,7 +187,7 @@ export default function VolunteerCheckIn() {
           <button className="btn" type="submit" disabled={!manualId.trim() || busyKey === manualId}>
             {busyKey === manualId ? "Checking in…" : "Check in the lead"}
           </button>
-          <p className="muted" style={{ fontSize: "0.85rem" }}>
+          <p className="muted checkin-note">
             No ticket or QR on hand? Check in the team lead by their registration id — everyone
             else on the team should scan their own badge when they arrive.
           </p>
@@ -205,7 +206,7 @@ export default function VolunteerCheckIn() {
             )}
             <div>
               <strong>{person.name || person.email}</strong>
-              {person.name && <p className="muted" style={{ fontSize: "0.85rem" }}>{person.email}</p>}
+              {person.name && <p className="muted checkin-note">{person.email}</p>}
             </div>
           </div>
 
@@ -231,8 +232,8 @@ export default function VolunteerCheckIn() {
       )}
 
       {!person && mode === "scan" && (
-        <p className="muted" style={{ fontSize: "0.85rem", marginTop: 12 }}>
-          <XCircle size={13} aria-hidden="true" style={{ verticalAlign: "-2px", marginRight: 4 }} />
+        <p className="muted checkin-note checkin-note--spaced">
+          <XCircle size={13} aria-hidden="true" className="checkin-note__icon" />
           Point the camera at the participant's Spring Fest QR code.
         </p>
       )}

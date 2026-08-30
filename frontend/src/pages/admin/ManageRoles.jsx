@@ -1,7 +1,15 @@
 import { useCallback, useState } from "react";
-import { getEvents, getPeople, getVenueRollup, getVenues, setAssignments } from "../../api/client.js";
-import { useApi } from "../../hooks/useApi.js";
-import { formatEventTime } from "../../lib/format.js";
+import "@/styles/pages/admin/roles.css";
+import Loader from "@/components/common/Loader.jsx";
+import {
+  getEventRollup,
+  getEvents,
+  getPeople,
+  getVenues,
+  setAssignments,
+} from "@/api/client.js";
+import { useApi } from "@/hooks/useApi.js";
+import { formatEventTime } from "@/utils/format.js";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -13,7 +21,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog.jsx";
 
-const load = () => Promise.all([getPeople(), getEvents(), getVenues(), getVenueRollup()]);
+const load = () => Promise.all([getPeople(), getEvents(), getVenues(), getEventRollup()]);
 
 export default function ManageRoles() {
   const fetcher = useCallback(load, []);
@@ -80,21 +88,11 @@ export default function ManageRoles() {
     });
   };
 
-  if (loading) return <div className="spinner" />;
+  if (loading) return <Loader />;
   if (loadError) return <p className="error">{loadError}</p>;
 
   return (
     <div className="admin">
-      <div className="admin-head">
-        <div>
-          <span className="eyebrow">Organiser view</span>
-          <h1>Manage Roles</h1>
-          <p className="muted">
-            Assign judges to events and volunteers to venues, and see who falls under each.
-          </p>
-        </div>
-      </div>
-
       {/* ── Judges: assigned per event, never double-booked ─────── */}
       <section className="admin-panel">
         <div className="panel-head">
@@ -229,35 +227,64 @@ export default function ManageRoles() {
         )}
       </section>
 
-      {/* ── Read-only summary: what the assignments above add up to ── */}
+      {/* ── Progress per event ───────────────────────────────────────
+          Organisers think in events, not venues: who has turned up, and how
+          far the judging has got. Both bars are empty until the event's own
+          start time passes — the server sends `progress: null` for that, so
+          "not started" and "started, nothing judged" stay distinguishable. */}
       <div className="venue-grid">
-        {rollup.map((v) => {
-          const pct = v.registrations
-            ? Math.round((v.completed / v.registrations) * 100)
-            : 0;
+        {rollup.map((ev) => {
+          const total = ev.registrations || 0;
+          const pct = (n) => (total ? (n / total) * 100 : 0);
           return (
-            <section className="admin-panel venue-card" key={v.id}>
+            <section className="admin-panel venue-card" key={ev.event_id}>
               <div className="panel-head">
-                <h2>{v.name}</h2>
-                <span className="pill pill-completed">{v.completed}/{v.registrations}</span>
+                <h2>{ev.name}</h2>
+                <span className={`pill ${ev.started ? "pill-completed" : "pill-draft"}`}>
+                  {ev.started ? `${ev.checked_in}/${total}` : "Not started"}
+                </span>
               </div>
-              <span className="cell-sub">{v.event_name || "No event assigned"}</span>
-
-              <span className="bar-track venue-load">
-                <span className="bar-fill" style={{ width: `${pct}%` }} />
+              <span className="cell-sub">
+                {ev.venue_name || "No venue"}
+                {ev.date ? ` · ${formatEventTime(ev)}` : ""}
               </span>
-              <div className="venue-stat-row">
-                <span><strong>{v.registrations}</strong> registrations</span>
-                <span><strong>{v.checked_in}</strong> checked in</span>
-                <span><strong>{v.completed}</strong> completed</span>
-              </div>
 
-              {(v.judges.length > 0 || v.volunteers.length > 0) && (
+              {ev.started ? (
+                <>
+                  {/* Checked in (green) behind evaluated (accent), both over
+                      the same total, so the two read as one progression. */}
+                  <span className="bar-track event-progress">
+                    <span
+                      className="bar-fill bar-fill--in"
+                      style={{ "--bar-pct": `${pct(ev.checked_in)}%` }}
+                    />
+                    <span
+                      className="bar-fill bar-fill--done"
+                      style={{ "--bar-pct": `${pct(ev.evaluated)}%` }}
+                    />
+                  </span>
+                  <div className="venue-stat-row">
+                    <span><strong>{total}</strong> registered</span>
+                    <span><strong>{ev.checked_in}</strong> checked in</span>
+                    <span><strong>{ev.evaluated}</strong> evaluated</span>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <span className="bar-track event-progress" aria-hidden="true" />
+                  <div className="venue-stat-row">
+                    <span><strong>{total}</strong> registered</span>
+                    <span className="muted">Progress starts when the event does</span>
+                  </div>
+                </>
+              )}
+
+              {(ev.judges.length > 0 || ev.volunteers.length > 0) && (
                 <div className="venue-staff">
-                  {v.judges.map((name) => (
+                  {ev.judges.map((name) => (
                     <span key={name} className="pill pill-judge">{name}</span>
                   ))}
-                  {v.volunteers.map((name) => (
+                  {ev.volunteers.map((name) => (
                     <span key={name} className="pill pill-volunteer">{name}</span>
                   ))}
                 </div>

@@ -1,0 +1,162 @@
+/* Event detail + the register-for-an-event page. The detail card is shared
+   with the post-submit Success page. */
+
+/* ── Event detail / success ────────────────────────────────── */
+.detail-head { margin-bottom: 1.75rem; }
+.detail-head h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); margin: 0.625rem 0 0.625rem; }
+
+.detail-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: clamp(1.25rem, 4vw, 2rem);
+  box-shadow: var(--shadow-sm);
+}
+.detail-card h2 { font-size: 1.15rem; margin-bottom: 0.25rem; }
+
+/* ── Register-for-an-event page ────────────────────────────── */
+/* Two columns: the form to fill in on the left, the event's own details on
+   the right. Stacks (form first) on narrow screens. */
+.container.event-register {
+  max-width: none;
+  padding: 0;
+  display: grid;
+  /* Hug the left edge, grow the form into the space instead of centring with
+     wide margins. */
+  grid-template-columns: minmax(0, 1fr) minmax(0, 22rem);
+  justify-content: start;
+  gap: clamp(1rem, 3vw, 2rem);
+  align-items: start;
+}
+
+@media (max-width: 899px) {
+  .container.event-register {
+    grid-template-columns: 1fr;
+  }
+}
+
+.event-summary {
+  position: sticky;
+  top: clamp(1rem, 4vw, 2rem);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: clamp(1rem, 3vw, 1.5rem);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.event-summary h1 {
+  font-size: clamp(1.25rem, 3vw, 1.6rem);
+  line-height: 1.2;
+  margin: 0;
+}
+
+.event-summary__meta {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+}
+
+.event-summary__meta li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.event-summary__meta svg {
+  flex-shrink: 0;
+  margin-top: 0.15rem;
+  color: var(--ink-faint);
+}
+
+.event-summary .muted {
+  font-size: 0.88rem;
+  line-height: 1.55;
+  border-top: 1px solid var(--border);
+  padding-top: 0.75rem;
+  margin: 0;
+}
+
+@media (max-width: 899px) {
+  .event-summary {
+    position: static;
+    order: -1; /* show what you're registering for first */
+  }
+}
+
+.register-form__hint {
+  font-size: 0.85rem;
+  margin: 0.125rem 0 0;
+}
+
+/* Grouped rows (name/email/phone) span the form; stack on narrow screens. */
+.field-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+
+/* Two-up the short fields once there's room; identity fields and any
+   team-member blocks stay full width. */
+@media (min-width: 560px) {
+  .register-form {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem 1.25rem;
+    align-items: start;
+  }
+  .register-form > .field-row,
+  .register-form > .field--wide,
+  .register-form > .team-member,
+  .register-form > .form-actions-row,
+  .register-form > .register-form__hint,
+  .register-form > .btn-ghost,
+  .register-form > .error {
+    grid-column: 1 / -1;
+  }
+  .field-row {
+    display: grid;
+    gap: 1rem 1.25rem;
+  }
+  .field-row--2 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .field-row--3 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.success-mark { font-size: 3.4rem; margin-bottom: 0.5rem; }
+.reg-id {
+  display: block;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--accent);
+  background: var(--accent-soft);
+  padding: 0.75rem 1.125rem;
+  border-radius: var(--r-sm);
+  margin-top: 0.5rem;
+  word-break: break-all;
+}
+
+
+/* ── Post-submit confirmation (pages/Success.jsx) ───────────── */
+.success-lead { margin: 0.75rem 0 1.5rem; }
+
+/* The ticket block is the one centred card on the page — the registration id
+   is meant to be read aloud at the desk, so it sits on its own axis. */
+.success-ticket { text-align: center; }
+.success-ticket__hint { font-size: 0.85rem; margin-top: 0.625rem; }
+
+.success-actions { margin-top: 2rem; margin-bottom: 0; }
+
+/* The "what happens next" line under each step of the register flow. */
+.register-note { font-size: 0.9rem; }

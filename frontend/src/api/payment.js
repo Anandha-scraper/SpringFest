@@ -1,4 +1,4 @@
-import { verifyPayment } from "./client.js";
+import { verifyPayment } from "@/api/client.js";
 
 const CHECKOUT_SRC = "https://checkout.razorpay.com/v1/checkout.js";
 

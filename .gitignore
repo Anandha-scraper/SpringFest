@@ -1,7 +1,9 @@
 node_modules/
 dist/
+package-lock.json
 .env
 serviceAccountKey.json
 .firebase/
 firebase-debug.log
 CLAUDE.md
+firestore-backup-*.json

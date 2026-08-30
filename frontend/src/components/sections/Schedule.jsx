@@ -1,5 +1,5 @@
-import Shuffle from "../reactbits/Shuffle.jsx";
-import ScheduleFlow from "./ScheduleFlow.jsx";
+import Shuffle from "@/components/animation/Shuffle.jsx";
+import ScheduleFlow from "@/components/sections/ScheduleFlow.jsx";
 
 export default function Schedule() {
   return (

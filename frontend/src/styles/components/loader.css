@@ -1,0 +1,330 @@
+.ghost-loader-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Fills the space it's dropped into so the ghost sits in the optical
+     centre — as a full-page fallback that's most of the viewport, inside a
+     panel it's just that panel. */
+  min-height: 60vh;
+  width: 100%;
+  padding: 2rem 1rem;
+  box-sizing: border-box;
+}
+
+.ghost-loader-wrapper #ghost {
+  position: relative;
+  scale: 0.8;
+}
+
+.ghost-loader-wrapper #red {
+  animation: ghostUpNDown infinite 0.5s;
+  position: relative;
+  width: 140px;
+  height: 140px;
+  display: grid;
+  grid-template-columns: repeat(14, 1fr);
+  grid-template-rows: repeat(14, 1fr);
+  grid-column-gap: 0px;
+  grid-row-gap: 0px;
+  grid-template-areas:
+    "a1  a2  a3  a4  a5  top0  top0  top0  top0  a10 a11 a12 a13 a14"
+    "b1  b2  b3  top1 top1 top1 top1 top1 top1 top1 top1 b12 b13 b14"
+    "c1 c2 top2 top2 top2 top2 top2 top2 top2 top2 top2 top2 c13 c14"
+    "d1 top3 top3 top3 top3 top3 top3 top3 top3 top3 top3 top3 top3 d14"
+    "e1 top3 top3 top3 top3 top3 top3 top3 top3 top3 top3 top3 top3 e14"
+    "f1 top3 top3 top3 top3 top3 top3 top3 top3 top3 top3 top3 top3 f14"
+    "top4 top4 top4 top4 top4 top4 top4 top4 top4 top4 top4 top4 top4 top4"
+    "top4 top4 top4 top4 top4 top4 top4 top4 top4 top4 top4 top4 top4 top4"
+    "top4 top4 top4 top4 top4 top4 top4 top4 top4 top4 top4 top4 top4 top4"
+    "top4 top4 top4 top4 top4 top4 top4 top4 top4 top4 top4 top4 top4 top4"
+    "top4 top4 top4 top4 top4 top4 top4 top4 top4 top4 top4 top4 top4 top4"
+    "top4 top4 top4 top4 top4 top4 top4 top4 top4 top4 top4 top4 top4 top4"
+    "st0 st0 an4 st1 an7 st2 an10 an10 st3 an13 st4 an16 st5 st5"
+    "an1 an2 an3 an5 an6 an8 an9 an9 an11 an12 an14 an15 an17 an18";
+}
+
+@keyframes ghostUpNDown {
+  0%,
+  49% {
+    transform: translateY(0px);
+  }
+  50%,
+  100% {
+    transform: translateY(-10px);
+  }
+}
+
+.ghost-loader-wrapper #top0,
+.ghost-loader-wrapper #top1,
+.ghost-loader-wrapper #top2,
+.ghost-loader-wrapper #top3,
+.ghost-loader-wrapper #top4,
+.ghost-loader-wrapper #st0,
+.ghost-loader-wrapper #st1,
+.ghost-loader-wrapper #st2,
+.ghost-loader-wrapper #st3,
+.ghost-loader-wrapper #st4,
+.ghost-loader-wrapper #st5 {
+  background-color: red;
+}
+
+.ghost-loader-wrapper #top0 {
+  grid-area: top0;
+}
+
+.ghost-loader-wrapper #top1 {
+  grid-area: top1;
+}
+
+.ghost-loader-wrapper #top2 {
+  grid-area: top2;
+}
+
+.ghost-loader-wrapper #top3 {
+  grid-area: top3;
+}
+
+.ghost-loader-wrapper #top4 {
+  grid-area: top4;
+}
+
+.ghost-loader-wrapper #st0 {
+  grid-area: st0;
+}
+
+.ghost-loader-wrapper #st1 {
+  grid-area: st1;
+}
+
+.ghost-loader-wrapper #st2 {
+  grid-area: st2;
+}
+
+.ghost-loader-wrapper #st3 {
+  grid-area: st3;
+}
+
+.ghost-loader-wrapper #st4 {
+  grid-area: st4;
+}
+
+.ghost-loader-wrapper #st5 {
+  grid-area: st5;
+}
+
+.ghost-loader-wrapper #an1 {
+  grid-area: an1;
+  animation: ghostFlicker0 infinite 0.5s;
+}
+
+.ghost-loader-wrapper #an18 {
+  grid-area: an18;
+  animation: ghostFlicker0 infinite 0.5s;
+}
+
+.ghost-loader-wrapper #an2 {
+  grid-area: an2;
+  animation: ghostFlicker1 infinite 0.5s;
+}
+
+.ghost-loader-wrapper #an17 {
+  grid-area: an17;
+  animation: ghostFlicker1 infinite 0.5s;
+}
+
+.ghost-loader-wrapper #an3 {
+  grid-area: an3;
+  animation: ghostFlicker1 infinite 0.5s;
+}
+
+.ghost-loader-wrapper #an16 {
+  grid-area: an16;
+  animation: ghostFlicker1 infinite 0.5s;
+}
+
+.ghost-loader-wrapper #an4 {
+  grid-area: an4;
+  animation: ghostFlicker1 infinite 0.5s;
+}
+
+.ghost-loader-wrapper #an15 {
+  grid-area: an15;
+  animation: ghostFlicker1 infinite 0.5s;
+}
+
+.ghost-loader-wrapper #an6 {
+  grid-area: an6;
+  animation: ghostFlicker0 infinite 0.5s;
+}
+
+.ghost-loader-wrapper #an12 {
+  grid-area: an12;
+  animation: ghostFlicker0 infinite 0.5s;
+}
+
+.ghost-loader-wrapper #an7 {
+  grid-area: an7;
+  animation: ghostFlicker0 infinite 0.5s;
+}
+
+.ghost-loader-wrapper #an13 {
+  grid-area: an13;
+  animation: ghostFlicker0 infinite 0.5s;
+}
+
+.ghost-loader-wrapper #an9 {
+  grid-area: an9;
+  animation: ghostFlicker1 infinite 0.5s;
+}
+
+.ghost-loader-wrapper #an10 {
+  grid-area: an10;
+  animation: ghostFlicker1 infinite 0.5s;
+}
+
+.ghost-loader-wrapper #an8 {
+  grid-area: an8;
+  animation: ghostFlicker0 infinite 0.5s;
+}
+
+.ghost-loader-wrapper #an11 {
+  grid-area: an11;
+  animation: ghostFlicker0 infinite 0.5s;
+}
+
+@keyframes ghostFlicker0 {
+  0%,
+  49% {
+    background-color: red;
+  }
+  50%,
+  100% {
+    background-color: transparent;
+  }
+}
+
+@keyframes ghostFlicker1 {
+  0%,
+  49% {
+    background-color: transparent;
+  }
+  50%,
+  100% {
+    background-color: red;
+  }
+}
+
+.ghost-loader-wrapper #eye {
+  width: 40px;
+  height: 50px;
+  position: absolute;
+  top: 30px;
+  left: 10px;
+}
+
+.ghost-loader-wrapper #eye::before {
+  content: "";
+  background-color: white;
+  width: 20px;
+  height: 50px;
+  transform: translateX(10px);
+  display: block;
+  position: absolute;
+}
+
+.ghost-loader-wrapper #eye::after {
+  content: "";
+  background-color: white;
+  width: 40px;
+  height: 30px;
+  transform: translateY(10px);
+  display: block;
+  position: absolute;
+}
+
+.ghost-loader-wrapper #eye1 {
+  width: 40px;
+  height: 50px;
+  position: absolute;
+  top: 30px;
+  right: 30px;
+}
+
+.ghost-loader-wrapper #eye1::before {
+  content: "";
+  background-color: white;
+  width: 20px;
+  height: 50px;
+  transform: translateX(10px);
+  display: block;
+  position: absolute;
+}
+
+.ghost-loader-wrapper #eye1::after {
+  content: "";
+  background-color: white;
+  width: 40px;
+  height: 30px;
+  transform: translateY(10px);
+  display: block;
+  position: absolute;
+}
+
+.ghost-loader-wrapper #pupil {
+  width: 20px;
+  height: 20px;
+  background-color: blue;
+  position: absolute;
+  top: 50px;
+  left: 10px;
+  z-index: 1;
+  animation: ghostEyesMovement infinite 3s;
+}
+
+.ghost-loader-wrapper #pupil1 {
+  width: 20px;
+  height: 20px;
+  background-color: blue;
+  position: absolute;
+  top: 50px;
+  right: 50px;
+  z-index: 1;
+  animation: ghostEyesMovement infinite 3s;
+}
+
+@keyframes ghostEyesMovement {
+  0%,
+  49% {
+    transform: translateX(0px);
+  }
+  50%,
+  99% {
+    transform: translateX(10px);
+  }
+  100% {
+    transform: translateX(0px);
+  }
+}
+
+.ghost-loader-wrapper #shadow {
+  background-color: black;
+  width: 140px;
+  height: 140px;
+  position: absolute;
+  border-radius: 50%;
+  transform: rotateX(80deg);
+  filter: blur(20px);
+  top: 80%;
+  animation: ghostShadowMovement infinite 0.5s;
+}
+
+@keyframes ghostShadowMovement {
+  0%,
+  49% {
+    opacity: 0.5;
+  }
+  50%,
+  100% {
+    opacity: 0.2;
+  }
+}

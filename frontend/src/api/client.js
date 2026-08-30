@@ -1,7 +1,4 @@
-import { auth } from "../auth/firebase.js";
-
-// Same-origin by default: in production the Express server serves this SPA,
-// and local dev runs it behind Vite's `/api` proxy (see vite.config.js).
+import { auth } from "@/auth/firebase.js";
 const BASE = import.meta.env.VITE_API_BASE || "/api";
 
 async function authHeader() {
@@ -35,8 +32,17 @@ export const verifyPayment = (data) =>
   req("/registrations/verify", { method: "POST", body: JSON.stringify(data) }, true);
 export const getMyRegistrations = () => req("/me/registrations", {}, true);
 
-/** Events ordered by how many people have registered, most first. */
-export const getSchedule = () => req("/me/schedule", {}, true);
+/** Add one teammate to an already-confirmed team registration. Returns the
+ * top-up payment details (screenshot amount, or a Razorpay order). */
+export const addTeamMember = (registrationId, member) =>
+  req(`/registrations/${encodeURIComponent(registrationId)}/members`, {
+    method: "POST",
+    body: JSON.stringify(member),
+  }, true);
+
+/** Payment details for resuming a teammate top-up the lead didn't finish. */
+export const getTopupPayment = (registrationId) =>
+  req(`/registrations/${encodeURIComponent(registrationId)}/topup`, {}, true);
 
 /** Proof of an out-of-band payment: transaction reference + screenshot.
  *
@@ -70,8 +76,38 @@ export async function personalQrObjectUrl() {
 
 export const downloadPersonalQr = () => downloadFile("/me/qr", "spring-fest-qr.png");
 
+/** Upload (or replace) the team's presentation file for a submission-enabled
+ * event. Multipart like submitPaymentProof — no Content-Type, browser adds
+ * the boundary. Field name must match the server's `.single("file")`. */
+export async function submitEventFile(registrationId, file) {
+  const body = new FormData();
+  body.append("file", file);
+  const res = await fetch(
+    `${BASE}/registrations/${encodeURIComponent(registrationId)}/submission`,
+    { method: "POST", headers: await authHeader(), body }
+  );
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || `Upload failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+/** Authenticated blob URL for a team's uploaded submission file. */
+export async function eventSubmissionObjectUrl(registrationId) {
+  const res = await fetch(
+    `${BASE}/me/registrations/${encodeURIComponent(registrationId)}/submission`,
+    { headers: await authHeader() }
+  );
+  if (!res.ok) throw new Error(`Could not load the file: ${res.status}`);
+  return URL.createObjectURL(await res.blob());
+}
+
 // ── Admin ────────────────────────────────────────────────────
 export const getAdminStats = () => req("/admin/stats", {}, true);
+
+/** Signed-in Firebase accounts split into staff vs participants (attendees). */
+export const getAuthUsers = () => req("/admin/auth-users", {}, true);
 
 /** One row per person, with their events rolled up. The Registrations screen. */
 export const getParticipants = () => req("/admin/participants", {}, true);
@@ -79,15 +115,29 @@ export const getParticipants = () => req("/admin/participants", {}, true);
 /** Per venue: its event, headcount, check-ins and assigned staff. */
 export const getVenueRollup = () => req("/admin/venues/rollup", {}, true);
 
-export const getAdminRegistrations = (filters = {}) => {
-  const qs = new URLSearchParams(
-    Object.entries(filters).filter(([, v]) => v)
-  ).toString();
-  return req(`/admin/registrations${qs ? `?${qs}` : ""}`, {}, true);
-};
+/** Per-event attendance and evaluation progress — the Manage Roles view. */
+export const getEventRollup = () => req("/admin/events/rollup", {}, true);
+
+/** The raw event doc, including the judges-only marking criteria that the
+ *  public /events routes deliberately never return. */
+export const getAdminEvent = (eventId) =>
+  req(`/admin/events/${encodeURIComponent(eventId)}`, {}, true);
 
 export const getEventParticipants = (eventId) =>
   req(`/admin/events/${eventId}/participants`, {}, true);
+
+/** The raw registration doc (members[] included) — for prefilling the edit form. */
+export const getAdminRegistration = (registrationId) =>
+  req(`/admin/registrations/${encodeURIComponent(registrationId)}`, {}, true);
+
+/** Fix a typo in a registration's own details — see the route's own comment
+ *  for exactly what can and can't be changed here. */
+export const updateAdminRegistration = (registrationId, data) =>
+  req(
+    `/admin/registrations/${encodeURIComponent(registrationId)}`,
+    { method: "PATCH", body: JSON.stringify(data) },
+    true
+  );
 
 // Venues — name only; the API refuses to delete one that still backs an event.
 export const getVenues = () => req("/admin/venues", {}, true);
@@ -115,6 +165,12 @@ export const getPeople = (role) =>
 export const addPerson = (data) =>
   req("/admin/people", { method: "POST", body: JSON.stringify(data) }, true);
 
+/** What's already on file for this email — an existing staff role, or
+ *  existing event registrations — so the "Add a person" form can warn
+ *  before silently overwriting or double-booking someone. */
+export const checkPersonConflicts = (email) =>
+  req(`/admin/people/${encodeURIComponent(email)}/lookup`, {}, true);
+
 export const removePerson = (email) =>
   req(`/admin/people/${encodeURIComponent(email)}`, { method: "DELETE" }, true);
 
@@ -132,6 +188,39 @@ export const getAppSettings = () => req("/admin/settings", {}, true);
 
 export const updateAppSettings = (data) =>
   req("/admin/settings", { method: "PUT", body: JSON.stringify(data) }, true);
+
+/** The QR participants scan to pay. Multipart, so it follows
+ *  submitPaymentProof's no-Content-Type rule. */
+export async function uploadPaymentQr(file) {
+  const body = new FormData();
+  body.append("qr", file);
+
+  const res = await fetch(`${BASE}/admin/settings/payment-qr`, {
+    method: "POST",
+    headers: await authHeader(),
+    body,
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || `Upload failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+export const removePaymentQr = () =>
+  req("/admin/settings/payment-qr", { method: "DELETE" }, true);
+
+/** An object URL for the payment QR. Callers must revoke it. Served from the
+ *  participant-facing /me route, which admins can read too — there's no
+ *  admin-only copy of this image. */
+export async function paymentQrObjectUrl() {
+  const res = await fetch(`${BASE}/me/payment-qr`, { headers: await authHeader() });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || `Could not load the payment QR: ${res.status}`);
+  }
+  return URL.createObjectURL(await res.blob());
+}
 
 // Screenshot payments waiting on an admin.
 export const getApprovals = () => req("/admin/approvals", {}, true);

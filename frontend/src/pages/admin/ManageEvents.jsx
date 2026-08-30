@@ -1,18 +1,23 @@
 import { useCallback, useMemo, useState } from "react";
+import "@/styles/pages/admin/events.css";
 import { Link } from "react-router-dom";
-import { Trash2 } from "lucide-react";
-import FormActions from "../../components/admin/FormActions.jsx";
+import { Lock, Plus, Trash2 } from "lucide-react";
+import Loader from "@/components/common/Loader.jsx";
+import FormActions from "@/components/admin/FormActions.jsx";
+import { useToast } from "@/components/ui/toast.jsx";
 import {
   addVenue,
   createEvent,
+  getAdminEvent,
   getEvents,
   getVenues,
   removeEvent,
   removeVenue,
   updateEvent,
-} from "../../api/client.js";
-import { useApi } from "../../hooks/useApi.js";
-import { formatEventTime, rupees } from "../../lib/format.js";
+} from "@/api/client.js";
+import { useApi } from "@/hooks/useApi.js";
+import { EVENT_CATEGORIES } from "@/content/formOptions.js";
+import { formatEventTime, rupees } from "@/utils/format.js";
 import { DatePicker } from "@/components/ui/date-picker.jsx";
 import { TimePicker } from "@/components/ui/time-picker.jsx";
 import {
@@ -26,7 +31,14 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog.jsx";
 
-const CATEGORIES = ["Technical", "Non-Technical", "Hackathon", "Workshop"];
+const CATEGORIES = EVENT_CATEGORIES;
+
+/** Today as YYYY-MM-DD, local — the earliest date an event can be scheduled
+ *  for. Built from local components so it matches what the picker renders. */
+const today = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
 
 const blankForm = () => ({
   name: "",
@@ -37,9 +49,14 @@ const blankForm = () => ({
   end_time: "",
   fee: "",
   description: "",
+  instructions: "",
+  // [{ label, max }] — the event's scoring scheme. The total shown to the
+  // organiser is derived (sum of max), never part of the form or the payload.
+  marking_criteria: [],
   is_team_event: false,
   team_min: 2,
   team_max: 4,
+  allow_submissions: false,
 });
 
 const load = () => Promise.all([getEvents(), getVenues()]);
@@ -49,12 +66,10 @@ export default function ManageEvents() {
   const { data, error: loadError, loading, reload } = useApi(fetcher);
   const [events, venues] = data || [[], []];
 
+  const toast = useToast();
   const [form, setForm] = useState(blankForm);
   const [editing, setEditing] = useState(null); // the event being edited
-  const [error, setError] = useState("");
-
   const [venueName, setVenueName] = useState("");
-  const [venueError, setVenueError] = useState("");
   const [pending, setPending] = useState(null); // a staged destructive action
 
   // A venue backs at most one event, so only free venues are offered — plus
@@ -74,21 +89,36 @@ export default function ManageEvents() {
 
   const change = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
+  // Marking-criteria rows — their own handlers since they're a list, not a
+  // single named input.
+  const addCriterion = () =>
+    setForm((f) => ({ ...f, marking_criteria: [...f.marking_criteria, { label: "", max: "" }] }));
+  const updateCriterion = (i, field, value) =>
+    setForm((f) => ({
+      ...f,
+      marking_criteria: f.marking_criteria.map((c, j) => (j === i ? { ...c, [field]: value } : c)),
+    }));
+  const removeCriterion = (i) =>
+    setForm((f) => ({ ...f, marking_criteria: f.marking_criteria.filter((_, j) => j !== i) }));
+  const markingTotal = form.marking_criteria.reduce((s, c) => s + (Number(c.max) || 0), 0);
+
   const reset = () => {
     setForm(blankForm());
     setEditing(null);
-    setError("");
   };
 
   const submit = async (e) => {
     e.preventDefault();
-    setError("");
     const payload = {
       ...form,
       fee: Number(form.fee) || 0,
       team_min: Number(form.team_min) || 1,
       team_max: Number(form.team_max) || 1,
       is_team_event: !!form.is_team_event,
+      // Drop half-filled rows and coerce marks to numbers before sending.
+      marking_criteria: form.marking_criteria
+        .map((c) => ({ label: c.label.trim(), max: Number(c.max) || 0 }))
+        .filter((c) => c.label && c.max > 0),
     };
     try {
       if (editing) {
@@ -100,22 +130,29 @@ export default function ManageEvents() {
               start_time: payload.start_time,
               end_time: payload.end_time,
               description: payload.description,
+              instructions: payload.instructions,
+              marking_criteria: payload.marking_criteria,
+              allow_submissions: payload.allow_submissions,
             }
           : payload;
         await updateEvent(editing.id, editable);
+        toast.ok(`${editing.name} saved.`);
       } else {
         await createEvent(payload);
+        toast.ok(`${payload.name} created.`);
       }
       reset();
       await reload();
     } catch (err) {
-      setError(err.message);
+      toast.bad(err.message);
     }
   };
 
-  const edit = (ev) => {
+  /** The list from GET /events carries no marking_criteria — it's judges-only
+   *  and the public route deliberately never returns it — so editing fetches
+   *  the raw doc from the admin route to fill that field in. */
+  const edit = async (ev) => {
     setEditing(ev);
-    setError("");
     setForm({
       name: ev.name,
       category: ev.category || CATEGORIES[0],
@@ -125,22 +162,37 @@ export default function ManageEvents() {
       end_time: ev.end_time || "",
       fee: String(ev.fee ?? ""),
       description: ev.description || "",
+      instructions: ev.instructions || "",
+      marking_criteria: [],
       is_team_event: !!ev.is_team_event,
       team_min: ev.team_min ?? 2,
       team_max: ev.team_max ?? 4,
+      allow_submissions: !!ev.allow_submissions,
     });
+    try {
+      const full = await getAdminEvent(ev.id);
+      // A legacy free-text value isn't an array — it loads as an empty scheme.
+      setForm((prev) => ({
+        ...prev,
+        marking_criteria: Array.isArray(full.marking_criteria)
+          ? full.marking_criteria.map((c) => ({ label: c.label ?? "", max: c.max ?? "" }))
+          : [],
+      }));
+    } catch (err) {
+      toast.bad(`Couldn't load the marking criteria: ${err.message}`);
+    }
   };
 
   const submitVenue = async (e) => {
     e.preventDefault();
-    setVenueError("");
     if (!venueName.trim()) return;
     try {
       await addVenue({ name: venueName.trim() });
       setVenueName("");
       await reload();
+      toast.ok("Venue added.");
     } catch (err) {
-      setVenueError(err.message);
+      toast.bad(err.message);
     }
   };
 
@@ -150,29 +202,21 @@ export default function ManageEvents() {
       await pending.run();
       if (pending.type === "deleteEvent" && editing?.id === pending.id) reset();
       await reload();
-      setError("");
-      setVenueError("");
+      toast.ok("Deleted.");
     } catch (err) {
-      if (pending.type === "deleteVenue") setVenueError(err.message);
-      else setError(err.message);
+      toast.bad(err.message);
     }
     setPending(null);
   };
 
-  if (loading) return <div className="spinner" />;
+  if (loading) return <Loader />;
   if (loadError) return <p className="error">{loadError}</p>;
 
   return (
     <div className="admin">
-      <div className="admin-head">
-        <div>
-          <span className="eyebrow">Organiser view</span>
-          <h1>Events</h1>
-          <p className="muted">Create events under each category and assign a venue.</p>
-        </div>
-      </div>
-
-      {/* ── Venues: a name and nothing else ─────────────────────── */}
+      {/* ── Venues and the event form, one panel ────────────────────
+          A venue only exists to be picked in the form below it, so the two
+          sit together: add the room, then schedule what happens in it. */}
       <section className="admin-panel">
         <div className="panel-head">
           <h2>Venues</h2>
@@ -189,8 +233,6 @@ export default function ManageEvents() {
           />
           <FormActions saveLabel="Add venue" />
         </form>
-
-        {venueError && <p className="error">{venueError}</p>}
 
         {!venues.length ? (
           <p className="empty-state">No venues yet. Add one above before creating events.</p>
@@ -226,11 +268,8 @@ export default function ManageEvents() {
             })}
           </div>
         )}
-      </section>
 
-      {/* ── Event form ──────────────────────────────────────────── */}
-      <section className="admin-panel">
-        <div className="panel-head">
+        <div className="panel-head event-form-head">
           <h2>{editing ? `Edit ${editing.name}` : "Add an event"}</h2>
         </div>
 
@@ -242,46 +281,55 @@ export default function ManageEvents() {
         )}
 
         <form className="event-form" onSubmit={submit}>
-          <input
-            className="input"
-            name="name"
-            required
-            disabled={locked}
-            placeholder="Event name"
-            value={form.name}
-            onChange={change}
-          />
-          <select
-            className="input"
-            name="category"
-            value={form.category}
-            onChange={change}
-            disabled={locked}
-          >
-            {CATEGORIES.map((d) => (
-              <option key={d} value={d}>{d}</option>
-            ))}
-          </select>
-          <select className="input" name="venue_id" value={form.venue_id} onChange={change}>
-            <option value="">Select a venue…</option>
-            {availableVenues.map((v) => (
-              <option key={v.id} value={v.id}>{v.name}</option>
-            ))}
-          </select>
-          <input
-            className="input"
-            name="fee"
-            type="number"
-            min="0"
-            disabled={locked}
-            placeholder="Fee (₹)"
-            value={form.fee}
-            onChange={change}
-          />
-          <div className="event-form-when">
+          {/* Row one: what the event is, where, and what it costs. */}
+          <div className="event-form-row">
+            <input
+              className="input"
+              name="name"
+              required
+              disabled={locked}
+              placeholder="Event name"
+              value={form.name}
+              onChange={change}
+            />
+            <select
+              className="input"
+              name="category"
+              value={form.category}
+              onChange={change}
+              disabled={locked}
+            >
+              {CATEGORIES.map((d) => (
+                <option key={d} value={d}>{d}</option>
+              ))}
+            </select>
+            <select className="input" name="venue_id" value={form.venue_id} onChange={change}>
+              <option value="">Select a venue…</option>
+              {availableVenues.map((v) => (
+                <option key={v.id} value={v.id}>{v.name}</option>
+              ))}
+            </select>
+            <input
+              className="input"
+              name="fee"
+              type="number"
+              min="0"
+              disabled={locked}
+              placeholder={form.is_team_event ? "Fee per person (₹)" : "Fee (₹)"}
+              value={form.fee}
+              onChange={change}
+            />
+          </div>
+
+          {/* Row two: when it runs and a one-line summary — all on one row on
+              a laptop. An event can't be scheduled into the past, so the date
+              picker is bounded the opposite way round to its default. */}
+          <div className="event-form-schedule">
             <DatePicker
               value={form.date}
               onChange={(date) => setForm({ ...form, date })}
+              min={today()}
+              max={null}
               disabled={locked}
             />
             <TimePicker
@@ -289,21 +337,84 @@ export default function ManageEvents() {
               onChange={(start_time) => setForm({ ...form, start_time })}
               placeholder="Start time"
             />
-            <span className="event-form-time-sep">–</span>
             <TimePicker
               value={form.end_time}
               onChange={(end_time) => setForm({ ...form, end_time })}
               placeholder="End time"
             />
+            <input
+              className="input"
+              name="description"
+              placeholder="Short description"
+              value={form.description}
+              onChange={change}
+            />
           </div>
-          <input
-            className="input event-form-wide"
-            name="description"
-            placeholder="Short description"
-            value={form.description}
-            onChange={change}
-          />
-          <label className="check-row event-form-wide">
+
+          {/* Mark allocation on the left, participant instructions on the
+              right — they pair naturally and neither needs full width. */}
+          <div className="event-form-split">
+          {/* The event's scoring scheme: named parameters, each with a max
+              mark, and a live total. Judges score against these later. */}
+          <div className="field">
+            <span className="field-label">
+              <Lock size={12} aria-hidden="true" /> Mark allocation criteria
+            </span>
+            <div className="criteria-editor">
+              {form.marking_criteria.map((c, i) => (
+                <div className="criteria-row" key={i}>
+                  <input
+                    className="input"
+                    placeholder="Parameter (e.g. Presentation)"
+                    value={c.label}
+                    onChange={(e) => updateCriterion(i, "label", e.target.value)}
+                  />
+                  <input
+                    className="input"
+                    type="number"
+                    min="1"
+                    placeholder="Marks"
+                    value={c.max}
+                    onChange={(e) => updateCriterion(i, "max", e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    className="icon-btn"
+                    aria-label={`Remove ${c.label || "parameter"}`}
+                    onClick={() => removeCriterion(i)}
+                  >
+                    <Trash2 size={15} aria-hidden="true" />
+                  </button>
+                </div>
+              ))}
+              <div className="criteria-foot">
+                <button type="button" className="btn btn-ghost btn-sm" onClick={addCriterion}>
+                  <Plus size={14} aria-hidden="true" /> Add parameter
+                </button>
+                {form.marking_criteria.length > 0 && (
+                  <span className="criteria-total">
+                    Total <strong>{markingTotal}</strong>
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <label className="field">
+            <span className="field-label">Instructions for participants</span>
+            <textarea
+              className="input"
+              name="instructions"
+              rows={4}
+              placeholder="What to bring, how to prepare, rules on the day…"
+              value={form.instructions}
+              onChange={change}
+            />
+            <span className="cell-sub">Shown on the event page to everyone.</span>
+          </label>
+          </div>
+
+          <label className="check-row">
             <input
               type="checkbox"
               checked={form.is_team_event}
@@ -334,16 +445,24 @@ export default function ManageEvents() {
               </>
             )}
           </label>
+          <label className="check-row">
+            <input
+              type="checkbox"
+              checked={form.allow_submissions}
+              onChange={(e) => setForm({ ...form, allow_submissions: e.target.checked })}
+            />
+            Accept a presentation file (PDF / PPT / DOC) from participants
+          </label>
           <FormActions
             editing={!!editing}
             saveLabel={editing ? "Save changes" : "Add event"}
             onCancel={editing ? reset : undefined}
           />
         </form>
-
-        {error && <p className="error">{error}</p>}
       </section>
 
+      {/* Technical | Non-Technical (row 1), then Hackathon | Workshop (row 2). */}
+      <div className="event-category-grid">
       {CATEGORIES.map((category) => {
         const rows = events.filter((e) => e.category === category);
         return (
@@ -376,6 +495,11 @@ export default function ManageEvents() {
                           <Link to={`/admin/events/${ev.id}`}>
                             <strong>{ev.name}</strong>
                           </Link>
+                          {/* Closed individually — the fest-wide switch and
+                              these toggles both live on the Payment page. */}
+                          {ev.registration_open === false && (
+                            <span className="pill pill-failed">Closed</span>
+                          )}
                           {ev.description && <span className="cell-sub">{ev.description}</span>}
                         </td>
                         <td>{ev.venue_name || <span className="cell-sub">Unassigned</span>}</td>
@@ -412,6 +536,7 @@ export default function ManageEvents() {
           </section>
         );
       })}
+      </div>
 
       <AlertDialog open={!!pending} onOpenChange={(o) => !o && setPending(null)}>
         <AlertDialogContent>
