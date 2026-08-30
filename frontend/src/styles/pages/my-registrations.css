@@ -134,9 +134,9 @@
   flex-shrink: 0;
 }
 
-/* reactbits' PillNav.css also claims `.pill` (height:100%; line-height:0;
-   overflow:hidden) — undo that for the status pill here so its text isn't
-   clipped to a sliver. */
+/* components/animation/PillNav.css also claims `.pill` (height:100%;
+   line-height:0; overflow:hidden) — undo that for the status pill here so its
+   text isn't clipped to a sliver. */
 .myreg-event .pill {
   height: auto;
   line-height: 1.5;
