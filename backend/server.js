@@ -45,13 +45,30 @@ app.use("/api", apiRouter);
 
 if (existsSync(clientDir)) {
   // Serve the built SPA from the same origin as the API.
-  app.use(express.static(clientDir));
+  app.use(
+    express.static(clientDir, {
+      index: false,
+      setHeaders: (res, filePath) => {
+        if (filePath.includes(`${path.sep}assets${path.sep}`)) {
+          // Vite content-hashed bundles (JS/CSS) — safe to cache forever,
+          // filename changes on every new build
+          res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+        } else {
+          // Non-hashed static files (logo.png, kumaran.png, /events/*, etc.)
+          // — can change without a filename change, so keep it short
+          res.setHeader("Cache-Control", "public, max-age=3600");
+        }
+      },
+    })
+  );
   // Client-side routing: any non-API GET that didn't match a static file
   // gets index.html. A plain middleware, not `app.get("*")` — Express 5's
   // path-to-regexp rejects a bare "*" pattern. Unknown /api/* paths fall
   // through to the normal 404.
   app.use((req, res, next) => {
     if (req.method !== "GET" || req.path.startsWith("/api")) return next();
+    // index.html must always revalidate so new deploys show up immediately
+    res.setHeader("Cache-Control", "no-cache");
     res.sendFile(path.join(clientDir, "index.html"));
   });
 } else {
