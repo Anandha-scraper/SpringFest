@@ -1,9 +1,9 @@
 runConfig:
   minInstances: 1
-  maxInstances: 1
-  concurrency: 80
+  maxInstances: 10
+  concurrency: 100
   cpu: 3
-  memoryMiB: 1GiB
+  memoryMiB: 2048
 
 env:
   - variable: FIRESTORE_DATABASE_ID
