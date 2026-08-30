@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import PillNav from "@/components/animation/PillNav.jsx";
 import StaggeredMenu from "@/components/animation/StaggeredMenu.jsx";
-import { navLinks, fest } from "@/content/fest.js";
+import { navLinks } from "@/content/fest.js";
 
 // StaggeredMenu takes { label, ariaLabel, link }; navLinks are { label, href }.
 const staggeredItems = navLinks.map((l) => ({
@@ -10,12 +10,6 @@ const staggeredItems = navLinks.map((l) => ({
   ariaLabel: l.label,
   link: l.href,
 }));
-
-const staggeredSocials = [
-  { label: "Instagram", link: fest.social.instagram },
-  { label: "LinkedIn", link: fest.social.linkedin },
-  { label: "X", link: fest.social.twitter },
-];
 
 const SECTION_IDS = ["events", "schedule", "faq"];
 
@@ -84,9 +78,8 @@ export default function Navbar() {
         <StaggeredMenu
           position="right"
           items={staggeredItems}
-          socialItems={staggeredSocials}
-          displaySocials
-          displayItemNumbering
+          displaySocials={false}
+          displayItemNumbering={false}
           isFixed
           logoUrl="/logo.png"
           menuButtonColor="#11224e"

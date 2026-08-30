@@ -1,4 +1,5 @@
 import { fest } from "@/content/fest.js";
+import FestMemberCard from "@/components/common/FestMemberCard.jsx";
 
 export default function Footer() {
   const c = fest.contact;
@@ -27,6 +28,8 @@ export default function Footer() {
             </ul>
           </div>
         </div>
+
+        <FestMemberCard />
 
         <a
           className="contact-map"

@@ -71,7 +71,7 @@ export default function ParticipantSchedule() {
 
       {!total ? (
         <p className="empty-state">
-          Nothing on your schedule yet — register for an event to see it here.
+          Nothing on your schedule yet , register for an event to see it here.
         </p>
       ) : (
         <>

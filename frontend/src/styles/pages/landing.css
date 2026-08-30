@@ -3,12 +3,12 @@
    ═══════════════════════════════════════════════════════════ */
 .hero {
   position: relative;
-  min-height: 100svh;
+  min-height: 112svh;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  padding: calc(var(--nav-h) + 74px) 0 118px;
+  padding: calc(var(--nav-h) + 96px) 0 140px;
   background: linear-gradient(180deg, rgba(246, 246, 247, 0.82) 0%, rgba(238, 238, 238, 0.86) 100%);
 }
 
@@ -75,33 +75,6 @@
 }
 .hero-logoloop .logoloop__item:hover .loop-wordmark { color: var(--accent); }
 
-/* Marquee pinned to the bottom of the hero — absolute so it can't change the
-   hero's height or shift the centred grid. */
-.hero-marquee {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 3;
-  padding-bottom: 14px;
-  pointer-events: none;
-  mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
-  -webkit-mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
-}
-.hero-marquee .parallax + .parallax { margin-top: 2px; }
-.hero-marquee .scroller {
-  font-family: var(--font-display);
-  font-size: clamp(1.4rem, 3.4vw, 2.6rem);
-  line-height: 1.15;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  filter: none;
-}
-.hero-marquee-text { color: var(--ink); opacity: 0.14; }
-.hero-marquee .parallax:nth-child(2) .hero-marquee-text {
-  color: var(--accent);
-  opacity: 0.3;
-}
 
 /* ── Events: split-flap heading + card grid ── */
 /* .section centres its children; the events header should sit at the top.
@@ -149,45 +122,22 @@
 }
 .events-flap::-webkit-scrollbar { display: none; }
 
-/* Not a real button — a note styled with the ComicButton shell. Recolored for
-   visibility (navy panel, orange frame), scaled up, and stripped of the hover
-   press/ink/scale reactions so it doesn't invite a click. */
+/* "Tap a track" note, styled as a BracketButton (not really clickable). */
 .events-hint-btn {
-  margin-top: 20px;
-  font-size: clamp(0.66rem, 2.8vw, 0.82rem);
-  --cb-primary: var(--ink);
-  --cb-accent: var(--accent);
-  --cb-shadow: rgba(17, 34, 78, 0.4);
+  margin-top: 18px;
 }
-.events-hint-btn .comic-brutal-button { cursor: default; }
-.events-hint-btn:hover .comic-brutal-button { transform: rotate(-2deg); }
-.events-hint-btn:hover .comic-brutal-button::before { opacity: 0; }
-.events-hint-btn:hover .button-inner {
-  background: var(--cb-primary);
-  transform: skew(-3deg, 1deg);
-}
-.events-hint-btn:hover .button-text {
-  color: var(--cb-panel);
-  text-shadow:
-    0.09em 0 0 var(--cb-text),
-    -0.09em 0 0 var(--cb-text),
-    0 0.09em 0 var(--cb-text),
-    0 -0.09em 0 var(--cb-text);
-}
-.events-hint-btn:hover .ink-splatter { opacity: 0; }
-.events-hint-btn:hover .button-shadow {
-  transform: translate(0.25em, 0.25em) rotate(-2deg) skew(-3deg, 1deg);
-}
-
 @media (max-width: 899px) {
   .events-flap { justify-content: center; }
+  .events-top { text-align: center; }
   .events-hint-btn {
-    display: block;
-    width: fit-content;
-    max-width: 90%;
-    margin-inline: auto;
+    display: flex;
+    justify-content: center;
+    width: 100%;
   }
-  .events-hint-btn .button-text { white-space: normal; text-align: center; }
+}
+@media (max-width: 400px) {
+  .events-hint-btn .bracket-button__box { padding: 0 18px; }
+  .events-hint-btn .bracket-button__box span { font-size: 13px; }
 }
 
 /* Hero = the neo-brutalist HeroCard alone, near-full-bleed. The shared
@@ -490,17 +440,21 @@
   padding-left: clamp(12px, 1.4vw, 22px);
   padding-right: clamp(16px, 2vw, 32px);
 }
+/* Same split-flap heading as the EVENTS section — scrolls sideways on very
+   narrow screens rather than clipping. */
 .schedule-head {
   display: flex;
   justify-content: flex-start;
+  max-width: 100%;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: none;
+  margin-bottom: clamp(20px, 3vh, 40px);
 }
-/* The component ships a fixed 4rem; scale it to the viewport like the
-   split-flap next door. Press Start 2P is a pixel face — it needs a little
-   letter-spacing at size and sits on the ink colour. */
-.schedule-head .shuffle-parent {
-  font-size: clamp(1.5rem, 4.4vw, 3.4rem);
-  letter-spacing: 0.02em;
-  color: var(--ink);
+.schedule-head::-webkit-scrollbar { display: none; }
+
+@media (max-width: 899px) {
+  .schedule-head { justify-content: center; }
 }
 
 

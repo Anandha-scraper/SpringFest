@@ -93,6 +93,7 @@ function registrationView(r, events) {
     team_name: r.team_name || "",
     team_size: r.team_size ?? 1,
     members: r.members || [],
+    allocation_codes: r.allocation_codes || [],
     created_at: r.created_at || "",
     paid_at: r.paid_at || "",
     payment_id: r.payment_id || "",

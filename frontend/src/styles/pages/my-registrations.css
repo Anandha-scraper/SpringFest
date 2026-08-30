@@ -22,7 +22,46 @@
   align-items: start;
 }
 
-/* ── QR (left) ──────────────────────────────────────────────── */
+/* ── QR + codes (left) ─────────────────────────────────────── */
+/* The allocation-code chip — shared by the "Your codes" line, the event
+   boxes and the team roster. Mirrors the .reg-id chip in event-detail.css. */
+.alloc-code {
+  display: inline-block;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-radius: var(--r-sm);
+  padding: 0.15rem 0.5rem;
+  font-size: 0.9rem;
+}
+.alloc-code--sm {
+  margin-left: 0.5rem;
+  font-size: 0.72rem;
+  padding: 0.05rem 0.35rem;
+  vertical-align: middle;
+}
+
+.myreg-codes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+.myreg-codes__label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--ink-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-right: 0.15rem;
+}
+
+.myreg-event__code {
+  align-self: flex-start;
+}
+
 .myreg-qr {
   position: sticky;
   top: clamp(1rem, 4vw, 2rem);

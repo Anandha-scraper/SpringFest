@@ -1,4 +1,4 @@
-import { CalendarDays, Flower2, Sparkles, Trophy, Users } from "lucide-react";
+import { Building2, CalendarCheck, CalendarDays, LogIn, MapPin, QrCode, Users } from "lucide-react";
 import "@/styles/components/hero-card.css";
 import RegisterButton from "@/components/common/RegisterButton.jsx";
 import { fest } from "@/content/fest.js";
@@ -6,22 +6,20 @@ import { fest } from "@/content/fest.js";
 /**
  * Neo-brutalist hero card — plain-CSS port of the supplied styled-components
  * "Creative Studio" card, re-themed to the fest palette (see
- * styles/components/hero-card.css). Replaces the old <PixelSwap> hero visual,
- * whose per-pixel hover animation cloned the card ~220× and ran ~440 Web
- * Animations, making the page janky.
+ * styles/components/hero-card.css). Carries the fest identity plus the
+ * four-step "how to register" flow, so the landing hero is the card alone.
  */
-const FEATURES = [
-  { icon: Sparkles, text: "24 Events" },
-  { icon: Users, text: "30+ Colleges" },
-  { icon: Trophy, text: "₹1L Prize Pool" },
-  { icon: CalendarDays, text: "3 Days" },
+const META = [
+  { icon: CalendarDays, text: "25–26 September 2026" },
+  { icon: MapPin, text: "KSRCE · Tiruchengode" },
+  { icon: Building2, text: "Dept. of Computer Science & Engineering" },
 ];
 
-// Bottom-left dot cluster (matches the reference's <svg viewBox="0 0 80 40">).
-const DOT_ROWS = [
-  { cy: 10, cxs: [10, 30, 50, 70] },
-  { cy: 20, cxs: [20, 40, 60] },
-  { cy: 30, cxs: [10, 30, 50, 70] },
+const STEPS = [
+  { icon: LogIn, text: "Click Register , Sign in with your Google account" },
+  { icon: CalendarCheck, text: "Pick events , enter solo or as a team" },
+  { icon: Users, text: "Add teammates, pay the fee online , login with registered mail to see your QR pass" },
+  { icon: QrCode, text: "Every member gets a personal QR pass" },
 ];
 
 export default function HeroCard({ onRegister }) {
@@ -47,31 +45,43 @@ export default function HeroCard({ onRegister }) {
           {fest.name} {fest.year}
         </span>
         <span className="hero-card__tag">
-          <Flower2 size={13} aria-hidden="true" />
-          Fest
+          <CalendarDays size={13} aria-hidden="true" />
+          Symposium
         </span>
       </header>
 
       <div className="hero-card__body">
-        <p className="hero-card__description">{fest.blurb}</p>
+        <p className="hero-card__kicker">National Level Technical Symposium</p>
+        <p className="hero-card__description">
+          {fest.tagline} Emerging technologies, future trends and computing —
+          two days of building, competing and celebrating.
+        </p>
 
-        <ul className="hero-card__feature-grid">
-          {FEATURES.map(({ icon: Icon, text }) => (
-            <li className="hero-card__feature" key={text}>
-              <span className="hero-card__feature-icon">
-                <Icon size={15} aria-hidden="true" />
-              </span>
-              <span className="hero-card__feature-text">{text}</span>
+        <ul className="hero-card__meta">
+          {META.map(({ icon: Icon, text }) => (
+            <li className="hero-card__meta-item" key={text}>
+              <Icon size={14} aria-hidden="true" />
+              {text}
             </li>
           ))}
         </ul>
 
-        <div className="hero-card__actions">
-          <p className="hero-card__price">
-            Registration starts from
-            <span className="hero-card__price-amount">&#8377;200</span>
-          </p>
+        <div className="hero-card__steps-head">How to register</div>
+        <ol className="hero-card__steps">
+          {STEPS.map(({ icon: Icon, text }, i) => (
+            <li className="hero-card__step" key={text}>
+              <span className="hero-card__step-num" aria-hidden="true">
+                {i + 1}
+              </span>
+              <span className="hero-card__step-icon" aria-hidden="true">
+                <Icon size={15} />
+              </span>
+              <span className="hero-card__step-text">{text}</span>
+            </li>
+          ))}
+        </ol>
 
+        <div className="hero-card__actions">
           {onRegister && (
             <div className="hero-card__cta">
               <RegisterButton label="Register" onClick={onRegister} />

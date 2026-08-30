@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import SplitFlapText from "@/components/animation/SplitFlapText.jsx";
 import TrackCard from "@/components/common/TrackCard.jsx";
 import EventPoster from "@/components/sections/EventPoster.jsx";
-import ComicButton from "@/components/common/ComicButton.jsx";
+import BracketButton from "@/components/common/BracketButton.jsx";
 import Loader from "@/components/common/Loader.jsx";
 import SignInModal from "@/components/common/SignInModal.jsx";
 import { useAuth } from "@/auth/AuthContext.jsx";
@@ -72,9 +72,9 @@ export default function EventsPreview() {
               fontSize="clamp(2.2rem, 6vw, 4.4rem)"
             />
           </div>
-          <ComicButton
+          <BracketButton
             className="events-hint-btn"
-            label="TAP A TRACK TO SEE EVENT DETAILS"
+            label="Tap on category to see events"
           />
         </div>
 

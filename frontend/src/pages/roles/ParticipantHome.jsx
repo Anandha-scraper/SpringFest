@@ -46,7 +46,7 @@ export default function ParticipantHome() {
 
         {!events.length ? (
           <p className="empty-state">
-            No events published yet — check back once the organisers add them.
+            No events published yet , check back once the organisers add them.
           </p>
         ) : !open.length ? (
           <p className="empty-state">

@@ -1,7 +1,6 @@
 import { Suspense, lazy, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import HeroCard from "@/components/sections/HeroCard.jsx";
-import ScrollVelocity from "@/components/animation/ScrollVelocity.jsx";
 import LogoLoop from "@/components/animation/LogoLoop.jsx";
 import SignInModal from "@/components/common/SignInModal.jsx";
 import { useAuth } from "@/auth/AuthContext.jsx";
@@ -18,9 +17,6 @@ const PARTNER_LOGOS = fest.partners.map((name) => ({
   title: name,
   ariaLabel: name,
 }));
-
-// Placeholder marquee copy — replace with the real strings later.
-const MARQUEE_TEXTS = ["Spring Fest 2k26 ✦ Code · Culture · Chaos ✦", "24 Events ✦ 30+ Colleges ✦ ₹1L Prizes ✦"];
 
 export default function Hero() {
   const { user, role } = useAuth();
@@ -63,7 +59,7 @@ export default function Hero() {
           scaleOnHover
           fadeOut
           fadeOutColor="#f6f6f7"
-          ariaLabel="Partners and sponsors"
+          ariaLabel="Events"
         />
       </div>
 
@@ -74,15 +70,6 @@ export default function Hero() {
           <HeroCard onRegister={handleRegister} />
           <SignInModal open={signInOpen} onClose={() => setSignInOpen(false)} />
         </div>
-      </div>
-
-      <div className="hero-marquee" aria-hidden="true">
-        <ScrollVelocity
-          texts={MARQUEE_TEXTS}
-          velocity={60}
-          numCopies={8}
-          className="hero-marquee-text"
-        />
       </div>
     </section>
   );

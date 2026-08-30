@@ -206,6 +206,10 @@
   align-items: flex-start;
   gap: clamp(24px, 4vw, 56px);
 }
+.footer-contact > .fest-member-card {
+  flex-shrink: 0;
+  align-self: center;
+}
 .footer-contact > .contact-map {
   margin-right: clamp(12px, 2vw, 24px);
   margin-left: auto;

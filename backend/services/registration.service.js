@@ -29,6 +29,7 @@ import {
   requireString,
 } from "../utils/validate.js";
 import * as aggregate from "./aggregate.js";
+import { MINT_ON_GATEWAY_VERIFY, mintQuietly } from "./allocation.service.js";
 import { createOrder, fetchPaymentMethod, verifySignature } from "./payment.js";
 import { MODE_GATEWAY, MODE_SCREENSHOT, getAppSettings } from "./settings.js";
 import { uploadBuffer } from "./storage.js";
@@ -367,6 +368,9 @@ export async function addMember({ user, registrationId, body }) {
   if (topUp <= 0) {
     await regRef.update(update);
     aggregate.invalidateLoadAll();
+    // Row stays `completed` and never passes back through verify/decide, so
+    // the new teammate's slot is filled here.
+    await mintQuietly(id);
     return { registration_id: id, status: STATUS_COMPLETED, amount: 0 };
   }
 
@@ -468,5 +472,14 @@ export async function verifyPayment({ user, body }) {
     amount_due: 0,
   });
   aggregate.invalidateLoadAll();
-  return { status: STATUS_COMPLETED, registration_id: registrationId };
+
+  // Gateway payments confirm with no admin step — mint here unless the fest
+  // has switched to approval-only. Returned so the Success page can show it.
+  const allocationCodes = MINT_ON_GATEWAY_VERIFY ? await mintQuietly(registrationId) : null;
+
+  return {
+    status: STATUS_COMPLETED,
+    registration_id: registrationId,
+    allocation_codes: allocationCodes || [],
+  };
 }
