@@ -59,6 +59,9 @@ export async function scan({ token }) {
       status: row.status || "",
       member_index: row.member_index,
       member_name: holder.name || "",
+      // This person's code for this event, resolved from their single QR.
+      allocation_code:
+        (Array.isArray(row.allocation_codes) ? row.allocation_codes[row.member_index] : "") || "",
       team_name: row.team_name || "",
       checked_in: isCheckedIn(entry),
       checked_in_at: entry?.at || null,

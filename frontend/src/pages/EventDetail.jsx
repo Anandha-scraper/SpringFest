@@ -95,7 +95,12 @@ export default function EventDetail() {
         user: form,
         event,
         onSuccess: (r) =>
-          navigate("/success", { state: { registrationId: r.registration_id } }),
+          navigate("/success", {
+            state: {
+              registrationId: r.registration_id,
+              allocationCodes: r.allocation_codes || [],
+            },
+          }),
         onError: (e) => {
           setError(e.message);
           setSubmitting(false);

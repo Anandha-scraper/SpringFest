@@ -9,6 +9,7 @@ export default function Success() {
   // Screenshot payments aren't confirmed yet — an organiser still has to
   // check the proof, so promising "you're in" here would be a lie.
   const awaiting = !!state?.awaitingApproval;
+  const codes = (state?.allocationCodes || []).filter(Boolean);
 
   return (
     <div className="container narrow page-pad center">
@@ -31,6 +32,22 @@ export default function Success() {
           </>
         )}
       </p>
+
+      {codes.length > 0 && (
+        <div className="detail-card success-ticket">
+          <span className="stat-card-label">
+            Your allocation code{codes.length > 1 ? "s" : ""}
+          </span>
+          <span className="success-ticket__codes">
+            {codes.map((c) => (
+              <code className="reg-id" key={c}>{c}</code>
+            ))}
+          </span>
+          <p className="muted success-ticket__hint">
+            Show this at your event desk. It's also on your entry pass under My Registrations.
+          </p>
+        </div>
+      )}
 
       {state?.registrationId && (
         <div className="detail-card success-ticket">

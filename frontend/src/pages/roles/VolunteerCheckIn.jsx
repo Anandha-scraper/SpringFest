@@ -14,7 +14,12 @@ function EventRow({ reg, onToggle, busy }) {
   return (
     <li className="checkin-row">
       <div className="checkin-row-info">
-        <strong>{reg.event_name}</strong>
+        <div className="checkin-row__head">
+          <strong>{reg.event_name}</strong>
+          {reg.allocation_code && (
+            <span className="checkin-row__code">{reg.allocation_code}</span>
+          )}
+        </div>
         <span className="schedule-meta">{formatEventTime(reg) || "Date to be announced"}</span>
         {reg.venue_name && (
           <span className="schedule-meta">
@@ -188,8 +193,7 @@ export default function VolunteerCheckIn() {
             {busyKey === manualId ? "Checking in…" : "Check in the lead"}
           </button>
           <p className="muted checkin-note">
-            No ticket or QR on hand? Check in the team lead by their registration id — everyone
-            else on the team should scan their own badge when they arrive.
+            No ticket or QR on hand? Check in the team lead by their registration id
           </p>
         </form>
       )}

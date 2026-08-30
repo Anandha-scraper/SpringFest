@@ -22,7 +22,7 @@ import AddTeammate from "@/components/registration/AddTeammate.jsx";
  * Fetched rather than pointed at with a plain src because the endpoint is
  * authenticated — a bare <img src> sends no bearer token.
  */
-function PersonalQr() {
+function PersonalQr({ codes = [] }) {
   const [src, setSrc] = useState("");
   const [error, setError] = useState("");
 
@@ -53,6 +53,14 @@ function PersonalQr() {
         <div className="ticket-placeholder">{error ? "!" : "…"}</div>
       )}
       <p className="muted">Show this at the door — one code for every event you're registered for.</p>
+      {codes.length > 0 && (
+        <div className="myreg-codes">
+          <span className="myreg-codes__label">Your codes</span>
+          {codes.map((c) => (
+            <span className="alloc-code" key={c}>{c}</span>
+          ))}
+        </div>
+      )}
       <button className="btn btn-ghost btn-sm" type="button" onClick={downloadPersonalQr}>
         <Download size={13} aria-hidden="true" /> Download
       </button>
@@ -114,12 +122,14 @@ export default function MyRegistrations() {
   const byId = new Map(events.map((e) => [e.id, e]));
   const rows = items || [];
   const me = ownDetails(rows);
+  const myCodes = rows.map((r) => (r.allocation_codes || [])[r.member_index]).filter(Boolean);
   const teams = rows
     .filter((r) => (r.team_size || 1) > 1)
     .map((r) => ({
       id: r.id,
       event: r.event_name || r.event_id,
       teamName: r.team_name,
+      codes: r.allocation_codes || [],
       holders: [{ name: r.name, email: r.email, phone: r.phone }, ...(r.members || [])],
     }));
 
@@ -136,7 +146,7 @@ export default function MyRegistrations() {
         </div>
       ) : (
         <section className="myreg-layout">
-          <PersonalQr />
+          <PersonalQr codes={myCodes} />
 
           <div className="myreg-right">
             <div className="myreg-info">
@@ -161,7 +171,10 @@ export default function MyRegistrations() {
                   </div>
                   {t.holders.map((h, i) => (
                     <div className="reg-detail-row" key={i}>
-                      <span>{h.name || "—"}</span>
+                      <span>
+                        {h.name || "—"}
+                        {t.codes[i] && <span className="alloc-code alloc-code--sm">{t.codes[i]}</span>}
+                      </span>
                       <span>{[h.email, h.phone].filter(Boolean).join(" · ") || "—"}</span>
                     </div>
                   ))}
@@ -211,6 +224,11 @@ export default function MyRegistrations() {
                     <span>{formatEventDate(event) || "Date TBA"}</span>
                     <span>{formatEventTimeRange(event) || "Time TBA"}</span>
                   </div>
+                  {(r.allocation_codes || [])[r.member_index] && (
+                    <span className="alloc-code myreg-event__code">
+                      {r.allocation_codes[r.member_index]}
+                    </span>
+                  )}
                   {cta && (
                     <Link
                       className="btn btn-sm"

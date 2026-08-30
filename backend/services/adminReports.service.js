@@ -21,6 +21,7 @@ import * as aggregate from "./aggregate.js";
 export const CSV_COLUMNS = [
   "id", "name", "email", "phone", "college", "department", "year", "location",
   "event_id", "event_name", "status", "checked_in", "fee", "team_name", "team_size",
+  "allocation_codes",
   "payment_mode", "transaction_id", "order_id", "payment_id", "payment_method",
   "created_at", "paid_at",
 ];
@@ -145,8 +146,9 @@ export async function registrationsCsv({ eventId, status }) {
     const s = String(value ?? "");
     return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
   };
+  const cell = (r, c) => (c === "allocation_codes" ? (r.allocation_codes || []).join(" ") : r[c]);
   const lines = [CSV_COLUMNS.join(",")];
-  for (const r of rows) lines.push(CSV_COLUMNS.map((c) => csvEscape(r[c] ?? "")).join(","));
+  for (const r of rows) lines.push(CSV_COLUMNS.map((c) => csvEscape(cell(r, c) ?? "")).join(","));
 
   return lines.join("\r\n") + "\r\n";
 }

@@ -155,6 +155,18 @@
    is meant to be read aloud at the desk, so it sits on its own axis. */
 .success-ticket { text-align: center; }
 .success-ticket__hint { font-size: 0.85rem; margin-top: 0.625rem; }
+.success-ticket__codes {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+.success-ticket__codes .reg-id {
+  display: inline-block;
+  margin-top: 0;
+  letter-spacing: 0.04em;
+}
 
 .success-actions { margin-top: 2rem; margin-bottom: 0; }
 

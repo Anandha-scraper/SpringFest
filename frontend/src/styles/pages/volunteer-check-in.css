@@ -55,6 +55,20 @@
 .checkin-row-info { display: flex; flex-direction: column; gap: 0.25rem; }
 .checkin-row .btn { width: 100%; justify-content: center; }
 
+/* Allocation code — the thing a volunteer reads aloud, so it's the loudest
+   element in the row. */
+.checkin-row__head { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+.checkin-row__code {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-weight: 700;
+  font-size: 1rem;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-radius: var(--r-sm);
+  padding: 0.1rem 0.5rem;
+}
+
 /* From tablet width up, the toggle can sit beside the details instead of
    stacking under them — but the stacked layout above stays the default. */
 @media (min-width: 560px) {

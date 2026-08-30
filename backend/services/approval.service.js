@@ -9,6 +9,7 @@ import { ApiError } from "../utils/ApiError.js";
 import { STATUS_AWAITING_APPROVAL, STATUS_COMPLETED, STATUS_REJECTED } from "../utils/statuses.js";
 import { requireOneOf, requireString } from "../utils/validate.js";
 import * as aggregate from "./aggregate.js";
+import { mintQuietly } from "./allocation.service.js";
 import { MODE_SCREENSHOT } from "./settings.js";
 import { contentTypeFor, downloadBuffer } from "./storage.js";
 
@@ -81,5 +82,6 @@ export async function decide({ registrationId, body, actorEmail }) {
     ...audit,
   });
   aggregate.invalidateLoadAll();
+  await mintQuietly(reg.id);
   return { registration_id: reg.id, status: STATUS_COMPLETED, ...audit };
 }

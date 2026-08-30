@@ -6,17 +6,17 @@
 export const fest = {
   name: "Spring Fest",
   year: "2k26",
-  tagline: "Three days of code, culture and chaos.",
+  tagline: "Think · Compete · Conquer · Celebrate.",
   blurb:
-    "The annual inter-collegiate technical symposium — 24 events, 30+ colleges, one campus in full bloom.",
-  dates: "March 14–15, 2026",
+    "National-level technical symposium exploring emerging technologies, future trends and computing — Think · Compete · Conquer · Celebrate.",
+  dates: "September 25–26, 2026",
 
   institution: {
-    name: "Your Institution Name",
-    shortName: "YIN",
+    name: "K.S.R. College of Engineering",
+    shortName: "KSRCE",
     department: "Department of Computer Science & Engineering",
-    city: "Chennai, Tamil Nadu",
-    website: "https://example.edu",
+    city: "Tiruchengode, Tamil Nadu",
+    website: "https://ksrce.ac.in",
   },
 
   // UNUSED — the landing Schedule section is built from the real events API
@@ -47,17 +47,18 @@ export const fest = {
   ],
 
 
-  // Placeholder partner wordmarks for the hero LogoLoop — swap for real
-  // sponsors (or { src, alt } image entries) when you have them.
+  // Event wordmarks scrolled in the hero LogoLoop.
   partners: [
-    "Acme Technologies",
-    "Northwind Cloud",
-    "Globex Systems",
-    "Initech Labs",
-    "Umbrella Software",
-    "Stark Digital",
-    "Wayne Analytics",
-    "Hooli Cloud",
+    "Paper Bestoval",
+    "Hackathon",
+    "Workshop",
+    "Zero Bug Zone",
+    "QuizStorm",
+    "Code Swap",
+    "UI Remix",
+    "Treasure Hunt",
+    "Meme Sprint",
+    "Filmography",
   ],
 
   contact: {
@@ -69,8 +70,8 @@ export const fest = {
       { name: "SANGAMITHA P", phone: "7010699283" },
     ],
     mapEmbed:
-      "https://www.google.com/maps?q=Chennai%2C%20Tamil%20Nadu&output=embed",
-    mapLink: "https://www.google.com/maps/search/?api=1&query=Chennai,Tamil+Nadu",
+      "https://www.google.com/maps?q=K.S.R.%20College%20of%20Engineering%2C%20Tiruchengode&output=embed",
+    mapLink: "https://maps.app.goo.gl/sum7CP4aLCUy7ion7",
   },
 
   social: {

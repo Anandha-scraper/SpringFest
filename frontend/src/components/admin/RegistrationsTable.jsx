@@ -367,6 +367,12 @@ export default function RegistrationsTable({ rows, minRows = 0, onSaved }) {
                     <div className="reg-detail-row">
                       <span>Status</span><span><StatusPill status={e.status} /></span>
                     </div>
+                    {!!e.allocation_codes?.length && (
+                      <div className="reg-detail-row">
+                        <span>Allocation code{e.allocation_codes.length > 1 ? "s" : ""}</span>
+                        <span className="mono">{e.allocation_codes.join(" ")}</span>
+                      </div>
+                    )}
                     <div className="reg-detail-row">
                       <span>Attended</span><span>{e.checked_in ? "Checked in" : "Not checked in"}</span>
                     </div>

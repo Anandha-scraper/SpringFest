@@ -36,7 +36,7 @@
      proportion on a wide viewport instead of collapsing to a short band.
      `em` so it tracks the font-size landing.css sets per breakpoint, and a
      column flex so `.hero-card__body` absorbs the slack. */
-  min-height: 26em;
+  min-height: 32em;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
@@ -206,6 +206,20 @@
   z-index: 2;
 }
 .hero-card__body .hero-card__actions { margin-top: auto; }
+.hero-card__kicker {
+  margin: 0 0 0.5em;
+  display: inline-block;
+  align-self: flex-start;
+  padding: 0.3em 0.6em;
+  background: var(--hc-secondary);
+  color: #fff;
+  font-size: 0.62em;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  border: 0.12em solid var(--hc-text);
+  box-shadow: 0.2em 0.2em 0 rgba(17, 34, 78, 0.2);
+}
 .hero-card__description {
   margin: 0 0 1.4em;
   color: var(--hc-text);
@@ -215,63 +229,140 @@
   text-wrap: pretty;
 }
 
-/* `auto-fit` rather than a viewport media query: the constraint here is the
-   CARD's width, not the viewport's (the card is em-driven inside a flexible
-   column), so it has to adapt to its own container. Two columns whenever
-   ~19em of body width exists, one below that. */
-.hero-card__feature-grid {
+/* ── Meta chips (date / venue) ───────────────────────────── */
+.hero-card__meta {
   list-style: none;
-  margin: 0 0 1.4em;
+  margin: 0 0 1.3em;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5em 0.7em;
+}
+.hero-card__meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  padding: 0.28em 0.6em;
+  font-size: 0.72em;
+  font-weight: 700;
+  color: var(--hc-text);
+  background: var(--hc-bg);
+  border: 0.12em solid var(--hc-text);
+  border-radius: 0.3em;
+  box-shadow: 0.15em 0.15em 0 rgba(17, 34, 78, 0.15);
+}
+.hero-card__meta-item svg {
+  flex-shrink: 0;
+  color: var(--hc-primary);
+}
+
+/* ── How-to-register steps ───────────────────────────────── */
+.hero-card__steps-head {
+  font-family: var(--font-display);
+  font-size: 0.9em;
+  font-weight: 700;
+  color: var(--hc-text);
+  margin-bottom: 0.7em;
+  padding-bottom: 0.35em;
+  border-bottom: 0.15em dashed rgba(17, 34, 78, 0.2);
+}
+/* Row of step cards, left to right on laptop; stacks below ~720px. The gap
+   holds the connector chevron (right-pointing in a row, down when stacked). */
+.hero-card__steps {
+  list-style: none;
+  margin: 0 0 0.4em;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 13em), 1fr));
-  gap: 0.9em;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5em;
 }
-.hero-card__feature {
+.hero-card__step {
+  position: relative;
   display: flex;
-  align-items: center;
-  gap: 0.55em;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5em;
   min-width: 0;
-  transition: transform 0.2s ease;
+  padding: 0.85em 0.75em 0.9em;
+  background: var(--hc-bg);
+  border: 0.15em solid var(--hc-text);
+  border-radius: 0.4em;
+  box-shadow: 0.25em 0.25em 0 rgba(17, 34, 78, 0.15);
 }
-.hero-card__feature:hover {
-  transform: translateX(0.3em);
+/* connector chevron sitting in the gap after every card but the last */
+.hero-card__step:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: -1.1em;
+  width: 0.5em;
+  height: 0.5em;
+  transform: translate(50%, -50%) rotate(-45deg);
+  border-right: 0.16em solid var(--hc-primary);
+  border-bottom: 0.16em solid var(--hc-primary);
 }
-.hero-card__feature-icon {
-  flex-shrink: 0;
-  width: 1.7em;
-  height: 1.7em;
+.hero-card__step-num {
+  position: absolute;
+  top: -0.7em;
+  left: 0.6em;
+  width: 1.5em;
+  height: 1.5em;
   display: flex;
   align-items: center;
   justify-content: center;
   background: var(--hc-secondary);
   color: #fff;
+  font-family: var(--font-display);
+  font-size: 0.72em;
+  font-weight: 700;
+  border: 0.12em solid var(--hc-text);
+  border-radius: 999px;
+}
+.hero-card__step-icon {
+  flex-shrink: 0;
+  width: 1.8em;
+  height: 1.8em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--hc-text);
+  background: var(--hc-accent);
   border: 0.12em solid var(--hc-text);
   border-radius: 0.3em;
-  box-shadow: 0.2em 0.2em 0 rgba(17, 34, 78, 0.2);
-  transition: background 0.2s ease, transform 0.2s ease;
+  margin-top: 0.3em;
 }
-.hero-card__feature:hover .hero-card__feature-icon {
-  background: var(--hc-secondary-hover);
-  transform: rotate(-5deg);
+.hero-card__step-icon svg {
+  width: 1em;
+  height: 1em;
 }
-.hero-card__feature-icon svg {
-  width: 0.95em;
-  height: 0.95em;
-}
-.hero-card__feature-text {
-  font-size: 0.82em;
-  font-weight: 700;
+.hero-card__step-text {
+  font-size: 0.76em;
+  font-weight: 600;
+  line-height: 1.35;
   color: var(--hc-text);
   min-width: 0;
   overflow-wrap: anywhere;
 }
 
-/* ── Actions — price left, Register button bottom-right ──── */
+@media (max-width: 720px) {
+  .hero-card__steps {
+    grid-template-columns: minmax(0, 22em);
+    justify-content: center;
+    gap: 1.6em;
+  }
+  .hero-card__step:not(:last-child)::after {
+    top: auto;
+    right: 50%;
+    bottom: -1.15em;
+    transform: translate(50%, 50%) rotate(45deg);
+  }
+}
+
+/* ── Actions — Register button, bottom-right ─────────────── */
 .hero-card__actions {
   display: flex;
   align-items: flex-end;
-  justify-content: space-between;
+  justify-content: flex-end;
   flex-wrap: wrap;
   gap: 0.8em 1em;
   margin-top: 1.4em;
@@ -290,34 +381,6 @@
   font-size: 1em;
   color: rgba(17, 34, 78, 0.4);
 }
-.hero-card__price {
-  margin: 0;
-  flex: 1 1 9em;
-  min-width: 0;
-  font-size: 0.95em;
-  font-weight: 700;
-  color: var(--hc-text);
-}
-.hero-card__price-amount {
-  position: relative;
-  font-family: var(--font-display);
-  font-size: 1.6em;
-  font-weight: 700;
-  color: var(--hc-primary);
-  margin-left: 0.15em;
-}
-.hero-card__price-amount::before {
-  content: "";
-  position: absolute;
-  bottom: 0.12em;
-  left: 0;
-  width: 100%;
-  height: 0.2em;
-  background: var(--hc-accent);
-  z-index: -1;
-  opacity: 0.6;
-}
-
 /* Register button, parked at the card's bottom-right on the price row.
    The card clips overflow (.hero-card { overflow: hidden }), so the corner
    brackets are tamed: they fly out by --corner-multiplier × --corner-dist
@@ -398,7 +461,6 @@
 @media (prefers-reduced-motion: reduce) {
   .hero-card,
   .hero-card__tag,
-  .hero-card__feature,
   .hero-card__accent-shape {
     transition: none;
   }

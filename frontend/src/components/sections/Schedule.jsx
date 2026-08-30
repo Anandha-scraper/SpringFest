@@ -1,4 +1,4 @@
-import Shuffle from "@/components/animation/Shuffle.jsx";
+import SplitFlapText from "@/components/animation/SplitFlapText.jsx";
 import ScheduleFlow from "@/components/sections/ScheduleFlow.jsx";
 
 export default function Schedule() {
@@ -6,20 +6,14 @@ export default function Schedule() {
     <section id="schedule" className="section">
       <div className="container">
         <div className="schedule-head">
-          <Shuffle
-            text="Schedule"
-            tag="h2"
-            textAlign="left"
-            shuffleDirection="right"
-            duration={0.35}
-            animationMode="evenodd"
-            shuffleTimes={1}
-            ease="power3.out"
-            stagger={0.03}
-            threshold={0.1}
-            triggerOnce
-            triggerOnHover
-            respectReducedMotion
+          <SplitFlapText
+            text="SCHEDULE"
+            padTo={8}
+            tileColor="#11224e"
+            textColor="#eeeeee"
+            tileRadius={12}
+            gap={10}
+            fontSize="clamp(2.2rem, 6vw, 4.4rem)"
           />
         </div>
 
