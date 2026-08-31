@@ -52,6 +52,7 @@ export const ROLE_NAV = {
     { label: "Registrations", to: "/admin/registrations", icon: ClipboardList },
     { label: "Payment", to: "/admin/payment", icon: CreditCard },
     { label: "Approvals", to: "/admin/approvals", icon: BadgeCheck },
+    { label: "Attendance", to: "/admin/attendance", icon: UserCheck },
     { label: "Events", to: "/admin/events", end: true, icon: CalendarDays },
     { label: "Add Roles", to: "/admin/roles", icon: UserPlus },
     { label: "Manage Roles", to: "/admin/allocations", icon: Users },

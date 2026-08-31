@@ -31,7 +31,7 @@ import { ApiError } from "../utils/ApiError.js";
 import { STATUS_COMPLETED } from "../utils/statuses.js";
 import { optionalString, parseEvaluationScores } from "../utils/validate.js";
 import * as aggregate from "./aggregate.js";
-import { everEventCheckedIn } from "./checkin.service.js";
+import { everEventCheckedIn, holderCheckins } from "./checkin.service.js";
 import { assertEventWindowOpen, EVALUATION_GRACE_MINUTES } from "./festClock.js";
 import { ticketHolders } from "./qr.js";
 import { resolveVolunteerEventId } from "./submissionAccess.js";
@@ -80,16 +80,7 @@ async function eventRegistrations(eventId) {
  * from the shared `evaluations[]` — stored under `judge_email`, which is the
  * on-disk field name and stays that way. */
 function participantView(row, event, actorEmail) {
-  const holders = ticketHolders(row).map((h, i) => {
-    const entry = (row.member_checkins || []).find((c) => c.member_index === i);
-    return {
-      member_index: i,
-      name: h.name || "",
-      allocation_code: (row.allocation_codes || [])[i] || "",
-      checked_in: Boolean(entry) && !entry.checked_out_at,
-      ever_checked_in: Boolean(entry),
-    };
-  });
+  const holders = holderCheckins(row);
   const evaluations = (row.evaluations || []).map((e) => ({
     judge_email: e.judge_email,
     judge_name: e.judge_name || e.judge_email,

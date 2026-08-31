@@ -9,6 +9,7 @@ import { IMAGE_TYPES } from "../middleware/upload.js";
 import * as adminReports from "../services/adminReports.service.js";
 import * as aggregate from "../services/aggregate.js";
 import * as approvals from "../services/approval.service.js";
+import * as attendance from "../services/attendance.service.js";
 import * as people from "../services/people.service.js";
 import {
   applySettingsPatch,
@@ -36,6 +37,13 @@ export async function authUsers(req, res) {
  * for why this isn't just the registration list. */
 export async function participants(req, res) {
   res.json(await aggregate.participantRows());
+}
+
+/** One row per person, with every event they hold and where each has got to —
+ * the Attendance screen. See services/attendance.service.js for why this is
+ * people-shaped rather than registration-shaped. */
+export async function attendanceRows(req, res) {
+  res.json(await attendance.attendanceRows());
 }
 
 export async function venuesRollup(req, res) {

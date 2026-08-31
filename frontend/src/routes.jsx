@@ -23,6 +23,7 @@ const AddRoles = lazy(() => import("@/pages/admin/AddRoles.jsx"));
 const ManageRoles = lazy(() => import("@/pages/admin/ManageRoles.jsx"));
 const PaymentSettings = lazy(() => import("@/pages/admin/PaymentSettings.jsx"));
 const Approvals = lazy(() => import("@/pages/admin/Approvals.jsx"));
+const Attendance = lazy(() => import("@/pages/admin/Attendance.jsx"));
 
 const VolunteerHome = lazy(() => import("@/pages/roles/VolunteerHome.jsx"));
 const VolunteerRoster = lazy(() => import("@/pages/roles/VolunteerRoster.jsx"));
@@ -85,6 +86,7 @@ export default function AppRoutes() {
         <Route path="registrations" element={<Registrations />} />
         <Route path="payment" element={<PaymentSettings />} />
         <Route path="approvals" element={<Approvals />} />
+        <Route path="attendance" element={<Attendance />} />
         <Route path="events" element={<ManageEvents />} />
         <Route path="events/:id" element={<EventParticipants />} />
         <Route path="roles" element={<AddRoles />} />

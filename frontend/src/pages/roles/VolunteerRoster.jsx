@@ -71,7 +71,13 @@ export default function VolunteerRoster() {
       ) : (
         <ul className="checkin-row-list" style={{ display: "grid", gap: ".75rem" }}>
           {roster.participants.map((p) => (
-            <li key={p.registration_id} className="assignment-chip" style={{ flexDirection: "column", alignItems: "stretch" }}>
+            <li
+              key={p.registration_id}
+              /* Already scored reads as dimmed but stays fully interactive —
+                 check-in must keep working after a team has been judged. */
+              className={`assignment-chip${p.evaluated ? " is-evaluated" : ""}`}
+              style={{ flexDirection: "column", alignItems: "stretch" }}
+            >
               <strong>{p.team_name || p.lead_name}</strong>
               <ul style={{ listStyle: "none", padding: 0, margin: ".25rem 0 0", display: "grid", gap: ".35rem" }}>
                 {p.holders.map((h) => (

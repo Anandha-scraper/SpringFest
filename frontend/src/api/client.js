@@ -112,6 +112,10 @@ export const getAuthUsers = () => req("/admin/auth-users", {}, true);
 /** One row per person, with their events rolled up. The Registrations screen. */
 export const getParticipants = () => req("/admin/participants", {}, true);
 
+/** One row per person: every event they hold, their door mark, per-event
+ *  check-in and scoring state. The Attendance screen. */
+export const getAttendance = () => req("/admin/attendance", {}, true);
+
 /** Per venue: its event, headcount, check-ins and assigned staff. */
 export const getVenueRollup = () => req("/admin/venues/rollup", {}, true);
 

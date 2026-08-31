@@ -77,8 +77,15 @@ function TeamCard({ team, criteria, criteriaTotal, onSaved }) {
 
   const others = team.other_evaluations || [];
 
+  const scored = Boolean(team.my_evaluation) || others.length > 0;
+
   return (
-    <li className="admin-panel" style={{ padding: "1rem" }}>
+    <li
+      /* Dimmed once anyone has scored it — a glance-able "done" over a long
+         list. Never disabled: re-scoring and corrections must stay possible. */
+      className={`admin-panel${scored ? " is-evaluated" : ""}`}
+      style={{ padding: "1rem" }}
+    >
       <div className="panel-head">
         <h3 style={{ margin: 0 }}>
           {team.team_name || team.lead_name}

@@ -41,6 +41,31 @@ export function everEventCheckedIn(row) {
   return Array.isArray(row?.member_checkins) && row.member_checkins.length > 0;
 }
 
+/** Every ticket holder on a registration, with their own check-in state.
+ *
+ * `ticketHolders()` (services/qr.js) fixes the order — index 0 is the lead —
+ * and `member_checkins[]` is joined onto it by that same index. Three screens
+ * render this (the volunteer roster, the scoring list, the admin attendance
+ * view) and they were each rebuilding the join; keeping it here is what stops
+ * them drifting apart on what "checked in" means.
+ *
+ * `checked_in` is the live state (checked in and not back out); `ever_checked_in`
+ * is the sticky one that keeps a team visible to scoring after it leaves. */
+export function holderCheckins(row) {
+  const entries = Array.isArray(row?.member_checkins) ? row.member_checkins : [];
+  const codes = Array.isArray(row?.allocation_codes) ? row.allocation_codes : [];
+  return ticketHolders(row).map((holder, i) => {
+    const entry = entries.find((c) => c.member_index === i);
+    return {
+      member_index: i,
+      name: holder.name || "",
+      allocation_code: codes[i] || "",
+      checked_in: isCheckedIn(entry),
+      ever_checked_in: Boolean(entry),
+    };
+  });
+}
+
 /** Scan someone's personal QR: who they are, and every event they're
  * registered for (as lead or as a team member), with each one's current
  * check-in state. Read-only — allowed before the fest opens so volunteers can
@@ -321,15 +346,9 @@ export async function volunteerRoster({ user }) {
       registration_id: row.id,
       team_name: row.team_name || "",
       lead_name: row.name || "",
-      holders: ticketHolders(row).map((h, i) => {
-        const entry = (row.member_checkins || []).find((c) => c.member_index === i);
-        return {
-          member_index: i,
-          name: h.name || "",
-          allocation_code: (row.allocation_codes || [])[i] || "",
-          checked_in: Boolean(entry) && !entry.checked_out_at,
-        };
-      }),
+      // Lets the roster dim an already-scored team without hiding it.
+      evaluated: Boolean(row.evaluated_at),
+      holders: holderCheckins(row),
     }))
     .sort((a, b) => (a.team_name || a.lead_name).localeCompare(b.team_name || b.lead_name));
 

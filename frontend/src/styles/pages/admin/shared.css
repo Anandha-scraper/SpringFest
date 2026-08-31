@@ -513,3 +513,77 @@
    Holds the table's height steady across pages so the pager doesn't jump. */
 .reg-table-wrap { min-height: var(--reg-table-min-h, auto); }
 .data-table--fixed col { width: var(--col-w, auto); }
+
+
+/* ── Already scored ───────────────────────────────────────────
+   One class, used everywhere a team or an entry can be "done": the admin
+   attendance list, the volunteer roster and the scoring list. Opacity only —
+   the row stays fully clickable and downloadable, because this is a
+   glance-able "already scored", not a lock. Never pair it with
+   pointer-events: none or [disabled]. */
+.is-evaluated { opacity: 0.45; }
+.is-evaluated:hover,
+.is-evaluated:focus-within { opacity: 1; }
+
+/* ── Attendance ───────────────────────────────────────────────
+   One row per person, expandable to their events. */
+.attendance-row { cursor: pointer; }
+.attendance-row > td:first-child { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.375rem; }
+
+.attendance-toggle {
+  display: inline-flex;
+  align-items: center;
+  border: 0;
+  padding: 0;
+  background: none;
+  color: var(--ink-faint);
+  cursor: pointer;
+}
+
+.attendance-detail > td { background: var(--surface-2); }
+
+.attendance-entries,
+.attendance-holders { list-style: none; margin: 0; padding: 0; }
+
+.attendance-entries { display: grid; gap: 0.5rem; }
+
+.attendance-entry {
+  padding: 0.5rem 0.625rem;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface);
+}
+
+.attendance-entry__head,
+.attendance-entry__marks {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.attendance-entry__marks { margin-top: 0.25rem; }
+
+.attendance-holders {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px dashed var(--border);
+  display: grid;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+}
+
+.attendance-holders li { display: flex; justify-content: space-between; gap: 0.5rem; }
+/* The person whose row this is, picked out of their own team. */
+.attendance-holders li.is-self { font-weight: 600; }
+
+.attendance-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.attendance-mark.is-on  { color: var(--ok); }
+.attendance-mark.is-off { color: var(--ink-faint); }

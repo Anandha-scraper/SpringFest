@@ -83,6 +83,16 @@ export function eventName(events, eventId) {
   return events[eventId]?.name ?? eventId;
 }
 
+/** How this codebase decides two registrations belong to the same person.
+ *
+ * The Firebase uid, falling back to the email for rows written before uid was
+ * stored. Exported because the headline stats and the attendance view must
+ * agree on it: two definitions of "one person" would make "142 registered
+ * users" and a 143-row attendance list both look correct and disagree. */
+export function personKey(r) {
+  return r.uid || r.email || "unknown";
+}
+
 /** One registration as the admin detail panel wants it. */
 function registrationView(r, events) {
   return {
@@ -124,8 +134,7 @@ export async function participantRows(data) {
 
   const byUid = new Map();
   for (const r of registrations) {
-    // Fall back to the email for rows written before uid existed.
-    const key = r.uid || r.email || "unknown";
+    const key = personKey(r);
     if (!byUid.has(key)) byUid.set(key, []);
     byUid.get(key).push(r);
   }
@@ -205,7 +214,6 @@ export async function buildStats(data) {
   data = data || (await loadAll());
   const { registrations, events } = data;
 
-  const personKey = (r) => r.uid || r.email || "unknown";
   const completed = registrations.filter((r) => r.status === STATUS_COMPLETED);
 
   return {
