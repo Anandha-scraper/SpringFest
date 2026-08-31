@@ -12,7 +12,7 @@ import {
   volunteerSubmissionObjectUrl,
 } from "@/api/client.js";
 import { useApi } from "@/hooks/useApi.js";
-import { useHeldLoading } from "@/hooks/useHeldLoading.js";
+import { useDeferredLoading } from "@/hooks/useDeferredLoading.js";
 import { useToast } from "@/components/ui/toast.jsx";
 import Loader from "@/components/common/Loader.jsx";
 import JudgingQueueView from "@/components/roles/JudgingQueueView.jsx";
@@ -170,7 +170,7 @@ export default function VolunteerScoring() {
   const [detail, setDetail] = useState(null);
   const [queue, setQueue] = useState(null);
   const [detailErr, setDetailErr] = useState("");
-  const detailLoading = useHeldLoading(!detail && !detailErr);
+  const detailLoading = useDeferredLoading(!detail && !detailErr);
 
   useEffect(() => {
     if (events?.length && !eventId) setEventId(events[0].event_id);

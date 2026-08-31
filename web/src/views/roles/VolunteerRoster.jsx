@@ -6,7 +6,7 @@ import { CheckCircle2, Circle } from "lucide-react";
 import { getVolunteerRoster, getVolunteerSummary, toggleCheckIn } from "@/api/client.js";
 import { useToast } from "@/components/ui/toast.jsx";
 import Loader from "@/components/common/Loader.jsx";
-import { useHeldLoading } from "@/hooks/useHeldLoading.js";
+import { useDeferredLoading } from "@/hooks/useDeferredLoading.js";
 import JudgingQueueView from "@/components/roles/JudgingQueueView.jsx";
 
 export default function VolunteerRoster() {
@@ -15,7 +15,7 @@ export default function VolunteerRoster() {
   const [summary, setSummary] = useState(null);
   const [error, setError] = useState("");
   const [busyKey, setBusyKey] = useState("");
-  const loading = useHeldLoading(!roster || !summary);
+  const loading = useDeferredLoading(!roster || !summary);
 
   const load = useCallback(() => {
     setError("");

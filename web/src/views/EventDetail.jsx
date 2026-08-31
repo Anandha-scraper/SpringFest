@@ -17,7 +17,7 @@ import RegistrationForm from "@/components/registration/RegistrationForm.jsx";
 import PaymentProofForm from "@/components/registration/PaymentProofForm.jsx";
 import RegistrationResultDialog from "@/components/registration/RegistrationResultDialog.jsx";
 import Loader from "@/components/common/Loader.jsx";
-import { useHeldLoading } from "@/hooks/useHeldLoading.js";
+import { useDeferredLoading } from "@/hooks/useDeferredLoading.js";
 import { homeForRole } from "@/content/roles.js";
 
 /** Pull just the form-shaped fields out of a saved draft (or any registration
@@ -64,7 +64,7 @@ export default function EventDetail() {
   // Set once a screenshot-mode registration exists and is waiting for its
   // proof — this is what swaps the details form for the upload step.
   const [awaitingProof, setAwaitingProof] = useState(null);
-  const loading = useHeldLoading(!event);
+  const loading = useDeferredLoading(!event);
 
   // MyRegistrations links back here to resume a saved draft or resubmit after
   // a rejection. It hands over only the registration id (?resume=), so the row

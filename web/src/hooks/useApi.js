@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import { useHeldLoading } from "@/hooks/useHeldLoading.js";
+import { useDeferredLoading } from "@/hooks/useDeferredLoading.js";
 
 /**
  * Run an API call on mount and expose { data, error, loading, reload }.
@@ -16,9 +16,20 @@ export function useApi(fetcher, { immediate = true } = {}) {
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   const [rawLoading, setLoading] = useState(immediate);
-  // Every appearance of the loader is held for a minimum time so it never just
-  // flashes — on the first load and on every reload() after a write.
-  const loading = useHeldLoading(rawLoading);
+  const deferred = useDeferredLoading(rawLoading);
+
+  // Two different situations, two different answers.
+  //
+  // FIRST load — there is no data yet, so the page has nothing to render and
+  // callers legitimately write `if (loading) return <Loader/>` and then reach
+  // straight into `data`. Deferring here would hand them a null for the first
+  // 150ms: at best an empty state flashing before the real one, at worst a
+  // crash where a caller destructures the result. So it reports immediately.
+  //
+  // RELOAD — `data` is already on screen. A spinner over content that is
+  // about to be replaced by near-identical content is exactly the flicker
+  // worth suppressing, so this one defers and a quick refresh shows nothing.
+  const loading = data === null ? rawLoading : deferred;
 
   const reload = useCallback(async () => {
     setLoading(true);

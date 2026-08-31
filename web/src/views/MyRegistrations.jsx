@@ -16,7 +16,7 @@ import { yearLabel } from "@/content/formOptions.js";
 import { formatEventDate, formatEventTimeRange } from "@/utils/format.js";
 import StatusPill from "@/components/admin/StatusPill.jsx";
 import Loader from "@/components/common/Loader.jsx";
-import { useHeldLoading } from "@/hooks/useHeldLoading.js";
+import { useDeferredLoading } from "@/hooks/useDeferredLoading.js";
 import EventSubmission from "@/components/registration/EventSubmission.jsx";
 import AddTeammate from "@/components/registration/AddTeammate.jsx";
 
@@ -106,7 +106,7 @@ export default function MyRegistrations() {
   const [events, setEvents] = useState([]);
   const [error, setError] = useState("");
   const [sheet, setSheet] = useState(null); // { registration, event, resume } | null
-  const loading = useHeldLoading(items === null);
+  const loading = useDeferredLoading(items === null);
 
   const load = useCallback(() => {
     Promise.all([getMyRegistrations(), getEvents()])
