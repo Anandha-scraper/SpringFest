@@ -19,7 +19,7 @@ export default function Registrations() {
   const [page, setPage] = useState(1);
 
   const fetcher = useCallback(() => getParticipants(), []);
-  const { data, error, loading, reload } = useApi(fetcher);
+  const { data, error, loading, reload } = useApi(fetcher, { liveOn: "registrations" });
   const people = data || [];
 
   const filtered = useMemo(() => {

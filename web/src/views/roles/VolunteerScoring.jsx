@@ -165,7 +165,7 @@ function TeamCard({ team, criteria, criteriaTotal, onSaved }) {
 
 export default function VolunteerScoring() {
   const fetcher = useCallback(getVolunteerEvents, []);
-  const { data: events, error, loading } = useApi(fetcher);
+  const { data: events, error, loading } = useApi(fetcher, { liveOn: "registrations" });
   const [eventId, setEventId] = useState("");
   const [detail, setDetail] = useState(null);
   const [queue, setQueue] = useState(null);

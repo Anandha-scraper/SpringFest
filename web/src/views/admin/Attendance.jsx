@@ -81,7 +81,7 @@ function Entries({ entries }) {
 
 export default function Attendance() {
   const fetcher = useCallback(() => getAttendance(), []);
-  const { data, error, loading } = useApi(fetcher);
+  const { data, error, loading } = useApi(fetcher, { liveOn: "registrations" });
   const people = data || [];
 
   const [query, setQuery] = useState("");

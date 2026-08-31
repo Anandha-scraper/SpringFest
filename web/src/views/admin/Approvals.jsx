@@ -75,7 +75,7 @@ function ProofThumb({ registrationId, hasProof, onOpen }) {
 
 export default function Approvals() {
   const fetcher = useCallback(() => getApprovals(), []);
-  const { data, error: loadError, loading, reload } = useApi(fetcher);
+  const { data, error: loadError, loading, reload } = useApi(fetcher, { liveOn: "registrations" });
   const rows = data || [];
 
   const toast = useToast();

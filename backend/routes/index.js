@@ -7,6 +7,7 @@ import { router as eventsRouter } from "./events.routes.js";
 import { router as meRouter } from "./me.routes.js";
 import { router as registrationsRouter } from "./registrations.routes.js";
 import { router as sessionRouter } from "./session.routes.js";
+import { router as streamRouter } from "./stream.routes.js";
 import { router as volunteerRouter } from "./volunteer.routes.js";
 
 export const router = Router();
@@ -17,6 +18,10 @@ router.get("/health", (req, res) => res.json({ status: "ok" }));
 // Sign-in/sign-out: swaps a Firebase ID token for the __session cookie that
 // makes server-side rendering possible. See auth/session.js.
 router.use("/session", sessionRouter);
+
+// Live "something changed" nudges, so open dashboards stop showing a
+// snapshot from whenever they loaded. See services/changeStream.js.
+router.use("/stream", streamRouter);
 
 router.use("/events", eventsRouter);
 router.use("/registrations", registrationsRouter);

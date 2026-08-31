@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { useDeferredLoading } from "@/hooks/useDeferredLoading.js";
+import { useLiveResource } from "@/live/LiveUpdates.jsx";
 
 /**
  * Run an API call on mount and expose { data, error, loading, reload }.
@@ -11,8 +12,13 @@ import { useDeferredLoading } from "@/hooks/useDeferredLoading.js";
  * write, so they share one implementation rather than six near-identical
  * useEffects. Pass a stable `fetcher` (module-scope function or useCallback);
  * it is the dependency that re-triggers the call.
+ *
+ * `liveOn` names a resource ("registrations", "events", "people", "settings")
+ * and re-runs the fetcher whenever the server says it changed — which is what
+ * makes someone else's check-in appear on an open dashboard without a refresh.
+ * See src/live/LiveUpdates.jsx.
  */
-export function useApi(fetcher, { immediate = true } = {}) {
+export function useApi(fetcher, { immediate = true, liveOn = null } = {}) {
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   const [rawLoading, setLoading] = useState(immediate);
@@ -49,6 +55,11 @@ export function useApi(fetcher, { immediate = true } = {}) {
   useEffect(() => {
     if (immediate) reload();
   }, [immediate, reload]);
+
+  // Opt-in live refresh. `reload()` sets rawLoading, but because data is
+  // already present the deferred loader stays hidden, so a push-driven refresh
+  // updates the numbers in place rather than flashing a spinner over them.
+  useLiveResource(liveOn, reload);
 
   return { data, error, loading, reload, setError };
 }

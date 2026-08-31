@@ -7,6 +7,7 @@ import { getVolunteerRoster, getVolunteerSummary, toggleCheckIn } from "@/api/cl
 import { useToast } from "@/components/ui/toast.jsx";
 import Loader from "@/components/common/Loader.jsx";
 import { useDeferredLoading } from "@/hooks/useDeferredLoading.js";
+import { useLiveResource } from "@/live/LiveUpdates.jsx";
 import JudgingQueueView from "@/components/roles/JudgingQueueView.jsx";
 
 export default function VolunteerRoster() {
@@ -28,6 +29,9 @@ export default function VolunteerRoster() {
   }, []);
 
   useEffect(load, [load]);
+  // The roster is the screen most likely to be open while someone else is
+  // checking people in — at the next desk, or on the volunteer's own phone.
+  useLiveResource("registrations", load);
 
   const toggle = (regId, memberIndex, checkedIn) => {
     const key = `${regId}.${memberIndex}`;

@@ -7,6 +7,7 @@ import ErrorBoundary from "@/components/common/ErrorBoundary.jsx";
 import GlyphMatrix from "@/components/common/GlyphMatrix.jsx";
 import Loader from "@/components/common/Loader.jsx";
 import { ToastProvider } from "@/components/ui/toast.jsx";
+import { LiveUpdatesProvider } from "@/live/LiveUpdates.jsx";
 
 /**
  * Everything the old src/main.jsx wrapped the router in, minus the router
@@ -30,17 +31,21 @@ export default function Providers({ children }) {
       </div>
 
       <AuthProvider>
-        <ToastProvider>
-          <ClickSpark
-            sparkColor="#f87b1b"
-            sparkSize={9}
-            sparkRadius={16}
-            sparkCount={7}
-            duration={420}
-          >
-            <Suspense fallback={<Loader />}>{children}</Suspense>
-          </ClickSpark>
-        </ToastProvider>
+        {/* Inside AuthProvider: the stream only opens once someone is signed
+            in, and it authenticates with their session cookie. */}
+        <LiveUpdatesProvider>
+          <ToastProvider>
+            <ClickSpark
+              sparkColor="#f87b1b"
+              sparkSize={9}
+              sparkRadius={16}
+              sparkCount={7}
+              duration={420}
+            >
+              <Suspense fallback={<Loader />}>{children}</Suspense>
+            </ClickSpark>
+          </ToastProvider>
+        </LiveUpdatesProvider>
       </AuthProvider>
     </ErrorBoundary>
   );

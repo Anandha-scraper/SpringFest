@@ -30,7 +30,19 @@ export const app = express();
 app.use(cors({ origin: settings.CORS_ORIGINS }));
 // Several admin endpoints return large JSON (full registration/participant
 // lists) — compress anything worth compressing rather than shipping it raw.
-app.use(compression({ threshold: 500 }));
+//
+// The filter exists for one route: compression buffers, and buffering a
+// text/event-stream response means the client receives nothing until the
+// stream ends — which for SSE is never. It fails silently and looks like the
+// feature simply doesn't work, so the exclusion is explicit rather than
+// relying on the Cache-Control: no-transform the endpoint also sets.
+app.use(
+  compression({
+    threshold: 500,
+    filter: (req, res) =>
+      res.getHeader("Content-Type") !== "text/event-stream" && compression.filter(req, res),
+  })
+);
 // Multipart routes mount their own parser (middleware/upload.js), so this
 // keeps handling every other endpoint untouched.
 app.use(express.json());

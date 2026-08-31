@@ -11,7 +11,7 @@ import JudgingQueueView from "@/components/roles/JudgingQueueView.jsx";
 
 export default function VolunteerHome() {
   const fetcher = useCallback(getVolunteerSummary, []);
-  const { data, error, loading } = useApi(fetcher);
+  const { data, error, loading } = useApi(fetcher, { liveOn: "registrations" });
 
   if (loading) return <Loader />;
   if (error) return <p className="error">{error}</p>;

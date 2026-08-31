@@ -21,7 +21,7 @@ const load = () => Promise.all([getPeople(), getVenues(), getEventRollup()]);
 
 export default function ManageRoles() {
   const fetcher = useCallback(load, []);
-  const { data, error: loadError, loading, reload } = useApi(fetcher);
+  const { data, error: loadError, loading, reload } = useApi(fetcher, { liveOn: "registrations" });
   const [people, venues, rollup] = data || [[], [], []];
 
   // A rejected assignment (unknown venue, wrong role) is shown against the

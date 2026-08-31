@@ -22,7 +22,7 @@ const load = () => Promise.all([getAdminStats(), getAuthUsers(), getVenueRollup(
 
 export default function AdminDashboard() {
   const fetcher = useCallback(load, []);
-  const { data, error, loading } = useApi(fetcher);
+  const { data, error, loading } = useApi(fetcher, { liveOn: "registrations" });
   const [stats, authUsers, venues] = data || [];
 
   if (loading) return <Loader />;
