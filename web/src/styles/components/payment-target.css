@@ -1,0 +1,85 @@
+/* Where-to-pay block shown to a participant in screenshot mode
+   (components/registration/PaymentTarget.jsx). */
+
+/* ── Where-to-pay block (participant side, components/PaymentTarget) ── */
+.pay-target {
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: var(--r-sm);
+  background: var(--accent-soft);
+  padding: 0.9rem 1rem;
+  margin-bottom: 1rem;
+}
+.pay-target-head { display: flex; flex-direction: column; gap: 0.15rem; margin-bottom: 0.75rem; }
+.pay-target-body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+}
+.pay-target-qr { margin: 0; }
+.pay-target-qr img {
+  display: block;
+  width: min(100%, 11rem);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  padding: 0.4rem;
+}
+.pay-target-qr figcaption {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.78rem;
+  margin-top: 0.3rem;
+}
+.pay-target-upi {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+  min-width: 0;
+}
+.pay-target-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.pay-target-id {
+  font-size: 1rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+/* Several values stacked inside one table cell — the solo event names and
+   the team chips on the Registrations table. */
+.cell-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.cell-list > li { min-width: 0; }
+.cell-list .cell-sub { display: block; }
+
+
+/* ── Proof upload (components/registration/PaymentProofForm.jsx) ── */
+.proof-hint { font-size: 0.85rem; margin: 0.25rem 0 0; }
+
+/* Inline preview of the screenshot the participant just picked. Capped on
+   both axes — a tall phone screenshot would otherwise push the submit button
+   off-screen, and object-fit keeps it from stretching to fill the box. */
+.proof-preview {
+  width: 100%;
+  max-width: 14rem;
+  max-height: 12rem;
+  object-fit: contain;
+  object-position: top;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  margin-top: 0.5rem;
+}

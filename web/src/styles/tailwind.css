@@ -1,0 +1,6 @@
+/* Utility classes only — preflight is off in tailwind.config.js, so this
+   never touches the site's own reset in base.css. Used by the ported
+   shadcn components in components/ui/. */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;

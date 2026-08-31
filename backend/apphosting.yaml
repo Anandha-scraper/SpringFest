@@ -1,3 +1,17 @@
+# App Hosting backend #2 — the Express API.
+#
+# Create it with the repo's Root directory set to `backend`:
+#   firebase apphosting:backends:create --project <id>   # root directory: backend
+#
+# This used to be the *only* backend: backend/server.js served both /api and the
+# built Vite SPA from one origin, which is why the old root apphosting.yaml
+# carried the VITE_* build vars too. Next.js owns serving the frontend now, so
+# those moved to web/apphosting.yaml and this file is the API alone.
+#
+# FIREBASE_CREDENTIALS is deliberately absent: App Hosting runs on Application
+# Default Credentials and config/firebase.js falls back to them when no key file
+# exists. Give this backend's service account the Cloud Datastore User role.
+
 runConfig:
   minInstances: 1
   maxInstances: 10
@@ -41,24 +55,3 @@ env:
     secret: QR_SECRET
     availability:
       - RUNTIME
-
-  - variable: VITE_FIREBASE_API_KEY
-    secret: VITE_FIREBASE_API_KEY
-    availability:
-      - BUILD
-
-  - variable: VITE_FIREBASE_AUTH_DOMAIN
-    secret: VITE_FIREBASE_AUTH_DOMAIN
-    availability:
-      - BUILD
-
-  - variable: VITE_FIREBASE_PROJECT_ID
-    secret: VITE_FIREBASE_PROJECT_ID
-    availability:
-      - BUILD
-
-  - variable: VITE_FIREBASE_APP_ID
-    secret: VITE_FIREBASE_APP_ID
-    availability:
-      - BUILD
-

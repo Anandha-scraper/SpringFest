@@ -1,0 +1,71 @@
+/* BracketButton — plain-CSS port of the supplied "GAME ON" button, used as a
+   static hint (not interactive): a label framed by two offset bars
+   (::before / ::after) that retract on hover. Plain dark border, no fest
+   retint. Block = .bracket-button; the framed box is .bracket-button__box. */
+
+.bracket-button {
+  display: inline-block;
+}
+
+.bracket-button__box {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  height: 50px;
+  padding: 0 30px;
+  border: 2px solid #1a1a1a;
+  background: #e8e8e8;
+  color: #1a1a1a;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.bracket-button__box::before,
+.bracket-button__box::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  background: #e8e8e8;
+  border: 2px solid #1a1a1a;
+  transition: all 0.2s linear;
+}
+
+.bracket-button__box::before {
+  width: calc(100% + 6px);
+  height: calc(100% - 16px);
+  top: 8px;
+  left: -3px;
+}
+
+.bracket-button__box::after {
+  width: calc(100% - 16px);
+  height: calc(100% + 6px);
+  top: -3px;
+  left: 8px;
+}
+
+.bracket-button:hover .bracket-button__box::before {
+  height: calc(100% - 32px);
+  top: 16px;
+}
+
+.bracket-button:hover .bracket-button__box::after {
+  width: calc(100% - 32px);
+  left: 16px;
+}
+
+.bracket-button__box span {
+  position: relative;
+  z-index: 3;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bracket-button__box::before,
+  .bracket-button__box::after {
+    transition: none;
+  }
+}

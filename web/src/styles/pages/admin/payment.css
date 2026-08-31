@@ -1,0 +1,174 @@
+/* Admin Payment settings and the screenshot-approval queue. */
+
+/* ── Payment settings ──────────────────────────────────────────
+   Laptop: the two runtime switches (method + registration window)
+   stack down the left, and "where participants pay" fills the
+   right. One column below laptop width. */
+.pay-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 27rem) minmax(0, 1fr);
+  gap: 1.625rem;
+  align-items: start;
+  margin-bottom: 1.625rem;
+}
+.pay-grid-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 1.625rem;
+}
+.pay-grid .admin-panel { margin-bottom: 0; }
+
+@media (max-width: 899px) {
+  .pay-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+.event-toggles { margin-top: 1.25rem; border-top: 1px solid var(--border); padding-top: 1rem; }
+.event-toggles h3 { font-size: 0.95rem; margin-bottom: 0.5rem; }
+/* Closed fest-wide: the per-event switches still work, but say so. */
+.event-toggles.is-disabled { opacity: 0.6; }
+
+.event-toggle-list {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  max-height: 18rem;
+  overflow-y: auto;
+}
+.event-toggle-list > li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.5rem 0.625rem;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+}
+.event-toggle-name { display: flex; flex-direction: column; min-width: 0; }
+
+.pay-hint { font-size: 0.85rem; margin: 0.25rem 0 0; }
+
+.pay-qr-preview {
+  display: block;
+  width: min(100%, 13rem);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  padding: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.pay-locked { display: flex; flex-direction: column; gap: 0.75rem; align-items: flex-start; }
+.pay-locked-row { display: flex; align-items: center; gap: 0.625rem; flex-wrap: wrap; }
+
+/* ── Payment mode + approvals ──────────────────────────────── */
+
+/* The status pill colours (.pill-awaiting_approval, .pill-rejected) live in
+   admin/shared.css alongside the other statuses so they render everywhere. */
+
+/* Payment screenshot thumbnails in the approval queue — a fixed tile that
+   opens full size in a lightbox on click. The cell is pinned so the column
+   doesn't stretch with the "Free event — no payment" text. */
+.proof-cell { width: 8rem; }
+
+.proof-thumb {
+  display: block;
+  width: 4.5rem;
+  height: 4.5rem;
+  object-fit: cover;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+}
+.proof-thumb--loading {
+  display: grid;
+  place-items: center;
+  color: var(--ink-faint);
+  overflow: hidden;
+}
+.proof-thumb--loading .ghost-loader-wrapper {
+  min-height: 0;
+  padding: 0;
+}
+.proof-thumb--loading #ghost {
+  scale: 0.28;
+}
+.proof-thumb-btn {
+  border: 0;
+  background: none;
+  padding: 0;
+  cursor: zoom-in;
+  border-radius: var(--r-sm);
+}
+.proof-thumb-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Click-to-enlarge overlay for a payment screenshot. */
+.img-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 2rem;
+  background: rgba(0, 0, 0, 0.75);
+}
+.img-lightbox img {
+  max-width: min(100%, 900px);
+  max-height: 100%;
+  border-radius: var(--r-sm);
+  box-shadow: var(--shadow-lg, 0 10px 40px rgba(0, 0, 0, 0.4));
+  cursor: zoom-out;
+}
+
+/* A rejection is worse news than the default .notice, so it borrows the
+   error palette rather than the warning one. */
+.notice-warn {
+  border-color: var(--bad);
+  background: var(--bad-bg);
+  color: var(--bad);
+}
+.notice strong { display: block; margin-bottom: 0.25rem; }
+.notice p { margin: 0; }
+
+/* Payment-method chooser: two large, clickable cards. */
+.mode-grid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 16.25rem), 1fr));
+}
+.mode-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  text-align: left;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.mode-card:hover { border-color: var(--accent); }
+.mode-card.active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  cursor: default;
+}
+.mode-card-head { display: flex; align-items: center; gap: 0.5rem; }
+.mode-card-head strong { font-size: 0.95rem; }
+.mode-card .muted { font-size: 0.85rem; line-height: 1.5; }
+
+/* Table cells holding a transaction reference. */
+.data-table .mono {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 0.82rem;
+}
+

@@ -1,0 +1,46 @@
+# App Hosting backend #1 — the Next.js frontend.
+#
+# Create it with the repo's Root directory set to `web`:
+#   firebase apphosting:backends:create --project <id>   # root directory: web
+#
+# App Hosting detects Next.js from the lockfile and runs its own adapter
+# (`next build` -> standalone server), so there is no buildCommand/runCommand
+# here on purpose. The pinned 15.2.x in package.json is inside the adapter's
+# actively supported range; 16.x is not.
+runConfig:
+  minInstances: 1
+  maxInstances: 10
+  concurrency: 100
+  cpu: 1
+  memoryMiB: 2048
+
+env:
+  # Where app/api/[...path]/route.js forwards to: backend #2's URL. NOT
+  # NEXT_PUBLIC_ — the browser must keep talking to this app's own origin, and
+  # inlining the API host would put it back into CORS territory.
+  - variable: API_ORIGIN
+    secret: API_ORIGIN
+    availability:
+      - RUNTIME
+
+  # Firebase web config. Public by design, but Next inlines NEXT_PUBLIC_* at
+  # build time, so these must be available to the BUILD step, not the runtime.
+  - variable: NEXT_PUBLIC_FIREBASE_API_KEY
+    secret: VITE_FIREBASE_API_KEY
+    availability:
+      - BUILD
+
+  - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+    secret: VITE_FIREBASE_AUTH_DOMAIN
+    availability:
+      - BUILD
+
+  - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+    secret: VITE_FIREBASE_PROJECT_ID
+    availability:
+      - BUILD
+
+  - variable: NEXT_PUBLIC_FIREBASE_APP_ID
+    secret: VITE_FIREBASE_APP_ID
+    availability:
+      - BUILD
