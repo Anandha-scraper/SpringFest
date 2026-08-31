@@ -70,11 +70,11 @@ export function requireOneOf(value, allowed, { field } = {}) {
 export const STUDY_YEARS = ["1", "2", "3", "4", "PG"];
 
 /** Departments offered in the registration form. Keep in sync with
- * frontend/src/content/formOptions.js. */
+ * web/src/content/formOptions.js. */
 export const DEPARTMENTS = ["CSE", "ECE", "IT", "MECH", "EEE", "Others"];
 
 /** Event categories offered in the admin event form. Keep in sync with
- * frontend/src/content/formOptions.js.
+ * web/src/content/formOptions.js.
  *
  * Required on create rather than optional: the admin Events page groups every
  * event under one of these headings, so an event stored with an empty
@@ -82,7 +82,7 @@ export const DEPARTMENTS = ["CSE", "ECE", "IT", "MECH", "EEE", "Others"];
 export const EVENT_CATEGORIES = ["Technical", "Non-Technical", "Hackathon", "Workshop"];
 
 /** Tamil Nadu districts offered in the registration form, plus "Other" for
- * anyone outside the state — keep in sync with frontend/src/content/formOptions.js. */
+ * anyone outside the state — keep in sync with web/src/content/formOptions.js. */
 export const TN_CITIES = [
   "Ariyalur", "Chengalpattu", "Chennai", "Coimbatore", "Cuddalore", "Dharmapuri",
   "Dindigul", "Erode", "Kallakurichi", "Kancheepuram", "Kanyakumari", "Karur",

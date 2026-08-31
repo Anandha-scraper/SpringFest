@@ -1,13 +1,22 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useCallback } from "react";
 import "@/styles/pages/admin/dashboard.css";
 import Link from "next/link";
 import Loader from "@/components/common/Loader.jsx";
 import StatCard from "@/components/admin/StatCard.jsx";
-import ParticipationChart from "@/components/admin/ParticipationChart.jsx";
 import { getAdminStats, getAuthUsers, getVenueRollup } from "@/api/client.js";
 import { useApi } from "@/hooks/useApi.js";
+
+// chart.js + react-chartjs-2 is ~150 kB and renders one pie below the fold,
+// so it is split out rather than shipped in the dashboard's first chunk.
+// ssr:false because Chart.js draws to a canvas and has nothing to render on
+// the server.
+const ParticipationChart = dynamic(
+  () => import("@/components/admin/ParticipationChart.jsx"),
+  { ssr: false, loading: () => <Loader compact /> }
+);
 
 const load = () => Promise.all([getAdminStats(), getAuthUsers(), getVenueRollup()]);
 

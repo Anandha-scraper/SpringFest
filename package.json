@@ -6,14 +6,11 @@
     "node": ">=20"
   },
   "comments": [
-    "Dev convenience only. This used to be the Firebase App Hosting entry point",
-    "for the whole repo — its buildpack ran npm install -> build -> start, where",
-    "build compiled the Vite SPA and start ran backend/server.js, which served",
-    "both. That is gone: the repo now deploys as TWO App Hosting backends, each",
-    "with its own root directory and apphosting.yaml — `web` (Next.js) and",
+    "Dev convenience only. The repo deploys as TWO Firebase App Hosting backends,",
+    "each with its own root directory and apphosting.yaml — `web` (Next.js) and",
     "`backend` (the Express API). Neither reads this file.",
-    "The old `dependencies` block mirrored backend/package.json so the runtime",
-    "image had them; backend/ is its own deploy root now and carries its own."
+    "The Vite SPA that used to live in frontend/ is gone; web/ replaced it, and",
+    "keeping both meant every fix had to be written twice."
   ],
   "scripts": {
     "dev:backend": "npm --prefix backend run dev",

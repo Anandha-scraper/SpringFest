@@ -22,7 +22,7 @@ export const isFirebaseConfigured =
 
 export const firebaseConfigError = isFirebaseConfigured
   ? ""
-  : "Firebase is not configured. Fill VITE_FIREBASE_* in frontend/.env and restart the dev server.";
+  : "Firebase is not configured. Fill NEXT_PUBLIC_FIREBASE_* in web/.env.local and restart the dev server.";
 
 let app = null;
 let auth = null;

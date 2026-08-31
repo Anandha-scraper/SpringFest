@@ -316,12 +316,11 @@ export const deleteEvaluation = (eventId, registrationId) =>
 export const getVolunteerQueue = (eventId) =>
   req(`/volunteer/events/${encodeURIComponent(eventId)}/queue`, {}, true);
 
-export const setVolunteerQueue = (eventId, { current, upcoming }) =>
-  req(
-    `/volunteer/events/${encodeURIComponent(eventId)}/queue`,
-    { method: "PUT", body: JSON.stringify({ current, upcoming }) },
-    true
-  );
+// NOTE: there is no client helper for PUT /volunteer/events/:id/queue. The
+// judging queue can be *read* (getVolunteerQueue, rendered by
+// JudgingQueueView) but nothing in the UI ever sets it — the endpoint exists
+// and works, it just has no screen yet. Kept on the server side deliberately;
+// see CLAUDE.md.
 
 // The scoring screen opens submissions through volunteerSubmissionObjectUrl
 // above — there used to be a judge-flavoured twin of it pointing at
