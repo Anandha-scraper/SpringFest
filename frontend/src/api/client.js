@@ -118,7 +118,7 @@ export const getVenueRollup = () => req("/admin/venues/rollup", {}, true);
 /** Per-event attendance and evaluation progress — the Manage Roles view. */
 export const getEventRollup = () => req("/admin/events/rollup", {}, true);
 
-/** The raw event doc, including the judges-only marking criteria that the
+/** The raw event doc, including the staff-only marking criteria that the
  *  public /events routes deliberately never return. */
 export const getAdminEvent = (eventId) =>
   req(`/admin/events/${encodeURIComponent(eventId)}`, {}, true);
@@ -174,8 +174,8 @@ export const checkPersonConflicts = (email) =>
 export const removePerson = (email) =>
   req(`/admin/people/${encodeURIComponent(email)}`, { method: "DELETE" }, true);
 
-/** Judges get `event_ids`, volunteers get `venue_id`. Send only the one that
- *  matches their role; the API rejects the mismatch and any time clash. */
+/** Volunteers get a `venue_id` — and a venue backs one event, so that is
+ *  also what they check in and score. The API rejects it for any other role. */
 export const setAssignments = (email, data) =>
   req(
     `/admin/people/${encodeURIComponent(email)}/assignments`,
@@ -284,50 +284,44 @@ export async function volunteerSubmissionObjectUrl(registrationId) {
   return URL.createObjectURL(await res.blob());
 }
 
-// ── Judge ────────────────────────────────────────────────────
-/** The judge's assigned events, with marking criteria and progress counts. */
-export const getJudgeEvents = () => req("/judge/events", {}, true);
+// ── Scoring (was /judge/*, folded into the volunteer role) ───
+/** The events this volunteer staffs, with marking criteria and progress. */
+export const getVolunteerEvents = () => req("/volunteer/events", {}, true);
 
 /** Checked-in teams for one event, with each team's submission and scores. */
-export const getJudgeParticipants = (eventId) =>
-  req(`/judge/events/${encodeURIComponent(eventId)}/participants`, {}, true);
+export const getVolunteerParticipants = (eventId) =>
+  req(`/volunteer/events/${encodeURIComponent(eventId)}/participants`, {}, true);
 
-/** Save (or overwrite) this judge's score for one team. */
+/** Save (or overwrite) this volunteer's score for one team. */
 export const saveEvaluation = (eventId, { registrationId, scores, note }) =>
   req(
-    `/judge/events/${encodeURIComponent(eventId)}/evaluations`,
+    `/volunteer/events/${encodeURIComponent(eventId)}/evaluations`,
     { method: "POST", body: JSON.stringify({ registration_id: registrationId, scores, note }) },
     true
   );
 
 export const deleteEvaluation = (eventId, registrationId) =>
   req(
-    `/judge/events/${encodeURIComponent(eventId)}/evaluations/${encodeURIComponent(registrationId)}`,
+    `/volunteer/events/${encodeURIComponent(eventId)}/evaluations/${encodeURIComponent(registrationId)}`,
     { method: "DELETE" },
     true
   );
 
-export const getJudgeQueue = (eventId) =>
-  req(`/judge/events/${encodeURIComponent(eventId)}/queue`, {}, true);
+export const getVolunteerQueue = (eventId) =>
+  req(`/volunteer/events/${encodeURIComponent(eventId)}/queue`, {}, true);
 
-export const setJudgeQueue = (eventId, { current, upcoming }) =>
+export const setVolunteerQueue = (eventId, { current, upcoming }) =>
   req(
-    `/judge/events/${encodeURIComponent(eventId)}/queue`,
+    `/volunteer/events/${encodeURIComponent(eventId)}/queue`,
     { method: "PUT", body: JSON.stringify({ current, upcoming }) },
     true
   );
 
-/** Authenticated blob URL for a team's submission, judge view. */
-export async function judgeSubmissionObjectUrl(registrationId) {
-  const res = await fetch(
-    `${BASE}/judge/registrations/${encodeURIComponent(registrationId)}/submission`,
-    { headers: await authHeader() }
-  );
-  if (!res.ok) throw new Error(`Could not load the file: ${res.status}`);
-  return URL.createObjectURL(await res.blob());
-}
+// The scoring screen opens submissions through volunteerSubmissionObjectUrl
+// above — there used to be a judge-flavoured twin of it pointing at
+// /judge/registrations/…, and both now resolve to the same endpoint.
 
-/** Per-event judging results — every team's per-judge totals + remarks. Admin. */
+/** Per-event judging results — every team's per-scorer totals + remarks. Admin. */
 export const getEventResults = (eventId) =>
   req(`/admin/events/${encodeURIComponent(eventId)}/results`, {}, true);
 

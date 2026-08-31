@@ -118,8 +118,8 @@ export function parseParticipantDetails(raw, prefix = "") {
   return { college, department, year, location };
 }
 
-/** An event's scoring scheme: named parameters, each with a max mark. Judges
- * score against these, and the total shown to organisers and judges is always
+/** An event's scoring scheme: named parameters, each with a max mark. Scorers
+ * score against these, and the total shown to organisers and scorers is always
  * the sum of the maxes — it is never stored. Anything that isn't an array
  * (e.g. a legacy free-text value) becomes an empty scheme rather than an
  * error, so an old event just opens with no parameters to re-enter. */
@@ -137,7 +137,7 @@ export function parseMarkingCriteria(raw, { required = false } = {}) {
   }));
 }
 
-/** A judge's score entry, checked against the event's `marking_criteria`.
+/** One scorer's entry, checked against the event's `marking_criteria`.
  * Every criterion must get a value, each an integer in `[0, max]`, and no
  * unknown labels. Returns the normalized rows plus their `total` — the total
  * is derived, never trusted from the client. */

@@ -9,23 +9,31 @@
  * 3. Everyone else is a participant.
  *
  * That last rule is why there is no participant list to maintain: anyone who
- * signs in and isn't a judge, volunteer or admin simply is one.
+ * signs in and isn't a volunteer or admin simply is one.
+ *
+ * There used to be a third assignable role, `judge`, holding `event_ids`. It
+ * was folded into `volunteer`: the person covering a venue now both checks
+ * people in and scores them, so a volunteer's single `venue_id` is the whole
+ * assignment model (see services/evaluation.service.js).
  */
 
 import { settings } from "../config/index.js";
 import { getDb } from "../config/firebase.js";
 
 export const ROLE_ADMIN = "admin";
-export const ROLE_JUDGE = "judge";
 export const ROLE_VOLUNTEER = "volunteer";
 const ROLE_PARTICIPANT = "participant";
 
 // Every role resolveRoleAndAssignments may read back out of a stored document.
-const KNOWN_ROLES = new Set([ROLE_ADMIN, ROLE_JUDGE, ROLE_VOLUNTEER, ROLE_PARTICIPANT]);
+// "judge" is deliberately absent: the role was folded into volunteer, and a
+// leftover document still saying "judge" must read as a participant (fail
+// closed) rather than silently keeping a capability that no longer exists.
+// backend/scripts/judges-to-volunteers.js converts those documents.
+const KNOWN_ROLES = new Set([ROLE_ADMIN, ROLE_VOLUNTEER, ROLE_PARTICIPANT]);
 
 // What an admin may hand out. "participant" is absent on purpose: it's the
 // absence of a record, so demoting someone is a DELETE, not a write.
-export const ASSIGNABLE_ROLES = new Set([ROLE_ADMIN, ROLE_JUDGE, ROLE_VOLUNTEER]);
+export const ASSIGNABLE_ROLES = new Set([ROLE_ADMIN, ROLE_VOLUNTEER]);
 
 export const COLLECTION = "roles";
 
@@ -33,8 +41,8 @@ export function normalizeEmail(email) {
   return (email || "").trim().toLowerCase();
 }
 
-/** The caller's role, plus whatever they've been assigned (event_ids for a
- * judge, venue_id for a volunteer) — one Firestore read, not two.
+/** The caller's role, plus whatever they've been assigned (a volunteer's
+ * venue_id) — one Firestore read, not two.
  *
  * Throws whatever Firestore throws if the lookup fails — deliberately.
  * Quietly returning "participant" on an outage would demote real judges and
@@ -50,7 +58,7 @@ export async function resolveRoleAndAssignments(email) {
   const doc = await getDb().collection(COLLECTION).doc(key).get();
   if (doc.exists) {
     const record = doc.data() ?? {};
-    const assignments = { event_ids: record.event_ids ?? [], venue_id: record.venue_id ?? "" };
+    const assignments = { venue_id: record.venue_id ?? "" };
     const role = record.role;
     if (KNOWN_ROLES.has(role)) return { role, assignments };
     return { role: ROLE_PARTICIPANT, assignments };
@@ -114,38 +122,19 @@ export function isSeededAdmin(email) {
   return settings.ADMIN_EMAILS.has(normalizeEmail(email));
 }
 
-// ── Assignments: judges work events, volunteers cover a venue ──
+// ── Assignments: volunteers cover a venue ──────────────────────
 
-/** Same day and overlapping [start, end). Times are "HH:MM", so a plain
- * string comparison is also a chronological one. */
-function eventsOverlap(a, b) {
-  if (!a || !b || a.date !== b.date) return false;
-  const aStart = a.start_time || "", aEnd = a.end_time || "";
-  const bStart = b.start_time || "", bEnd = b.end_time || "";
-  if (!(aStart && aEnd && bStart && bEnd)) return false;
-  return aStart < bEnd && bStart < aEnd;
-}
-
-/** The first pair of assigned events that collide in time, or null.
- *
- * A judge can hold several assignments but can't be in two rooms at once, so
- * this runs before an assignment is saved rather than surfacing a
- * double-booking on the day. */
-export function findConflict(eventIds, events) {
-  const chosen = eventIds.filter((id) => events[id]).map((id) => events[id]);
-  for (let i = 0; i < chosen.length; i++) {
-    for (let j = i + 1; j < chosen.length; j++) {
-      if (eventsOverlap(chosen[i], chosen[j])) return [chosen[i], chosen[j]];
-    }
-  }
-  return null;
-}
-
-/** Write a judge's events or a volunteer's venue onto their role record.
+/** Write a volunteer's venue onto their role record.
  *
  * Uses merge, so the role/name/provenance written by upsertPerson survive,
- * and equally an assignment survives a later role edit. */
-export async function setAssignments(email, { eventIds, venueId } = {}) {
+ * and equally an assignment survives a later role edit.
+ *
+ * There is deliberately no event-list assignment any more. A venue backs at
+ * most one event (enforced in event.service.js), so `venue_id` already names
+ * exactly what the volunteer covers — checking in *and* scoring. The old
+ * judge-only `findConflict()` double-booking guard went with it: one venue
+ * can't collide with itself. */
+export async function setAssignments(email, { venueId } = {}) {
   const key = normalizeEmail(email);
   const ref = getDb().collection(COLLECTION).doc(key);
   const existing = await ref.get();
@@ -156,7 +145,6 @@ export async function setAssignments(email, { eventIds, venueId } = {}) {
   }
 
   const payload = { updated_at: new Date().toISOString() };
-  if (eventIds !== undefined) payload.event_ids = eventIds;
   if (venueId !== undefined) payload.venue_id = venueId;
 
   await ref.set(payload, { merge: true });

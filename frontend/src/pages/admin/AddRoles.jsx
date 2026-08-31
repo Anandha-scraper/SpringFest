@@ -8,14 +8,13 @@ import { useApi } from "@/hooks/useApi.js";
 
 const FILTERS = [
   { label: "All", value: "" },
-  { label: "Judges", value: ROLES.JUDGE },
   { label: "Volunteers", value: ROLES.VOLUNTEER },
   { label: "Admins", value: ROLES.ADMIN },
 ];
 
 // Participants aren't stored — anyone unlisted is one — so demoting someone is
 // Remove, not an assignment. The backend rejects "participant" for the same reason.
-const ASSIGNABLE = [ROLES.JUDGE, ROLES.VOLUNTEER, ROLES.ADMIN];
+const ASSIGNABLE = [ROLES.VOLUNTEER, ROLES.ADMIN];
 
 export default function AddRoles() {
   const fetcher = useCallback(() => getPeople(), []);
@@ -26,7 +25,7 @@ export default function AddRoles() {
   const [filter, setFilter] = useState("");
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
-  const [role, setRole] = useState(ROLES.JUDGE);
+  const [role, setRole] = useState(ROLES.VOLUNTEER);
 
   const rows = filter ? people.filter((p) => p.role === filter) : people;
 

@@ -16,9 +16,8 @@ import { contentTypeFor, downloadBuffer } from "./storage.js";
 
 /** The caller's identity, role, and whatever they've been assigned.
  *
- * A judge's own dashboard needs their event_ids and a volunteer's needs their
- * venue_id, and neither should have to hit an admin-only endpoint to get it.
- * Both already come off req.user — the auth middleware's role lookup reads the
+ * A volunteer's own dashboard needs their venue_id, and shouldn't have to hit
+ * an admin-only endpoint to get it. It already comes off req.user — the auth middleware's role lookup reads the
  * same roles doc, so there's no second Firestore read here.
  *
  * The payment mode rides along because the registration form has to know which

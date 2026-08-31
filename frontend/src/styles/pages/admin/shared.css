@@ -221,7 +221,7 @@
 
 /* Role pills (Manage People) — same component, same class. */
 .status-pill--admin       { background: var(--accent-soft); color: var(--accent-hover); }
-.status-pill--judge       { background: var(--ok-bg);       color: var(--ok); }
+.status-pill--lead        { background: var(--ok-bg);       color: var(--ok); }
 .status-pill--volunteer   { background: var(--warn-bg);     color: var(--warn); }
 .status-pill--participant { background: var(--border);      color: var(--ink-faint); }
 

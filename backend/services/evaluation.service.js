@@ -1,18 +1,28 @@
-/** The judging phase — everything `GET/POST/PUT/DELETE /api/judge/*` does.
+/** The judging phase — everything the scoring half of `/api/volunteer/*` does.
  *
- * A judge sees the teams that have been event-checked-in for an event they're
- * assigned to, opens each team's submission, and scores it against the event's
+ * This was `judge.service.js`, behind a `judge` role holding `event_ids`. That
+ * role is gone: the volunteer covering a venue now runs their room end to end,
+ * checking teams in *and* scoring them. Only the guard changed — a volunteer
+ * may score the one event held at their assigned venue, and admins may score
+ * anything. Everything else here is as it was.
+ *
+ * A scorer sees the teams that have been event-checked-in for their event,
+ * opens each team's submission, and scores it against the event's
  * `marking_criteria`. Scores live as an `evaluations[]` array on the
- * registration doc — one entry per judge, upserted in a transaction so two
- * judges submitting at once can't clobber each other. `evaluated_at` (which the
+ * registration doc — one entry per scorer, upserted in a transaction so two
+ * people submitting at once can't clobber each other. `evaluated_at` (which the
  * admin rollups already read) is stamped on the first entry and cleared only
  * when the last is removed.
  *
- * The "now evaluating / up next" queue is two advisory fields on the event doc
- * (`judging_current`, `judging_order`), shared per event, editable by the
- * event's judges only.
+ * The `evaluations[]` entries keep their `judge_email` / `judge_name` field
+ * names. Renaming them would orphan every score already on file and buy
+ * nothing — the wire shape is what the admin results view reads.
  *
- * Live reads throughout (not aggregate.loadAll's 20s cache) — a judge must see
+ * The "now evaluating / up next" queue is two advisory fields on the event doc
+ * (`judging_current`, `judging_order`), shared per event, editable by whoever
+ * staffs that event.
+ *
+ * Live reads throughout (not aggregate.loadAll's 20s cache) — a scorer must see
  * a check-in that happened seconds ago. Every write invalidates the cache so
  * the admin rollups catch up.
  */
@@ -23,11 +33,16 @@ import { optionalString, parseEvaluationScores } from "../utils/validate.js";
 import * as aggregate from "./aggregate.js";
 import { everEventCheckedIn } from "./checkin.service.js";
 import { ticketHolders } from "./qr.js";
+import { resolveVolunteerEventId } from "./submissionAccess.js";
 
-function assertJudgeForEvent(user, eventId) {
+/** A volunteer may act on the single event held at their venue; admins on any.
+ * The same venue→event resolution checkin.service.js's toggle() uses, so
+ * check-in and scoring can never disagree about who staffs a room. */
+async function assertVolunteerForEvent(user, eventId) {
   if (user.is_admin) return;
-  if (!(user.event_ids || []).includes(eventId)) {
-    throw new ApiError(403, "You're not assigned to judge this event.");
+  if (!user.venue_id) throw new ApiError(403, "You're not assigned to a venue.");
+  if ((await resolveVolunteerEventId(user)) !== eventId) {
+    throw new ApiError(403, "You're not assigned to this event.");
   }
 }
 
@@ -45,8 +60,10 @@ async function eventRegistrations(eventId) {
   return snap.docs.map((d) => ({ id: d.id, ...(d.data() ?? {}) }));
 }
 
-/** A team as the judge's list wants it. */
-function participantView(row, event, judgeEmail) {
+/** A team as the scoring list wants it. `actorEmail` picks out "my" score
+ * from the shared `evaluations[]` — stored under `judge_email`, which is the
+ * on-disk field name and stays that way. */
+function participantView(row, event, actorEmail) {
   const holders = ticketHolders(row).map((h, i) => {
     const entry = (row.member_checkins || []).find((c) => c.member_index === i);
     return {
@@ -65,7 +82,7 @@ function participantView(row, event, judgeEmail) {
     at: e.at || "",
     updated_at: e.updated_at || "",
   }));
-  const myEntry = (row.evaluations || []).find((e) => e.judge_email === judgeEmail);
+  const myEntry = (row.evaluations || []).find((e) => e.judge_email === actorEmail);
 
   return {
     registration_id: row.id,
@@ -83,7 +100,7 @@ function participantView(row, event, judgeEmail) {
     my_evaluation: myEntry
       ? { scores: myEntry.scores || [], note: myEntry.note || "", total: myEntry.total || 0 }
       : null,
-    other_evaluations: evaluations.filter((e) => e.judge_email !== judgeEmail),
+    other_evaluations: evaluations.filter((e) => e.judge_email !== actorEmail),
   };
 }
 
@@ -94,8 +111,11 @@ export async function assignedEvents(user) {
   const eventsSnap = await db.collection("events").get();
   let events = eventsSnap.docs.map((d) => ({ id: d.id, ...(d.data() ?? {}) }));
   if (!user.is_admin) {
-    const mine = new Set(user.event_ids || []);
-    events = events.filter((e) => mine.has(e.id));
+    // A volunteer covers one venue, and a venue backs one event — so this is
+    // a list of at most one. Kept as a list so the dashboard that renders it
+    // doesn't need a second shape, and so relaxing the venue rule later
+    // (a room hosting two events on different days) needs no change here.
+    events = events.filter((e) => e.venue_id && e.venue_id === user.venue_id);
   }
 
   const regsSnap = await db.collection("registrations").get();
@@ -133,7 +153,7 @@ export async function assignedEvents(user) {
 }
 
 export async function eventParticipants({ user, eventId }) {
-  assertJudgeForEvent(user, eventId);
+  await assertVolunteerForEvent(user, eventId);
   const event = await loadEvent(eventId);
   const regs = await eventRegistrations(eventId);
 
@@ -156,7 +176,7 @@ export async function eventParticipants({ user, eventId }) {
 // ── Scoring ──────────────────────────────────────────────────
 
 export async function saveEvaluation({ user, eventId, registrationId, scores, note }) {
-  assertJudgeForEvent(user, eventId);
+  await assertVolunteerForEvent(user, eventId);
   const event = await loadEvent(eventId);
   const criteria = criteriaOf(event);
   const cleanNote = optionalString(note).trim().slice(0, 2000);
@@ -199,7 +219,7 @@ export async function saveEvaluation({ user, eventId, registrationId, scores, no
 }
 
 export async function deleteEvaluation({ user, eventId, registrationId }) {
-  assertJudgeForEvent(user, eventId);
+  await assertVolunteerForEvent(user, eventId);
 
   const db = getDb();
   const ref = db.collection("registrations").doc(registrationId);
@@ -237,7 +257,7 @@ function resolveQueue(event, regById) {
 }
 
 export async function getQueue({ user, eventId }) {
-  assertJudgeForEvent(user, eventId);
+  await assertVolunteerForEvent(user, eventId);
   const event = await loadEvent(eventId);
   const regs = await eventRegistrations(eventId);
   const regById = new Map(regs.map((r) => [r.id, r]));
@@ -245,7 +265,7 @@ export async function getQueue({ user, eventId }) {
 }
 
 export async function setQueue({ user, eventId, current, upcoming }) {
-  assertJudgeForEvent(user, eventId);
+  await assertVolunteerForEvent(user, eventId);
   const event = await loadEvent(eventId);
   const regs = await eventRegistrations(eventId);
   const eligible = new Set(

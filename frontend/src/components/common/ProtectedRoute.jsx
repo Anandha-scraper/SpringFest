@@ -30,7 +30,7 @@ export default function ProtectedRoute({ children, adminOnly = false, roles }) {
   const denied = (adminOnly && !isAdmin) || (roles && !isAdmin && !roles.includes(role));
   if (denied) {
     // Send people to their own dashboard rather than the landing page — this is
-    // the "not an admin, judge or volunteer means participant" rule in the UI.
+    // the "not an admin or volunteer means participant" rule in the UI.
     // Never redirect a page to itself, or a role whose own home is guarded
     // against it would ping-pong forever.
     const home = homeForRole(role);

@@ -28,7 +28,7 @@ export async function currentUser(req, res, next) {
   try {
     ({ role, assignments } = await resolveRoleAndAssignments(email));
   } catch {
-    // Failing closed: better a clear 503 than silently demoting a judge or
+    // Failing closed: better a clear 503 than silently demoting a volunteer or
     // admin to participant because Firestore blinked.
     return next(new ApiError(503, "Role lookup unavailable, please retry"));
   }
@@ -40,7 +40,6 @@ export async function currentUser(req, res, next) {
     picture: decoded.picture || "",
     role,
     is_admin: role === ROLE_ADMIN,
-    event_ids: assignments.event_ids ?? [],
     venue_id: assignments.venue_id ?? "",
   };
   next();
@@ -67,5 +66,6 @@ function adminOnly(req, res, next) {
 // one and the others admit admins too.
 export const CurrentUser = [currentUser];
 export const AdminUser = [currentUser, adminOnly];
+// Volunteers run their venue end to end — check-in and scoring both. There is
+// no separate judge chain any more; see services/evaluation.service.js.
 export const VolunteerUser = [currentUser, requireRoles("volunteer")];
-export const JudgeUser = [currentUser, requireRoles("judge")];

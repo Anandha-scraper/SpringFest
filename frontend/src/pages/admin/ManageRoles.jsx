@@ -1,13 +1,7 @@
 import { useCallback, useState } from "react";
 import "@/styles/pages/admin/roles.css";
 import Loader from "@/components/common/Loader.jsx";
-import {
-  getEventRollup,
-  getEvents,
-  getPeople,
-  getVenues,
-  setAssignments,
-} from "@/api/client.js";
+import { getEventRollup, getPeople, getVenues, setAssignments } from "@/api/client.js";
 import { useApi } from "@/hooks/useApi.js";
 import { formatEventTime } from "@/utils/format.js";
 import {
@@ -21,20 +15,19 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog.jsx";
 
-const load = () => Promise.all([getPeople(), getEvents(), getVenues(), getEventRollup()]);
+const load = () => Promise.all([getPeople(), getVenues(), getEventRollup()]);
 
 export default function ManageRoles() {
   const fetcher = useCallback(load, []);
   const { data, error: loadError, loading, reload } = useApi(fetcher);
-  const [people, events, venues, rollup] = data || [[], [], [], []];
+  const [people, venues, rollup] = data || [[], [], []];
 
-  // The server rejects a clashing assignment; this holds its message per judge.
+  // A rejected assignment (unknown venue, wrong role) is shown against the
+  // row that caused it rather than as a page-level error.
   const [conflict, setConflict] = useState(null); // { email, message }
   const [pending, setPending] = useState(null); // staged, awaiting confirmation
 
-  const judges = people.filter((p) => p.role === "judge");
   const volunteers = people.filter((p) => p.role === "volunteer");
-  const eventById = (id) => events.find((e) => e.id === id);
   const venueName = (id) => venues.find((v) => v.id === id)?.name || "Unassigned";
 
   const runPending = async () => {
@@ -44,34 +37,9 @@ export default function ManageRoles() {
       await pending.run();
       await reload();
     } catch (err) {
-      // A judge double-booked at the same time comes back as a 409 with the
-      // clashing events named — show it against that judge's row.
       setConflict({ email: pending.email, message: err.message });
     }
     setPending(null);
-  };
-
-  const assignJudge = (judge, eventId) => {
-    const ev = eventById(eventId);
-    if (!ev) return;
-    const next = [...(judge.event_ids || []), eventId];
-    setPending({
-      email: judge.email,
-      title: `Assign ${judge.name || judge.email} to "${ev.name}"?`,
-      body: `${ev.venue_name || "No venue"} · ${formatEventTime(ev)}`,
-      run: () => setAssignments(judge.email, { event_ids: next }),
-    });
-  };
-
-  const unassignJudge = (judge, eventId) => {
-    const ev = eventById(eventId);
-    const next = (judge.event_ids || []).filter((id) => id !== eventId);
-    setPending({
-      email: judge.email,
-      title: `Remove "${ev?.name || eventId}" from ${judge.name || judge.email}?`,
-      body: "The judge will no longer be assigned to this event.",
-      run: () => setAssignments(judge.email, { event_ids: next }),
-    });
   };
 
   const allocateVenue = (person, venueId) => {
@@ -93,90 +61,7 @@ export default function ManageRoles() {
 
   return (
     <div className="admin">
-      {/* ── Judges: assigned per event, never double-booked ─────── */}
-      <section className="admin-panel">
-        <div className="panel-head">
-          <h2>Judges</h2>
-          <span className="muted">{judges.length} judges</span>
-        </div>
-
-        {!judges.length ? (
-          <p className="empty-state">No judges yet. Add one from the Add Roles page.</p>
-        ) : (
-          <div className="table-wrap">
-            <table className="data-table data-table--compact">
-              <thead>
-                <tr>
-                  <th>Judge</th>
-                  <th>Assigned events</th>
-                  <th>Assign to event</th>
-                </tr>
-              </thead>
-              <tbody>
-                {judges.map((j) => (
-                  <tr key={j.email}>
-                    <td>
-                      <strong>{j.name || j.email}</strong>
-                      <span className="cell-sub">{j.email}</span>
-                    </td>
-                    <td>
-                      {!(j.event_ids || []).length ? (
-                        <span className="cell-sub">No events assigned yet.</span>
-                      ) : (
-                        <ul className="assignment-list">
-                          {j.event_ids.map((eventId) => {
-                            const ev = eventById(eventId);
-                            if (!ev) return null;
-                            return (
-                              <li key={eventId} className="assignment-chip">
-                                <span>
-                                  <strong>{ev.name}</strong>
-                                  <span className="cell-sub">
-                                    {ev.venue_name || "No venue"} · {formatEventTime(ev)}
-                                  </span>
-                                </span>
-                                <button
-                                  type="button"
-                                  className="chip-remove"
-                                  aria-label={`Remove ${ev.name}`}
-                                  onClick={() => unassignJudge(j, eventId)}
-                                >
-                                  ×
-                                </button>
-                              </li>
-                            );
-                          })}
-                        </ul>
-                      )}
-                      {conflict?.email === j.email && (
-                        <p className="error assignment-error">{conflict.message}</p>
-                      )}
-                    </td>
-                    <td>
-                      <select
-                        className="input input-sm"
-                        value=""
-                        onChange={(e) => assignJudge(j, e.target.value)}
-                      >
-                        <option value="">Choose an event…</option>
-                        {events
-                          .filter((ev) => !(j.event_ids || []).includes(ev.id))
-                          .map((ev) => (
-                            <option key={ev.id} value={ev.id}>
-                              {ev.name} — {formatEventTime(ev)}
-                            </option>
-                          ))}
-                      </select>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
-
-      {/* ── Volunteers: general duty per venue ───────────────────── */}
+      {/* ── Volunteers: one venue each — they check in AND score ── */}
       <section className="admin-panel">
         <div className="panel-head">
           <h2>Volunteers</h2>
@@ -204,6 +89,9 @@ export default function ManageRoles() {
                     </td>
                     <td>
                       {p.venue_id ? venueName(p.venue_id) : <span className="cell-sub">Unassigned</span>}
+                      {conflict?.email === p.email && (
+                        <p className="error assignment-error">{conflict.message}</p>
+                      )}
                     </td>
                     <td>
                       <select
@@ -229,9 +117,9 @@ export default function ManageRoles() {
 
       {/* ── Progress per event ───────────────────────────────────────
           Organisers think in events, not venues: who has turned up, and how
-          far the judging has got. Both bars are empty until the event's own
+          far the scoring has got. Both bars are empty until the event's own
           start time passes — the server sends `progress: null` for that, so
-          "not started" and "started, nothing judged" stay distinguishable. */}
+          "not started" and "started, nothing scored" stay distinguishable. */}
       <div className="venue-grid">
         {rollup.map((ev) => {
           const total = ev.registrations || 0;
@@ -279,11 +167,8 @@ export default function ManageRoles() {
                 </>
               )}
 
-              {(ev.judges.length > 0 || ev.volunteers.length > 0) && (
+              {ev.volunteers.length > 0 && (
                 <div className="venue-staff">
-                  {ev.judges.map((name) => (
-                    <span key={name} className="status-pill status-pill--judge">{name}</span>
-                  ))}
                   {ev.volunteers.map((name) => (
                     <span key={name} className="status-pill status-pill--volunteer">{name}</span>
                   ))}

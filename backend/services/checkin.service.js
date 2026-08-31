@@ -10,7 +10,7 @@
  *   2. Event check-in — only the volunteer covering that event's venue (or an
  *      admin) checks a participant in *for that event*. Per member, per event,
  *      via `member_checkins[]` on the registration doc, check-out supported.
- *      Being event-checked-in is what makes a team visible to the judges.
+ *      Being event-checked-in is what makes a team visible for scoring.
  *
  * Admins satisfy the volunteer guard and skip the venue restriction, which is
  * what lets the whole flow be tested from the admin account.
@@ -31,7 +31,7 @@ function isCheckedIn(entry) {
 }
 
 /** Has anyone on this registration ever been event-checked-in? The gate the
- * judge dashboards use — a team stays visible even after it checks out, so
+ * scoring dashboards use — a team stays visible even after it checks out, so
  * scores entered against it never disappear from view. */
 export function everEventCheckedIn(row) {
   return Array.isArray(row?.member_checkins) && row.member_checkins.length > 0;

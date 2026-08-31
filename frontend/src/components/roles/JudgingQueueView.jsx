@@ -2,9 +2,9 @@ import { ArrowRight, Mic } from "lucide-react";
 
 const teamLabel = (t) => t?.team_name || t?.lead_name || t?.name || t?.registration_id || "—";
 
-/** Read-only "now evaluating / up next" panel. Shared by the judge scoring
+/** Read-only "now evaluating / up next" panel. Shared by the scoring
  * screen and the volunteer roster so the two never drift. `queue` is the
- * shape returned by GET /judge/events/:id/queue or the volunteer summary
+ * shape returned by GET /volunteer/events/:id/queue or the volunteer summary
  * (`{ current, upcoming }` / `{ now_evaluating, up_next }`). */
 export default function JudgingQueueView({ current, upcoming }) {
   if (!current && (!upcoming || upcoming.length === 0)) {

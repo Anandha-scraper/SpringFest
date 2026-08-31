@@ -27,7 +27,7 @@ export async function stats(req, res) {
 /** Signed-in account totals split by staff vs attendee (participant). Gives
  * organisers a true "how many people signed in" number rather than the
  * registration-derived `signed_users`, which only counts people who actually
- * registered. Staff = admins + judges + volunteers. */
+ * registered. Staff = admins + volunteers. */
 export async function authUsers(req, res) {
   res.json(await aggregate.countAuthByRole());
 }

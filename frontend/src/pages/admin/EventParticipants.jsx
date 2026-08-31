@@ -114,7 +114,7 @@ export default function EventParticipants() {
                   <th>Rank</th>
                   <th>Team</th>
                   <th className="num">Average</th>
-                  <th>Judges</th>
+                  <th>Scores</th>
                 </tr>
               </thead>
               <tbody>

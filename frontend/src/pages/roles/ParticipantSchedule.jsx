@@ -9,7 +9,7 @@ import Loader from "@/components/common/Loader.jsx";
 const load = () => Promise.all([getMyRegistrations(), getEvents()]);
 
 // NOTE: "Checked in" is the interim third group — a volunteer scanned this
-// person in at the venue. It stands in for a judge-evaluated "Finished by you"
+// person in at the venue. It stands in for a scored "Finished by you"
 // group, which needs a scoring dashboard/collection that doesn't exist yet.
 const GROUPS = [
   { key: "ongoing", label: "On going" },

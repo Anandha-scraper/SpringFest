@@ -8,7 +8,7 @@ import { ROLES } from "@/content/roles.js";
 
 // Route-level code splitting: each page becomes its own chunk, fetched only
 // when its route is actually visited, instead of one bundle carrying every
-// admin/judge/volunteer/participant page (and their deps, e.g. chart.js) up
+// admin/volunteer/participant page (and their deps, e.g. chart.js) up
 // front for every anonymous landing-page visitor.
 const Landing = lazy(() => import("@/pages/Landing.jsx"));
 const EventDetail = lazy(() => import("@/pages/EventDetail.jsx"));
@@ -24,12 +24,10 @@ const ManageRoles = lazy(() => import("@/pages/admin/ManageRoles.jsx"));
 const PaymentSettings = lazy(() => import("@/pages/admin/PaymentSettings.jsx"));
 const Approvals = lazy(() => import("@/pages/admin/Approvals.jsx"));
 
-const JudgeHome = lazy(() => import("@/pages/roles/JudgeHome.jsx"));
-const JudgeQueue = lazy(() => import("@/pages/roles/JudgeQueue.jsx"));
-const JudgeScoring = lazy(() => import("@/pages/roles/JudgeScoring.jsx"));
 const VolunteerHome = lazy(() => import("@/pages/roles/VolunteerHome.jsx"));
 const VolunteerRoster = lazy(() => import("@/pages/roles/VolunteerRoster.jsx"));
 const VolunteerCheckIn = lazy(() => import("@/pages/roles/VolunteerCheckIn.jsx"));
+const VolunteerScoring = lazy(() => import("@/pages/roles/VolunteerScoring.jsx"));
 const ParticipantHome = lazy(() => import("@/pages/roles/ParticipantHome.jsx"));
 const ParticipantSchedule = lazy(() => import("@/pages/roles/ParticipantSchedule.jsx"));
 
@@ -93,19 +91,8 @@ export default function AppRoutes() {
         <Route path="allocations" element={<ManageRoles />} />
       </Route>
 
-      <Route
-        path="/judge"
-        element={
-          <ProtectedRoute roles={[ROLES.JUDGE]}>
-            <RoleLayout role={ROLES.JUDGE} />
-          </ProtectedRoute>
-        }
-      >
-        <Route index element={<JudgeHome />} />
-        <Route path="queue" element={<JudgeQueue />} />
-        <Route path="scoring" element={<JudgeScoring />} />
-      </Route>
-
+      {/* Scoring lives here, not under a /judge branch: the volunteer
+          covering a venue both checks teams in and scores them. */}
       <Route
         path="/volunteer"
         element={
@@ -117,6 +104,7 @@ export default function AppRoutes() {
         <Route index element={<VolunteerHome />} />
         <Route path="check-in" element={<VolunteerCheckIn />} />
         <Route path="tasks" element={<VolunteerRoster />} />
+        <Route path="scoring" element={<VolunteerScoring />} />
       </Route>
 
       <Route

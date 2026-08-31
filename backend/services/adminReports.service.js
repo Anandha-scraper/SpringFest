@@ -138,8 +138,8 @@ export async function eventParticipants(eventId) {
   };
 }
 
-/** Judging results for one event: every checked-in team with each judge's
- * total and remark, the average across judges, and a rank on that average.
+/** Judging results for one event: every checked-in team with each scorer's
+ * total and remark, the average across scorers, and a rank on that average.
  * `marking_criteria` comes straight off the event doc (aggregate.loadAll keeps
  * the whole document), which is why this lives here and not on a public read. */
 export async function eventResults(eventId) {

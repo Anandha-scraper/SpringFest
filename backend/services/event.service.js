@@ -133,7 +133,7 @@ function parseEventCreate(body) {
     team_max: optionalInt(body.team_max, 1, { field: "team_max", min: 1 }),
     allow_submissions: requireBool(body.allow_submissions, false),
     instructions: optionalString(body.instructions),
-    // A list of { label, max } — the event's scoring scheme. Judges only;
+    // A list of { label, max } — the event's scoring scheme. Staff only;
     // never leaves the server through a public route. At least one is required
     // on create so every event is judgeable the moment it exists.
     marking_criteria: parseMarkingCriteria(body.marking_criteria, { required: true }),
@@ -167,7 +167,7 @@ function parseEventPatch(body) {
     changes.team_max = requireInt(body.team_max, { field: "team_max", min: 1 });
   }
   // None of these are in LOCKED_FIELDS — organisers can change file uploads,
-  // the participant-facing instructions, the judges' marking criteria and
+  // the participant-facing instructions, the marking criteria and
   // whether the event is still accepting entries at any point in the fest.
   if (body.allow_submissions !== undefined) {
     changes.allow_submissions = requireBool(body.allow_submissions);

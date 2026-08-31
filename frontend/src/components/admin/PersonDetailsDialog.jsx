@@ -32,7 +32,7 @@ export default function PersonDetailsDialog({ open, onClose, title, subtitle, pe
             <li key={p.email || i}>
               <span>
                 <strong>{p.name || "—"}</strong>
-                {p.lead && <span className="status-pill status-pill--judge">lead</span>}
+                {p.lead && <span className="status-pill status-pill--lead">lead</span>}
               </span>
               <div className="reg-detail-group person-fields">
                 <div className="reg-detail-row"><span>Email</span><span>{p.email || "—"}</span></div>

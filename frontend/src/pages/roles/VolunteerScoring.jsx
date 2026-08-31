@@ -3,11 +3,11 @@ import "@/styles/pages/admin/roles.css";
 import { FileText, Save, Trash2 } from "lucide-react";
 import {
   deleteEvaluation,
-  getJudgeEvents,
-  getJudgeParticipants,
-  getJudgeQueue,
-  judgeSubmissionObjectUrl,
+  getVolunteerEvents,
+  getVolunteerParticipants,
+  getVolunteerQueue,
   saveEvaluation,
+  volunteerSubmissionObjectUrl,
 } from "@/api/client.js";
 import { useApi } from "@/hooks/useApi.js";
 import { useHeldLoading } from "@/hooks/useHeldLoading.js";
@@ -38,7 +38,7 @@ function TeamCard({ team, criteria, criteriaTotal, onSaved }) {
 
   const openFile = async () => {
     try {
-      const url = await judgeSubmissionObjectUrl(team.registration_id);
+      const url = await volunteerSubmissionObjectUrl(team.registration_id);
       window.open(url, "_blank", "noopener");
     } catch (e) {
       toast.bad(e.message);
@@ -154,8 +154,8 @@ function TeamCard({ team, criteria, criteriaTotal, onSaved }) {
   );
 }
 
-export default function JudgeScoring() {
-  const fetcher = useCallback(getJudgeEvents, []);
+export default function VolunteerScoring() {
+  const fetcher = useCallback(getVolunteerEvents, []);
   const { data: events, error, loading } = useApi(fetcher);
   const [eventId, setEventId] = useState("");
   const [detail, setDetail] = useState(null);
@@ -170,7 +170,7 @@ export default function JudgeScoring() {
   const reloadDetail = useCallback(() => {
     if (!eventId) return;
     setDetailErr("");
-    Promise.all([getJudgeParticipants(eventId), getJudgeQueue(eventId)])
+    Promise.all([getVolunteerParticipants(eventId), getVolunteerQueue(eventId)])
       .then(([p, q]) => {
         setDetail(p);
         setQueue(q);
@@ -191,7 +191,12 @@ export default function JudgeScoring() {
 
   if (loading) return <Loader />;
   if (error) return <p className="error">{error}</p>;
-  if (!events?.length) return <p className="empty-state">No events assigned to you yet.</p>;
+  if (!events?.length)
+    return (
+      <p className="empty-state">
+        No event is assigned to you yet — an organiser allocates you a venue in Manage Roles.
+      </p>
+    );
 
   return (
     <section className="admin-panel">

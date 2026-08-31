@@ -246,7 +246,7 @@ export default function EventDetail() {
         free={result?.free}
         registrationId={result?.registrationId}
         codes={result?.codes}
-        // homeForRole, not a hardcoded /participant: a judge or volunteer can
+        // homeForRole, not a hardcoded /participant: a volunteer can
         // register too, and /participant's role guard would bounce them.
         onDone={() => navigate(homeForRole(role))}
       />

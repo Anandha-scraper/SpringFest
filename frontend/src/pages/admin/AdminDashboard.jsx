@@ -26,9 +26,9 @@ export default function AdminDashboard() {
           <StatCard label="Signed-in Users" value={authUsers?.participants ?? stats.signed_users} />
           {/* People, not rows: someone who enters four events is one signed user. */}
           <StatCard label="Registered Users" value={stats.signed_users} />
-          {/* Evaluated by a judge — not "paid". Reads 0 until the judging
-              phase starts writing evaluated_at, so it says so rather than
-              looking like a broken number mid-fest. */}
+          {/* Evaluated — not "paid". Reads 0 until scoring starts writing
+              evaluated_at, so it says so rather than looking like a broken
+              number mid-fest. */}
           <StatCard
             label="Completed"
             value={stats.evaluated_users}
@@ -70,7 +70,6 @@ export default function AdminDashboard() {
                   <th className="num">Registrations</th>
                   <th className="num">Checked in</th>
                   <th className="num">Completed</th>
-                  <th>Judge</th>
                   <th>Volunteer</th>
                 </tr>
               </thead>
@@ -88,7 +87,6 @@ export default function AdminDashboard() {
                     <td className="num">{v.registrations}</td>
                     <td className="num">{v.checked_in}</td>
                     <td className="num">{v.completed}</td>
-                    <td>{v.judges.join(", ") || <span className="cell-sub">—</span>}</td>
                     <td>{v.volunteers.join(", ") || <span className="cell-sub">—</span>}</td>
                   </tr>
                 ))}

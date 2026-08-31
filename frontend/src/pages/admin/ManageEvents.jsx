@@ -152,7 +152,7 @@ export default function ManageEvents() {
     }
   };
 
-  /** The list from GET /events carries no marking_criteria — it's judges-only
+  /** The list from GET /events carries no marking_criteria — it's staff-only
    *  and the public route deliberately never returns it — so editing fetches
    *  the raw doc from the admin route to fill that field in. */
   const edit = async (ev) => {
@@ -359,14 +359,14 @@ export default function ManageEvents() {
               right — they pair naturally and neither needs full width. */}
           <div className="event-form-split">
           {/* The event's scoring scheme: named parameters, each with a max
-              mark, and a live total. Judges score against these later. */}
+              mark, and a live total. Scored against these later. */}
           <div className="field">
             <span className="field-label">
               <Lock size={12} aria-hidden="true" /> Mark allocation criteria
             </span>
             {!editing && form.marking_criteria.filter((c) => c.label.trim() && Number(c.max) > 0).length === 0 && (
               <p className="muted" style={{ marginTop: 0 }}>
-                At least one parameter is required — judges score every team against these.
+                At least one parameter is required — every team is scored against these.
               </p>
             )}
             <div className="criteria-editor">

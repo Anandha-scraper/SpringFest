@@ -1,8 +1,8 @@
 /** Staff access to a team's uploaded submission file.
  *
  * Participants download their own submission through me.service.js. This is the
- * organiser side: an admin, a judge assigned to the event, or the volunteer
- * covering that event's venue can open the file to show it "on the board".
+ * organiser side: an admin, or the volunteer covering that event's venue, can
+ * open the file to show it "on the board".
  * Same streaming posture as everywhere else — the bucket stays private and the
  * bytes go out through an authenticated route.
  */
@@ -23,11 +23,12 @@ export async function resolveVolunteerEventId(user) {
   return snap.empty ? "" : snap.docs[0].id;
 }
 
-/** True when `user` may act on `eventId` as staff: admin, an assigned judge,
- * or the venue's volunteer. */
+/** True when `user` may act on `eventId` as staff: admin, or the venue's
+ * volunteer. (There was a third case, a judge assigned to the event by id;
+ * the judge role was folded into volunteer, so the venue is now the only
+ * route to an event.) */
 export async function staffCanAccessEvent(user, eventId) {
   if (user?.is_admin) return true;
-  if (user?.role === "judge") return (user.event_ids || []).includes(eventId);
   if (user?.role === "volunteer") return (await resolveVolunteerEventId(user)) === eventId;
   return false;
 }

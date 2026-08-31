@@ -1,11 +1,14 @@
 // ─────────────────────────────────────────────────────────────
 //  Role config — presentation only.
 //
-//  Which role someone HAS is decided server-side: backend/src/
-//  services/roles.js resolves it from ADMIN_EMAILS (.env) and the
-//  Firestore `roles` collection, and it arrives via GET /api/me.
-//  Nothing here grants access; this file only says where each role
-//  goes and what its sidebar looks like.
+//  Which role someone HAS is decided server-side: backend/auth/
+//  roles.js resolves it from ADMIN_EMAILS (.env) and the Firestore
+//  `roles` collection, and it arrives via GET /api/me. Nothing here
+//  grants access; this file only says where each role goes and what
+//  its sidebar looks like.
+//
+//  There is no `judge` role: it was folded into `volunteer`, who now
+//  both checks people in and scores them at their venue.
 // ─────────────────────────────────────────────────────────────
 
 import {
@@ -24,18 +27,16 @@ import {
 
 export const ROLES = {
   ADMIN: "admin",
-  JUDGE: "judge",
   VOLUNTEER: "volunteer",
   PARTICIPANT: "participant",
 };
 
-// The backend applies the same fallback: not an admin, judge or
-// volunteer means participant.
+// The backend applies the same fallback: not an admin or volunteer
+// means participant.
 export const DEFAULT_ROLE = ROLES.PARTICIPANT;
 
 const HOME_FOR_ROLE = {
   [ROLES.ADMIN]: "/admin",
-  [ROLES.JUDGE]: "/judge",
   [ROLES.VOLUNTEER]: "/volunteer",
   [ROLES.PARTICIPANT]: "/participant",
 };
@@ -55,15 +56,14 @@ export const ROLE_NAV = {
     { label: "Add Roles", to: "/admin/roles", icon: UserPlus },
     { label: "Manage Roles", to: "/admin/allocations", icon: Users },
   ],
-  [ROLES.JUDGE]: [
-    { label: "Overview", to: "/judge", end: true, icon: LayoutDashboard },
-    { label: "Queue", to: "/judge/queue", icon: ListChecks },
-    { label: "Scoring", to: "/judge/scoring", icon: Star },
-  ],
+  // Check-in and scoring are one job now — the person staffing a venue
+  // does both, so Scoring sits beside Check-in rather than under a
+  // separate judge dashboard.
   [ROLES.VOLUNTEER]: [
     { label: "Overview", to: "/volunteer", end: true, icon: LayoutDashboard },
     { label: "Check-in", to: "/volunteer/check-in", icon: UserCheck },
     { label: "Roster", to: "/volunteer/tasks", icon: ListChecks },
+    { label: "Scoring", to: "/volunteer/scoring", icon: Star },
   ],
   [ROLES.PARTICIPANT]: [
     { label: "Overview", to: "/participant", end: true, icon: LayoutDashboard },
@@ -74,7 +74,6 @@ export const ROLE_NAV = {
 
 export const ROLE_TITLE = {
   [ROLES.ADMIN]: "Admin",
-  [ROLES.JUDGE]: "Judge",
   [ROLES.VOLUNTEER]: "Volunteer",
   [ROLES.PARTICIPANT]: "Participant",
 };
