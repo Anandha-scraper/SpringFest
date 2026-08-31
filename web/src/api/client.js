@@ -26,6 +26,17 @@ async function req(path, options = {}, authRequired = false) {
 export const getEvents = () => req("/events");
 export const getEvent = (id) => req(`/events/${id}`);
 
+// ── Session ─────────────────────────────────────────────────
+/** Exchange the just-minted Firebase ID token for the __session cookie the
+ *  server can read on its own. Called once, right after the Google popup —
+ *  the API refuses a token from a sign-in older than five minutes. */
+export const createSession = (idToken) =>
+  req("/session", { method: "POST", body: JSON.stringify({ id_token: idToken }) });
+
+/** Clear the cookie and revoke every refresh token for the account, so other
+ *  devices drop too. Authenticated: you may only end your own sessions. */
+export const destroySession = () => req("/session", { method: "DELETE" }, true);
+
 // ── Authenticated ────────────────────────────────────────────
 export const getMe = () => req("/me", {}, true);
 export const createRegistration = (data) =>

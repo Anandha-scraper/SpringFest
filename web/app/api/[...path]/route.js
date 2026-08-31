@@ -42,7 +42,15 @@ const STRIP = new Set([
 function forwardHeaders(source) {
   const out = new Headers();
   for (const [key, value] of source.entries()) {
+    // Set-Cookie is the one header that can legitimately appear more than
+    // once, and iterating entries() gives them back joined with ", " — which
+    // is unparseable, because a cookie's own Expires date contains a comma.
+    // getSetCookie() is the only way to get them out intact.
+    if (key.toLowerCase() === "set-cookie") continue;
     if (!STRIP.has(key.toLowerCase())) out.set(key, value);
+  }
+  if (typeof source.getSetCookie === "function") {
+    for (const cookie of source.getSetCookie()) out.append("set-cookie", cookie);
   }
   return out;
 }
@@ -52,14 +60,28 @@ async function proxy(request, { params }) {
   const search = new URL(request.url).search;
   const target = `${API_ORIGIN}/api/${(path || []).map(encodeURIComponent).join("/")}${search}`;
 
+  // The request body is buffered rather than streamed. Passing `request.body`
+  // (a ReadableStream) straight to fetch throws "expected non-null body source"
+  // on Node 20+/undici — every POST through here failed with a 502 until this
+  // was changed. Buffering is also what the API does with uploads anyway
+  // (multer memoryStorage), and they are capped at 25 MB, so the memory cost is
+  // bounded and already paid one hop later.
+  //
+  // Reading it as an ArrayBuffer preserves the raw bytes, which is what
+  // multipart needs: the boundary the browser generated survives untouched.
+  const hasBody = request.method !== "GET" && request.method !== "HEAD";
+  const body = hasBody ? await request.arrayBuffer() : undefined;
+
+  const headers = forwardHeaders(request.headers);
+  // content-length was stripped with the other hop-by-hop headers; now that the
+  // body is a known-length buffer, set it back so the upstream isn't left
+  // guessing with chunked encoding.
+  if (body !== undefined) headers.set("content-length", String(body.byteLength));
+
   const init = {
     method: request.method,
-    headers: forwardHeaders(request.headers),
-    // Streamed through as-is, so multipart uploads (payment proofs, submission
-    // files) keep the boundary the browser generated. duplex is required by
-    // undici whenever a request body is a stream.
-    body: request.method === "GET" || request.method === "HEAD" ? undefined : request.body,
-    duplex: "half",
+    headers,
+    body: body && body.byteLength > 0 ? body : undefined,
     redirect: "manual",
   };
 

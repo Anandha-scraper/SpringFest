@@ -3,7 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut } from "firebase/auth";
 import { auth, isFirebaseConfigured, firebaseConfigError } from "@/auth/firebase.js";
-import { getMe } from "@/api/client.js";
+import { createSession, destroySession, getMe } from "@/api/client.js";
 import { DEFAULT_ROLE, ROLES } from "@/content/roles.js";
 
 const AuthContext = createContext(null);
@@ -98,8 +98,31 @@ export function AuthProvider({ children }) {
     isFirebaseConfigured,
     firebaseConfigError,
     refreshRole,
-    loginWithGoogle: () => signInWithPopup(requireAuth(), provider),
-    logout: () => signOut(requireAuth()),
+    loginWithGoogle: async () => {
+      const credential = await signInWithPopup(requireAuth(), provider);
+      // Mint the server-readable cookie straight after the popup, while the
+      // sign-in is still "fresh" — auth/session.js rejects an ID token from a
+      // sign-in older than five minutes. Failing here must NOT fail the login:
+      // the bearer-token path still works, so the user is signed in either way
+      // and only loses server-side rendering until their next sign-in.
+      try {
+        await createSession(await credential.user.getIdToken());
+      } catch (err) {
+        console.warn("Session cookie not created; falling back to bearer auth.", err?.message);
+      }
+      return credential;
+    },
+    logout: async () => {
+      // Cookie first: once signOut() runs there is no token left to authorise
+      // the request that clears it, and a cookie outliving the sign-out is the
+      // one failure here that actually matters.
+      try {
+        await destroySession();
+      } catch {
+        // Already expired or revoked — signing out locally is still correct.
+      }
+      return signOut(requireAuth());
+    },
     getToken: () => auth?.currentUser?.getIdToken(),
   };
 
