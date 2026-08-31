@@ -32,6 +32,7 @@ import { STATUS_COMPLETED } from "../utils/statuses.js";
 import { optionalString, parseEvaluationScores } from "../utils/validate.js";
 import * as aggregate from "./aggregate.js";
 import { everEventCheckedIn } from "./checkin.service.js";
+import { assertEventWindowOpen, EVALUATION_GRACE_MINUTES } from "./festClock.js";
 import { ticketHolders } from "./qr.js";
 import { resolveVolunteerEventId } from "./submissionAccess.js";
 
@@ -44,6 +45,21 @@ async function assertVolunteerForEvent(user, eventId) {
   if ((await resolveVolunteerEventId(user)) !== eventId) {
     throw new ApiError(403, "You're not assigned to this event.");
   }
+}
+
+/** Scores can only be entered while the event is running, plus a grace window
+ * for the deliberation that always runs past `end_time` (see festClock.js).
+ *
+ * Admins bypass it, exactly as they bypass the venue guard: with no separate
+ * override endpoint, the admin account IS the override when an event's times
+ * were typed in wrong. Reads are never gated — looking at a finished event's
+ * scores is always fine. */
+function assertScoringOpen(user, event) {
+  if (user.is_admin) return;
+  assertEventWindowOpen(event, {
+    graceMinutes: EVALUATION_GRACE_MINUTES,
+    what: "Scoring",
+  });
 }
 
 async function loadEvent(eventId) {
@@ -178,6 +194,7 @@ export async function eventParticipants({ user, eventId }) {
 export async function saveEvaluation({ user, eventId, registrationId, scores, note }) {
   await assertVolunteerForEvent(user, eventId);
   const event = await loadEvent(eventId);
+  assertScoringOpen(user, event);
   const criteria = criteriaOf(event);
   const cleanNote = optionalString(note).trim().slice(0, 2000);
   const { scores: normalized, total } = parseEvaluationScores(scores, criteria);
@@ -220,6 +237,8 @@ export async function saveEvaluation({ user, eventId, registrationId, scores, no
 
 export async function deleteEvaluation({ user, eventId, registrationId }) {
   await assertVolunteerForEvent(user, eventId);
+  // Clearing a score is a correction to one, so it lives under the same clock.
+  assertScoringOpen(user, await loadEvent(eventId));
 
   const db = getDb();
   const ref = db.collection("registrations").doc(registrationId);
@@ -267,6 +286,7 @@ export async function getQueue({ user, eventId }) {
 export async function setQueue({ user, eventId, current, upcoming }) {
   await assertVolunteerForEvent(user, eventId);
   const event = await loadEvent(eventId);
+  assertScoringOpen(user, event);
   const regs = await eventRegistrations(eventId);
   const eligible = new Set(
     regs.filter((r) => r.status === STATUS_COMPLETED && everEventCheckedIn(r)).map((r) => r.id)

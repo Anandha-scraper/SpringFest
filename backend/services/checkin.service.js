@@ -1,19 +1,23 @@
 /** Check-in: marking that someone actually turned up.
  *
- * Two separate marks, on the day, at the fest — both gated on the fest having
- * started (services/festClock.js):
+ * Two separate marks, on the day, at the fest — with two different clocks
+ * (services/festClock.js):
  *
  *   1. Fest entry  — any volunteer scans a personal QR and marks the *person*
  *      present at the fest. One flag per person (`fest_checkins/{uid}`), no
- *      check-out. This is the gate on the door.
+ *      check-out. This is the gate on the door, so it is gated on the *fest*
+ *      having started and nothing narrower: someone arriving at 09:00 for an
+ *      11:00 event still has to get through the door.
  *
  *   2. Event check-in — only the volunteer covering that event's venue (or an
  *      admin) checks a participant in *for that event*. Per member, per event,
  *      via `member_checkins[]` on the registration doc, check-out supported.
+ *      Gated on *that event's own* [start, end) window, not just the fest's.
  *      Being event-checked-in is what makes a team visible for scoring.
  *
- * Admins satisfy the volunteer guard and skip the venue restriction, which is
- * what lets the whole flow be tested from the admin account.
+ * Admins satisfy the volunteer guard, skip the venue restriction, and skip the
+ * clock — which is what lets the whole flow be tested from the admin account,
+ * and what makes a mistyped event time fixable while the fest is running.
  */
 import { verifyPersonToken } from "../auth/qrToken.js";
 import { getAuth, getDb } from "../config/firebase.js";
@@ -21,7 +25,7 @@ import { ApiError } from "../utils/ApiError.js";
 import { STATUS_COMPLETED } from "../utils/statuses.js";
 import { requireBool, requireInt, requireString } from "../utils/validate.js";
 import * as aggregate from "./aggregate.js";
-import { assertFestCheckinOpen } from "./festClock.js";
+import { assertEventWindowOpen, assertFestCheckinOpen } from "./festClock.js";
 import { ticketHolders } from "./qr.js";
 import { loadPersonRegistrations } from "./registrationLookup.js";
 import { resolveVolunteerEventId } from "./submissionAccess.js";
@@ -137,16 +141,35 @@ export async function festCheckIn({ actor, body }) {
 /** Check a specific member of a specific registration in or out — for one
  * event. Restricted to the volunteer covering that event's venue (admins
  * unrestricted). A "no ticket, just their id" desk fallback is this call with
- * `member_index: 0` (the lead). */
+ * `member_index: 0` (the lead).
+ *
+ * Checking *in* also has to happen while the event is actually running, which
+ * is a stricter gate than "the fest has begun" — see the window check below.
+ * Checking *out* is deliberately never time-gated: an event ending must not
+ * strand people marked present with no way to close them out. */
 export async function toggle({ actor, body }) {
   const registrationId = requireString(body.registration_id, { field: "registration_id" });
   const memberIndex = requireInt(body.member_index, { field: "member_index", min: 0 });
   const checkedIn = requireBool(body.checked_in, true);
 
-  await assertFestCheckinOpen();
+  // Returns every event, which the per-event window check below reuses rather
+  // than reading the collection a second time.
+  const events = await assertFestCheckinOpen();
 
   const db = getDb();
   const ref = db.collection("registrations").doc(registrationId);
+
+  if (checkedIn && !actor.is_admin) {
+    // One plain read to learn which event this registration is for. The
+    // transaction below re-reads it authoritatively; this copy only decides
+    // which clock to check. Admins bypass, exactly as they bypass the venue
+    // guard — it's what makes a mistyped end_time recoverable on the day.
+    const preview = await ref.get();
+    if (!preview.exists) throw new ApiError(404, "Registration not found");
+    const event = events.find((e) => e.id === (preview.data()?.event_id || ""));
+    // A registration whose event was deleted has no window to enforce.
+    if (event) assertEventWindowOpen(event, { what: "Check-in" });
+  }
 
   let volunteerEventId = "";
   if (!actor.is_admin) {
