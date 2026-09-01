@@ -3,12 +3,10 @@
 import "@/styles/components/fest-member-card.css";
 
 /**
- * Neo-brutalist "developed by" card — plain-CSS port of the supplied
- * styled-components reference (this repo has no `styled-components`
- * dependency; see `ComicButton` / `RegisterButton` for the same pattern).
- *
- * The social buttons link out (GitHub / X / LinkedIn) and are revealed on
- * hover, matching the reference's interaction.
+ * "Developed by Kumaran" — a plain text badge in the footer, no photo.
+ * Used to carry a portrait background-image; that's gone, so this is just
+ * the credit line plus the same three social links, always visible rather
+ * than hidden behind a hover reveal (nothing to hover over any more).
  */
 const SOCIALS = [
   {
@@ -31,21 +29,13 @@ const SOCIALS = [
 export default function FestMemberCard() {
   return (
     <div className="fest-member-card">
-      <div
-        className="card-photo"
-        style={{ backgroundImage: "url(/kumaran.png)" }}
-        aria-hidden="true"
-      />
-      <div className="card-title">
-        Kumaran<br />
-        <span>Developed By</span>
-      </div>
-      <div className="card-socials">
+      <span className="fest-member-card__label">Developed by Kumaran</span>
+      <span className="fest-member-card__socials">
         {SOCIALS.map((s) => (
           <a
             key={s.label}
             href={s.href}
-            className="card-socials-btn"
+            className="fest-member-card__social-btn"
             target="_blank"
             rel="noopener noreferrer"
             aria-label={s.label}
@@ -55,7 +45,7 @@ export default function FestMemberCard() {
             </svg>
           </a>
         ))}
-      </div>
+      </span>
     </div>
   );
 }
