@@ -25,6 +25,7 @@
  * the fest, which is exactly what that cache is for.
  */
 import { holderCheckins } from "./checkin.service.js";
+import { holderFeedback } from "./feedback.service.js";
 import * as aggregate from "./aggregate.js";
 
 const lower = (s) => (s || "").trim().toLowerCase();
@@ -51,6 +52,7 @@ function entryFor(row, events, memberIndex) {
   const event = events[row.event_id || ""] || {};
   const holders = holderCheckins(row);
   const mine = holders[memberIndex] || null;
+  const myFeedback = holderFeedback(row)[memberIndex] || null;
   const isTeam = Boolean(row.team_name) || (row.members || []).length > 0;
 
   return {
@@ -68,6 +70,11 @@ function entryFor(row, events, memberIndex) {
     // This person's own attendance for this event.
     checked_in: Boolean(mine?.checked_in),
     ever_checked_in: Boolean(mine?.ever_checked_in),
+    // …and their own feedback. The rating and whether they answered, never the
+    // comment: this screen answers "who turned up", and the words belong on
+    // the registrations view where there is room to read them.
+    feedback_given: Boolean(myFeedback?.given),
+    feedback_rating: myFeedback?.rating ?? null,
     // Only teams expand; a solo entry's single holder is the row itself.
     holders: isTeam ? holders : [],
   };

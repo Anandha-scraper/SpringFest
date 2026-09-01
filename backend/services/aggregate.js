@@ -86,6 +86,9 @@ function registrationView(r, events) {
     fee: r.fee || 0,
     checked_in: Boolean(r.checked_in),
     member_checkins: r.member_checkins || [],
+    // Whole array, not just one seat: this feeds the admin's per-person
+    // drawer, which shows every holder's answer for the team.
+    feedback: r.feedback || [],
     team_name: r.team_name || "",
     team_size: r.team_size ?? 1,
     members: r.members || [],

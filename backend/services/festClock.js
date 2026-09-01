@@ -76,6 +76,25 @@ export function assertEventDayOpen(event, { what = "Check-in" } = {}) {
   }
 }
 
+/** The same window assertEventDayOpen() enforces, as a value rather than a
+ * throw: "before" | "open" | "closed" | "undated".
+ *
+ * The write path asserts; a screen has to *render* something, and it must be
+ * able to tell "your event hasn't happened yet" from "you've missed it" —
+ * one throw collapses those into a single failure. Deliberately here and not
+ * in the caller: a browser has no equivalent of nowInFestZone(), so a client
+ * comparing a bare "YYYY-MM-DD" against its own clock is wrong by hours for
+ * anyone outside Asia/Kolkata, and wrong exactly at the midnight boundary
+ * that decides the answer.
+ */
+export function feedbackState(event, now = new Date()) {
+  if (!event?.date) return "undated";
+  const at = nowInFestZone(now);
+  if (at < `${event.date}T00:00`) return "before";
+  if (at > `${event.date}T23:59`) return "closed";
+  return "open";
+}
+
 export function festStarted(events, now = new Date()) {
   const start = festStartWallClock(events);
   if (!start) return false;

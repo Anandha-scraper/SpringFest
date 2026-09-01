@@ -1,4 +1,5 @@
-/** App-wide settings — how participants pay, and whether they can register.
+/** App-wide settings — how participants pay, whether they can register, and
+ * how many events in one category any one of them may take.
  *
  * Stored as a single Firestore document (`settings/app`) rather than an env
  * var because organisers change it *during* the fest: if the payment gateway
@@ -16,7 +17,13 @@
  */
 import { getDb } from "../config/firebase.js";
 import { ApiError } from "../utils/ApiError.js";
-import { optionalString, requireBool, requireOneOf } from "../utils/validate.js";
+import {
+  EVENT_CATEGORIES,
+  optionalString,
+  requireBool,
+  requireInt,
+  requireOneOf,
+} from "../utils/validate.js";
 import { cached, invalidate } from "./cache.js";
 import { eventEnded } from "./festClock.js";
 import { uploadBuffer } from "./storage.js";
@@ -57,6 +64,12 @@ const DEFAULTS = {
   // disturbing anything already paid or mid-checkout — see registrations.js.
   // Each event carries its own flag too; both must be open.
   registration_open: true,
+  // How many registrations one person may lead in a given event category.
+  // Empty by default and NOT pre-populated: shipping real numbers here would
+  // silently start rejecting registrations on an existing deployment the
+  // moment it deploys. Caps stay off until an organiser sets them, the same
+  // posture as payment_upi_id.
+  category_limits: {},
   updated_at: "",
   updated_by: "",
 };
@@ -66,6 +79,17 @@ const DEFAULTS = {
  * gateway must be ready before a paid event can be created. */
 export function screenshotPathReady(s) {
   return Boolean(s.payment_upi_id && s.payment_qr_path && s.payment_locked);
+}
+
+/** The cap on how many events in this category one person may register for.
+ *
+ * 0 means no cap, and so does a missing key — deliberately the same answer.
+ * getAppSettings() spreads DEFAULTS *shallowly*, so a stored map that predates
+ * a category (or a legacy doc with no map at all) legitimately has holes in
+ * it, and a hole must never read as "cap of zero, nobody may register". */
+export function categoryLimit(appSettings, category) {
+  const n = (appSettings?.category_limits || {})[category || ""];
+  return Number.isInteger(n) && n > 0 ? n : 0;
 }
 
 export async function getAppSettings() {
@@ -98,6 +122,32 @@ function assertUnlocked(current) {
   }
 }
 
+/** Validate a category -> limit map, merged over whatever is already stored.
+ *
+ * Keys are checked against EVENT_CATEGORIES rather than accepted freely: a
+ * typo'd "Technicial" would otherwise be stored happily and enforce nothing,
+ * which is the worst failure this feature has — a cap the admin believes is
+ * on. A limit left over for a category since renamed is inert: no event
+ * carries that string, so nothing ever looks it up.
+ *
+ * The whole map is written back every time, not just the changed keys.
+ * getAppSettings() spreads DEFAULTS shallowly while setAppSettings() writes
+ * with Firestore's {merge:true}, which deep-merges maps — the two disagree
+ * about nested objects, and writing it complete is what stops that mattering.
+ * The consequence, accepted: a key can be zeroed but never deleted. Zero
+ * already means unlimited, so there is nothing to delete it for. */
+function parseCategoryLimits(raw, current) {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    throw new ApiError(400, "category_limits: input should be an object");
+  }
+  const merged = { ...(current.category_limits || {}) };
+  for (const [key, value] of Object.entries(raw)) {
+    requireOneOf(key, EVENT_CATEGORIES, { field: "category_limits key" });
+    merged[key] = requireInt(value, { field: `category_limits.${key}`, min: 0 });
+  }
+  return merged;
+}
+
 /** Admin edit of the settings singleton.
  *
  * Deliberately no lock on existing registrations: switching modes is the whole
@@ -118,6 +168,9 @@ export async function applySettingsPatch(body, actorEmail) {
   }
   if (body.registration_open !== undefined) {
     patch.registration_open = requireBool(body.registration_open);
+  }
+  if (body.category_limits !== undefined) {
+    patch.category_limits = parseCategoryLimits(body.category_limits, current);
   }
   if (!Object.keys(patch).length) throw new ApiError(400, "Nothing to update");
 

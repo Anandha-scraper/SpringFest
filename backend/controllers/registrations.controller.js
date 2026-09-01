@@ -3,6 +3,7 @@
  * the same mime maps that accepted it. */
 import { IMAGE_TYPES, SUBMISSION_TYPES } from "../middleware/upload.js";
 import * as registrations from "../services/registration.service.js";
+import * as feedbackService from "../services/feedback.service.js";
 
 export async function create(req, res) {
   res.json(await registrations.createOrResume({ user: req.user, body: req.body || {} }));
@@ -34,6 +35,16 @@ export async function submission(req, res) {
 export async function addMember(req, res) {
   res.json(
     await registrations.addMember({
+      user: req.user,
+      registrationId: req.params.registrationId,
+      body: req.body || {},
+    })
+  );
+}
+
+export async function feedback(req, res) {
+  res.json(
+    await feedbackService.saveFeedback({
       user: req.user,
       registrationId: req.params.registrationId,
       body: req.body || {},

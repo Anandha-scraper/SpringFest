@@ -31,6 +31,9 @@ export function AuthProvider({ children }) {
     payment_mode: "",
     payment_upi_id: "",
     has_payment_qr: false,
+    // Empty means "no caps", which is also what the server defaults to — so a
+    // slow /api/me never briefly tells someone they're at a limit.
+    category_limits: {},
     registration_open: true,
   });
 
@@ -50,6 +53,7 @@ export function AuthProvider({ children }) {
         payment_mode: me?.payment_mode || "",
         payment_upi_id: me?.payment_upi_id || "",
         has_payment_qr: Boolean(me?.has_payment_qr),
+        category_limits: me?.category_limits || {},
         registration_open: me?.registration_open !== false,
       });
       setRoleError("");
@@ -93,6 +97,7 @@ export function AuthProvider({ children }) {
     paymentMode: payment.payment_mode,
     paymentUpiId: payment.payment_upi_id,
     hasPaymentQr: payment.has_payment_qr,
+    categoryLimits: payment.category_limits,
     registrationOpen: payment.registration_open,
     loading,
     isFirebaseConfigured,

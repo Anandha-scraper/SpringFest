@@ -26,6 +26,7 @@ import {
   uploadPaymentQr,
 } from "@/api/client.js";
 import { useApi } from "@/hooks/useApi.js";
+import { EVENT_CATEGORIES } from "@/content/formOptions.js";
 
 const MODES = [
   {
@@ -85,6 +86,7 @@ export default function PaymentSettings() {
   const [confirmingClose, setConfirmingClose] = useState(false);
   const [confirmingUnlock, setConfirmingUnlock] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [limits, setLimits] = useState({});
   const fileInput = useRef(null);
 
   const mode = settings?.payment_mode || "gateway";
@@ -96,6 +98,19 @@ export default function PaymentSettings() {
   // on a background reload.
   useEffect(() => {
     if (settings) setUpiId((prev) => prev || settings.payment_upi_id || "");
+  }, [settings]);
+
+  // Same non-clobbering seed for the per-category caps. Held as strings so the
+  // input can be emptied mid-edit without snapping back to 0.
+  useEffect(() => {
+    if (!settings) return;
+    setLimits((prev) =>
+      Object.keys(prev).length
+        ? prev
+        : Object.fromEntries(
+            EVENT_CATEGORIES.map((c) => [c, String(settings.category_limits?.[c] ?? 0)]),
+          ),
+    );
   }, [settings]);
 
   // Object URLs leak until revoked — tie the lifetime to the chosen file.
@@ -265,6 +280,56 @@ export default function PaymentSettings() {
               );
             })}
           </div>
+        </section>
+
+        {/* Deliberately NOT gated by `locked` as every other control here is:
+            that lock covers the UPI id and the QR, where a wrong value sends
+            real money somewhere wrong. A cap is a policy an organiser may
+            legitimately want to change mid-fest. */}
+        <section className="admin-panel">
+          <div className="panel-head">
+            <h2>Registration limits</h2>
+          </div>
+          <p className="muted">
+            The most events one participant may register for in each category. Only
+            registrations they create themselves count — a seat on someone else&apos;s team
+            doesn&apos;t. Set 0 for no limit.
+          </p>
+          <form
+            className="category-limits"
+            onSubmit={(e) => {
+              e.preventDefault();
+              save(
+                {
+                  category_limits: Object.fromEntries(
+                    EVENT_CATEGORIES.map((c) => [c, Number(limits[c]) || 0]),
+                  ),
+                },
+                "Per-category limits saved.",
+              );
+            }}
+          >
+            <ul className="category-limit-list">
+              {EVENT_CATEGORIES.map((c) => (
+                <li key={c}>
+                  <label htmlFor={`limit-${c}`}>{c}</label>
+                  <input
+                    id={`limit-${c}`}
+                    className="input input-sm"
+                    type="number"
+                    min="0"
+                    disabled={busy}
+                    value={limits[c] ?? ""}
+                    onChange={(e) => setLimits({ ...limits, [c]: e.target.value })}
+                  />
+                  <span className="cell-sub">
+                    {Number(limits[c]) > 0 ? "per participant" : "no limit"}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <FormActions editing={false} saveLabel="Save limits" disabled={busy} />
+          </form>
         </section>
 
         <section className="admin-panel">

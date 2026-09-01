@@ -70,6 +70,13 @@ export default function EventParticipants() {
         <StatCard label="Completed" value={data.completed} tone="ok" />
         <StatCard label="Checked in" value={data.checked_in} tone="warn" />
         <StatCard label="Revenue" value={data.revenue} prefix="₹" tone="accent" />
+        {/* Null until somebody answers, so "no responses yet" never renders as
+            a rating of zero. */}
+        <StatCard
+          label="Avg rating"
+          value={data.feedback_avg ?? "—"}
+          tone={data.feedback_avg ? "ok" : undefined}
+        />
       </div>
 
       <section className="admin-panel">
@@ -92,6 +99,7 @@ export default function EventParticipants() {
                   <th className="num">Amount</th>
                   <th>Registered</th>
                   <th>File</th>
+                  <th>Feedback</th>
                 </tr>
               </thead>
               <tbody>
@@ -120,6 +128,23 @@ export default function EventParticipants() {
                         >
                           <FileText size={14} aria-hidden="true" /> Download
                         </button>
+                      ) : (
+                        <span className="cell-sub">—</span>
+                      )}
+                    </td>
+                    {/* One row is one registration but feedback is per person,
+                        so a team can hold several answers. */}
+                    <td>
+                      {(r.feedback || []).length ? (
+                        <ul className="cell-list">
+                          {r.feedback.map((f) => (
+                            <li key={f.member_index}>
+                              <strong>{f.rating}/5</strong>{" "}
+                              <span className="cell-sub">{f.name || f.email}</span>
+                              {f.comment && <div className="cell-sub">{f.comment}</div>}
+                            </li>
+                          ))}
+                        </ul>
                       ) : (
                         <span className="cell-sub">—</span>
                       )}

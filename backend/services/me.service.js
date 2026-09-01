@@ -12,6 +12,7 @@ import * as aggregate from "./aggregate.js";
 import { personalQrPng } from "./qr.js";
 import { loadPersonRegistrations, matchMemberIndex } from "./registrationLookup.js";
 import { getAppSettings } from "./settings.js";
+import { feedbackState } from "./festClock.js";
 import { contentTypeFor, downloadBuffer } from "./storage.js";
 import { submissionFilename } from "./submissionAccess.js";
 
@@ -40,6 +41,10 @@ export async function profile(user) {
     // round trip, and unaffected by a missing STORAGE_BUCKET.
     has_payment_qr: Boolean(s.payment_qr_path),
     registration_open: s.registration_open,
+    // Same argument as registration_open: the event page can say "you're at
+    // your limit for this category" before someone fills the form in, rather
+    // than letting them submit into a 409.
+    category_limits: s.category_limits || {},
   };
 }
 
@@ -68,9 +73,34 @@ export async function myRegistrations(user) {
   const db = getDb();
   const rows = await loadPersonRegistrations({ uid: user.uid, email: user.email });
 
+  // The whole event doc, not just its name: the feedback window below is a
+  // fest-timezone wall-clock comparison, and a browser has no equivalent of
+  // festClock.nowInFestZone() — a client comparing a bare "YYYY-MM-DD" against
+  // its own clock is wrong by hours outside Asia/Kolkata, and wrong exactly at
+  // the midnight boundary that decides the answer. This scan already ran for
+  // the names, so deciding it here is free.
   const eventsSnap = await db.collection("events").get();
-  const names = Object.fromEntries(eventsSnap.docs.map((d) => [d.id, d.data()?.name || d.id]));
-  for (const r of rows) r.event_name = names[r.event_id] ?? r.event_id;
+  const events = Object.fromEntries(eventsSnap.docs.map((d) => [d.id, d.data() ?? {}]));
+  for (const r of rows) {
+    const event = events[r.event_id] || {};
+    r.event_name = event.name || r.event_id;
+    r.feedback_state = feedbackState(event);
+    r.feedback_closes_at = event.date ? `${event.date}T23:59` : "";
+
+    // Everything else on this row is shared by design — the roster, the
+    // allocation codes, what each teammate typed about themselves. Feedback
+    // isn't: it is the one field a holder writes *about* the event, often
+    // about the people running it. Shipping the array raw would let a teammate
+    // read the lead's, which changes what people are willing to write and so
+    // quietly destroys the data this exists to collect.
+    const mine = (Array.isArray(r.feedback) ? r.feedback : []).find(
+      (f) => f.member_index === r.member_index
+    );
+    r.my_feedback = mine || null;
+    // Safe: loadPersonRegistrations builds a fresh { id, ...doc.data() } object
+    // per row, not a live snapshot.
+    delete r.feedback;
+  }
 
   rows.sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""));
   return rows;
