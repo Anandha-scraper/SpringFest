@@ -76,18 +76,24 @@ export function assertEventDayOpen(event, { what = "Check-in" } = {}) {
   }
 }
 
-/** The same window assertEventDayOpen() enforces, as a value rather than a
- * throw: "before" | "open" | "closed" | "undated".
+/** Where this event's own day sits relative to now:
+ * "before" | "open" | "closed" | "undated".
  *
- * The write path asserts; a screen has to *render* something, and it must be
- * able to tell "your event hasn't happened yet" from "you've missed it" —
- * one throw collapses those into a single failure. Deliberately here and not
- * in the caller: a browser has no equivalent of nowInFestZone(), so a client
- * comparing a bare "YYYY-MM-DD" against its own clock is wrong by hours for
- * anyone outside Asia/Kolkata, and wrong exactly at the midnight boundary
- * that decides the answer.
+ * The same window assertEventDayOpen() enforces, as a value rather than a
+ * throw. The write paths assert; a screen has to *render* something, and it
+ * must be able to tell "hasn't happened yet" from "you've missed it" — one
+ * throw collapses those into a single failure.
+ *
+ * Two callers now, which is why it is named for the day rather than for
+ * feedback: the participant's feedback window, and the admin attendance view
+ * deciding whether "not arrived" is a fair thing to say about someone yet.
+ *
+ * Deliberately here and not in the browser: there is no client equivalent of
+ * nowInFestZone(), so a page comparing a bare "YYYY-MM-DD" against its own
+ * clock is wrong by hours outside Asia/Kolkata, and wrong exactly at the
+ * midnight boundary that decides the answer.
  */
-export function feedbackState(event, now = new Date()) {
+export function eventDayState(event, now = new Date()) {
   if (!event?.date) return "undated";
   const at = nowInFestZone(now);
   if (at < `${event.date}T00:00`) return "before";

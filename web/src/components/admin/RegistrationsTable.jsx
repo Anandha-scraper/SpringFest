@@ -17,6 +17,12 @@ import {
 } from "@/components/ui/sheet.jsx";
 
 const money = (n) => (n > 0 ? rupees(n) : "Free");
+/** What a person has actually paid. Distinct from `money()`: nothing paid is
+ *  "—", not "Free" — "Free" is a statement about the event's price, and
+ *  printing it against an unpaid ₹300 registration said the opposite of the
+ *  truth. A teammate shows what their lead paid instead of a bare zero. */
+const paidLabel = (row) =>
+  row.total_paid > 0 ? rupees(row.total_paid) : row.paid_by ? `paid by ${row.paid_by}` : "—";
 
 // Percentage widths so `table-layout: fixed` keeps columns steady across pages.
 const COLS = [20, 12, 11, 15, 16, 11, 9, 6];
@@ -184,7 +190,13 @@ function EditRegistrationSheet({ registrationId, onClose, onSaved }) {
  * `GET /admin/participants` returns. A row's Events cell counts how many events
  * they entered and Total paid sums only what actually cleared.
  */
-export default function RegistrationsTable({ rows, minRows = 0, onSaved }) {
+export default function RegistrationsTable({
+  rows,
+  minRows = 0,
+  onSaved,
+  rejectedOnly = false,
+  onToggleRejected,
+}) {
   const [selected, setSelected] = useState(null);
   const [details, setDetails] = useState(null);
   const [editingId, setEditingId] = useState(null);
@@ -198,10 +210,24 @@ export default function RegistrationsTable({ rows, minRows = 0, onSaved }) {
       subtitle: t
         ? `${t.event_name} · ${t.team_size} members · led by ${r.name}`
         : r.solo_events.join(" · ") || r.email,
-      people: [{ ...r, lead: true }, ...(t?.members || [])],
+      // Built from the registration's own roster. The old shape prepended
+      // *this row's person* as the lead — which is wrong on a teammate's row
+      // (it marks them as lead, then lists them again from members[]) and was
+      // how the same email ended up in the list twice.
+      people: t
+        ? (t.holders || []).map((h) => ({ ...h, lead: h.member_index === 0 }))
+        : [{ ...r, lead: true }],
     });
 
-  if (!rows.length) return <p className="empty-state">No registrations match these filters.</p>;
+  if (!rows.length) {
+    return (
+      <p className="empty-state">
+        {rejectedOnly
+          ? "No rejected registrations."
+          : "No registrations match these filters."}
+      </p>
+    );
+  }
 
   // Header ≈ 2.6rem + 3.5rem a row: holds the height so a short last page
   // doesn't make the pagination jump.
@@ -225,14 +251,33 @@ export default function RegistrationsTable({ rows, minRows = 0, onSaved }) {
               <th>College</th>
               <th>Events</th>
               <th>Teams</th>
-              <th>Status</th>
+              {/* The one way to reach rejected registrations: they are hidden
+                  from the normal list, so the column that shows status is
+                  also what reveals them. */}
+              <th>
+                {onToggleRejected ? (
+                  <button
+                    type="button"
+                    className="link-btn th-toggle"
+                    onClick={onToggleRejected}
+                    title={rejectedOnly ? "Back to approved" : "Show rejected registrations"}
+                  >
+                    {rejectedOnly ? "Rejected ✕" : "Status"}
+                  </button>
+                ) : (
+                  "Status"
+                )}
+              </th>
               <th className="num">Total paid</th>
               <th>Details</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((r) => (
-              <tr key={r.uid}>
+              // person_key, never uid: a person who has only ever been someone
+              // else's teammate has no uid at all, and several empty keys is a
+              // React crash.
+              <tr key={r.person_key}>
                 <td>
                   {/* Always a link: a solo participant's own details are worth
                       one click too, not just a team's roster. */}
@@ -286,7 +331,7 @@ export default function RegistrationsTable({ rows, minRows = 0, onSaved }) {
                   )}
                 </td>
                 <td><StatusPill status={r.status} /></td>
-                <td className="num">{money(r.total_paid)}</td>
+                <td className="num">{paidLabel(r)}</td>
                 <td>
                   <button
                     className="icon-btn"
@@ -319,7 +364,7 @@ export default function RegistrationsTable({ rows, minRows = 0, onSaved }) {
                 <SheetTitle className="pr-6">{selected.name}</SheetTitle>
                 <SheetDescription>
                   {selected.events_count} event{selected.events_count === 1 ? "" : "s"} ·{" "}
-                  {money(selected.total_paid)} paid
+                  {paidLabel(selected)}
                 </SheetDescription>
               </SheetHeader>
 

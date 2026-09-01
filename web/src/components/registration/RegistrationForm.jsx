@@ -143,9 +143,16 @@ export default function RegistrationForm({
           </div>
           <div className="field">
             <label htmlFor={`${pfx}-phone`}>Phone</label>
-            <input id={`${pfx}-phone`} type="tel" inputMode="numeric" pattern="[0-9]{10}"
-              maxLength={10} placeholder="10-digit mobile number" required
-              value={person.phone} onChange={(e) => set("phone", e.target.value)} />
+            {/* The +91 is decoration, never part of the value: digitsOnly()
+                would strip the "+" and the server's requirePhone() accepts
+                only ten bare digits, so a prefix that leaked into state would
+                be a hard 400. */}
+            <div className="phone-input">
+              <span className="phone-input__prefix" aria-hidden="true">+91</span>
+              <input id={`${pfx}-phone`} type="tel" inputMode="numeric" pattern="[0-9]{10}"
+                maxLength={10} placeholder="10-digit mobile number" required
+                value={person.phone} onChange={(e) => set("phone", e.target.value)} />
+            </div>
           </div>
         </div>
         <div className="field-row field-row--2">

@@ -12,10 +12,12 @@
  * registration since the first version).
  */
 
-import { listPeople, normalizeEmail, ROLE_ADMIN, ROLE_VOLUNTEER } from "../auth/roles.js";
+import { listPeople, ROLE_ADMIN, ROLE_VOLUNTEER } from "../auth/roles.js";
 import { getAuth, getDb } from "../config/firebase.js";
 import { settings } from "../config/index.js";
 import { STATUS_COMPLETED } from "../utils/statuses.js";
+import { buildUidByEmail, keyResolver, normalizeEmail, personKeyFor } from "../utils/identity.js";
+import { ticketHolders } from "./qr.js";
 import { cached, invalidate } from "./cache.js";
 import { nowInFestZone } from "./festClock.js";
 
@@ -68,12 +70,24 @@ export function eventName(events, eventId) {
 
 /** How this codebase decides two registrations belong to the same person.
  *
- * The Firebase uid, falling back to the email for rows written before uid was
- * stored. Exported because the headline stats and the attendance view must
- * agree on it: two definitions of "one person" would make "142 registered
- * users" and a 143-row attendance list both look correct and disagree. */
+ * Thin wrapper over utils/identity.js, which is now the single definition —
+ * this used to be one of three that quietly disagreed on whether to lowercase.
+ * Kept as an export because callers read naturally as `personKey(row)`. */
 export function personKey(r) {
-  return r.uid || r.email || "unknown";
+  return personKeyFor({ uid: r.uid, email: r.email }) || "unknown";
+}
+
+/** Did THIS seat check in? Not `row.checked_in`, which means "somebody on
+ * this registration is in" — copying that onto every holder would mark a
+ * teammate who never showed up as attended because their lead did.
+ *
+ * Read straight off `member_checkins[]` rather than through
+ * `checkin.service.holderCheckins()`: that module imports this one, and the
+ * cycle is not worth one array lookup. Check-in is one-way, so the presence
+ * of an entry is the answer. */
+function seatCheckedIn(row, memberIndex) {
+  const marks = Array.isArray(row?.member_checkins) ? row.member_checkins : [];
+  return marks.some((c) => c?.member_index === memberIndex);
 }
 
 /** One registration as the admin detail panel wants it. */
@@ -108,40 +122,88 @@ function registrationView(r, events) {
   };
 }
 
-/** One row per person, newest registration first.
+/** One row per PERSON — every ticket holder, not just the people who created
+ * a registration.
  *
- * total_paid counts only completed registrations — an abandoned checkout
- * never took money. status is "completed" if the person paid for at least
- * one event, which is the same definition the Overview's Completed card
- * uses. */
-export async function participantRows(data) {
+ * A teammate exists only as an email inside someone else's `members[]`, and
+ * they used to get no row at all: they were visible only nested inside the
+ * lead's entry. They are a real participant who turns up, gets checked in and
+ * holds an allocation code, so they get a row. If their email also leads
+ * registrations elsewhere, identity resolution folds all of it onto that one
+ * row — get that wrong and one human becomes two.
+ *
+ * Approved only. A draft is a half-filled form and a rejected row is somebody
+ * whose payment did not clear; neither is a participant, and counting them is
+ * what made "Registered Users" read far higher than the number of people
+ * actually coming. The filter lives here rather than in the controller so
+ * `buildStats` can count exactly what this returns — two places deciding what
+ * "registered" means is how the headline and the list drift apart.
+ */
+export async function participantRows(data, status = STATUS_COMPLETED) {
   data = data || (await loadAll());
   const { registrations, events } = data;
 
-  const byUid = new Map();
-  for (const r of registrations) {
-    const key = personKey(r);
-    if (!byUid.has(key)) byUid.set(key, []);
-    byUid.get(key).push(r);
+  // Non-mutating: `registrations` is the array inside the shared loadAll()
+  // cache, and other rollups walk the same objects.
+  //
+  // `status` is a parameter only so the admin can pull up the rejected pile
+  // from the same screen. Everything else about the page assumes approved.
+  const approved = registrations.filter((r) => r.status === status);
+  // Built from EVERY registration, not the approved slice — see the note in
+  // utils/identity.js. Someone leading a pending row and sitting on an
+  // approved one still needs their uid known here.
+  const keyFor = keyResolver(buildUidByEmail(registrations));
+
+  const people = new Map();
+  for (const row of approved) {
+    for (const holder of ticketHolders(row)) {
+      const key = keyFor({ uid: holder.uid, email: holder.email });
+      // Neither a uid nor an email: unaddressable. Skipped rather than
+      // bucketed together, which would merge strangers into one row.
+      if (!key) continue;
+      if (!people.has(key)) people.set(key, []);
+      people.get(key).push({ row, holder });
+    }
   }
 
   const rows = [];
-  for (const [uid, regsIn] of byUid) {
-    const regs = [...regsIn].sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""));
-    const latest = regs[0];
-    const completed = regs.filter((r) => r.status === STATUS_COMPLETED);
-    const views = regs.map((r) => registrationView(r, events));
+  for (const [key, seatsIn] of people) {
+    // Newest first, and seats on the person's own account first: their own
+    // registration is the most authoritative source for their own details.
+    const seats = [...seatsIn].sort(
+      (a, b) =>
+        Number(Boolean(b.holder.uid)) - Number(Boolean(a.holder.uid)) ||
+        (b.row.created_at || "").localeCompare(a.row.created_at || "")
+    );
+    // First non-empty wins, so a teammate typed with a blank college on one
+    // team still shows the college they gave on another.
+    const pick = (field) => seats.map((s) => s.holder[field]).find(Boolean) || "";
+    const leadSeats = seats.filter((s) => s.holder.member_index === 0);
+
+    const views = seats.map((s) => ({
+      ...registrationView(s.row, events),
+      member_index: s.holder.member_index,
+      is_lead: s.holder.member_index === 0,
+      // The whole roster, lead included, so the admin's team dialog can list
+      // it without reconstructing "the lead plus members[]" — which is what
+      // used to put the lead's own address in the list twice.
+      holders: ticketHolders(s.row),
+    }));
 
     rows.push({
-      uid,
-      name: latest.name || "",
-      email: latest.email || "",
-      phone: latest.phone || "",
-      college: latest.college || "",
-      department: latest.department || "",
-      year: latest.year || "",
-      location: latest.location || "",
-      events_count: regs.length,
+      person_key: key,
+      // The uid only exists if this person leads something. A pure teammate's
+      // is "" — which is why nothing may key a React list on it.
+      uid: leadSeats[0]?.holder.uid || "",
+      name: pick("name"),
+      email: normalizeEmail(pick("email")),
+      phone: pick("phone"),
+      college: pick("college"),
+      department: pick("department"),
+      year: pick("year"),
+      location: pick("location"),
+      is_lead_anywhere: leadSeats.length > 0,
+      events_count: seats.length,
       events: views,
       // Solo and team entries are split here rather than in the table because
       // they are genuinely different things to an organiser: a solo entry is
@@ -158,12 +220,22 @@ export async function participantRows(data) {
           team_name: v.team_name,
           team_size: v.team_size,
           members: v.members,
+          holders: v.holders,
           status: v.status,
+          is_lead: v.is_lead,
+          lead_name: v.holders[0]?.name || "",
         })),
-      total_paid: completed.reduce((sum, r) => sum + (r.fee || 0), 0),
-      status: completed.length ? STATUS_COMPLETED : latest.status || "",
-      checked_in: regs.some((r) => r.checked_in),
-      created_at: latest.created_at || "",
+      // Lead seats only. `fee` is the whole team's charge, so summing it on
+      // every holder's row would report team_size times the real revenue and
+      // make the column silently lie. A teammate shows 0 and `paid_by`.
+      total_paid: leadSeats.reduce((sum, s) => sum + (s.row.fee || 0), 0),
+      paid_by: leadSeats.length
+        ? ""
+        : seats.map((s) => ticketHolders(s.row)[0]?.name).find(Boolean) || "",
+      status,
+      // This person's own attendance, never the registration-wide flag.
+      checked_in: seats.some((s) => seatCheckedIn(s.row, s.holder.member_index)),
+      created_at: seats[0]?.row.created_at || "",
     });
   }
 
@@ -192,20 +264,26 @@ export function perEventCounts(data) {
   return rows;
 }
 
-/** Shaped for the Overview. The three headline numbers count *people*, not
- * registration rows — one person registering for four events is one signed
- * user, not four. */
+/** Shaped for the Overview.
+ *
+ * Three grains coexist here deliberately. `signed_users` counts *people*;
+ * `revenue`, `checked_in` and `total_registrations` count *registration
+ * rows*; `per_event` counts rows per event. A four-person team is one
+ * registration and four people, and both readings are wanted on one screen. */
 export async function buildStats(data) {
   data = data || (await loadAll());
   const { registrations, events } = data;
 
   const completed = registrations.filter((r) => r.status === STATUS_COMPLETED);
+  // Literally the array the Registrations page renders, not a second count
+  // computed a second way — the Overview headline and that page's row count
+  // cannot disagree if there is only one definition of the list.
+  const people = await participantRows(data);
 
   return {
-    // Everyone who signed in and registered, paid or not.
-    signed_users: new Set(registrations.map(personKey)).size,
-    // Of those, the ones who paid for at least one event.
-    completed_users: new Set(completed.map(personKey)).size,
+    // Approved people, counting every ticket holder: a teammate is coming to
+    // the fest just as much as whoever filled the form in.
+    signed_users: people.length,
     revenue: completed.reduce((sum, r) => sum + (r.fee || 0), 0),
     checked_in: registrations.filter((r) => r.checked_in).length,
     // People who cleared the door (fest entry), a separate axis from event
@@ -286,7 +364,8 @@ export async function venueRollup(data) {
       event_name: event ? event.name || "" : "",
       registrations: regs.length,
       checked_in: regs.filter((r) => r.checked_in).length,
-      completed: regs.filter((r) => r.status === STATUS_COMPLETED).length,
+      // No `completed` column any more: now that the admin's registration
+      // views mean "approved", it was the same number printed twice.
       // One list, not two: the volunteers on this venue are also the people
       // who score its event now that the judge role is gone.
       volunteers: people

@@ -284,7 +284,38 @@
 }
 
 /* The "to" between the team-size min/max inputs. */
-.row-actions { display: flex; gap: 0.375rem; justify-content: center; }
+/* Row action buttons. Note this must sit INSIDE the cell, never on the <td>
+   itself — making a table cell a flex container discards its vertical-align
+   and the buttons drift out of line with the rest of the row. */
+.row-actions {
+  display: flex;
+  gap: 0.375rem;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.row-actions-cell {
+  white-space: nowrap;
+}
+/* Used by the events table's date column; lived only in roles.css, which that
+   route never loads, so it was silently doing nothing. */
+.cell-nowrap {
+  white-space: nowrap;
+}
+
+/* On a phone the two buttons get the cell to themselves, stacked and
+   full-width — the same rule .roster-team__head and .checkin-row already use
+   for exactly this problem. */
+@media (max-width: 560px) {
+  .row-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .row-actions .btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
 
 /* Compact square button for a single icon action inside a table cell. */
 .icon-btn {

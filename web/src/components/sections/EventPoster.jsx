@@ -111,6 +111,12 @@ export default function EventPoster({ event, onRegister }) {
             </div>
 
             <div className="doodlepro__footer">
+              {/* ComicButton takes no children, so the hint is a sibling. The
+                  footer is already `justify-content: space-between` and was
+                  laid out for two children, so this needs no layout change. */}
+              <span className="doodlepro__hint" aria-hidden="true">
+                click here →
+              </span>
               <ComicButton
                 className="doodlepro__register"
                 label="REGISTER"

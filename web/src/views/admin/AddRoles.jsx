@@ -77,7 +77,10 @@ export default function AddRoles() {
         )
       ) return;
 
-      await addPerson({ email: key, name: name.trim(), role });
+      // Every confirm above has been answered, so tell the server so — it
+      // re-checks the same conflicts and refuses an unacknowledged write, so
+      // that the warnings can't be skipped by calling the API directly.
+      await addPerson({ email: key, name: name.trim(), role, acknowledge: true });
       setEmail("");
       setName("");
       await reload();

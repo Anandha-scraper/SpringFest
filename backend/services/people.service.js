@@ -55,6 +55,31 @@ export async function addPerson({ body, actorEmail }) {
     throw new ApiError(403, "This account is managed in ADMIN_EMAILS");
   }
 
+  // The same conflicts the Add-a-person form warns about, re-checked here so
+  // they cannot be skipped by calling this endpoint directly. Advisory, not a
+  // block: a student volunteering at their own fest while also competing in
+  // it is normal, and overwriting a role is sometimes exactly the intent. The
+  // caller has to say they have seen the conflict, which is what the form's
+  // confirmation dialogs now send.
+  if (body.acknowledge !== true) {
+    const info = await lookup(email);
+    const clashes = [];
+    if (info.role && info.role !== role) {
+      clashes.push(`already ${info.role === roles.ROLE_ADMIN ? "an" : "a"} ${info.role}`);
+    }
+    if (info.registrations_count > 0) {
+      const n = info.registrations_count;
+      const where = info.events.length ? ` (${info.events.join(", ")})` : "";
+      clashes.push(`registered for ${n} event${n === 1 ? "" : "s"}${where} as a participant`);
+    }
+    if (clashes.length) {
+      throw new ApiError(
+        409,
+        `${email} is ${clashes.join(", and ")}. Re-send with acknowledge:true to continue.`
+      );
+    }
+  }
+
   const row = await roles.upsertPerson({ email, role, name, addedBy: actorEmail });
   aggregate.invalidateLoadAll();
   return row;

@@ -18,7 +18,14 @@ export default function Registrations() {
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
 
-  const fetcher = useCallback(() => getParticipants(), []);
+  // Approved people by default. The Status column header flips this to the
+  // rejected pile, which is otherwise not shown at all — a rejected row is
+  // somebody whose payment did not clear, not a participant.
+  const [rejectedOnly, setRejectedOnly] = useState(false);
+  const fetcher = useCallback(
+    () => getParticipants(rejectedOnly ? "rejected" : undefined),
+    [rejectedOnly]
+  );
   const { data, error, loading, reload } = useApi(fetcher, { liveOn: "registrations" });
   const people = data || [];
 
@@ -65,21 +72,35 @@ export default function Registrations() {
           />
           <span className="reg-total">
             {/* People, not registrations — the rows are one per person. */}
-            {filtered.length} participant{filtered.length === 1 ? "" : "s"}
+            {filtered.length} {rejectedOnly ? "rejected" : "participant"}
+            {filtered.length === 1 ? "" : "s"}
             {query && ` matching "${query}"`}
           </span>
           <Button
             type="button"
             variant="outline"
             onClick={() =>
-              downloadRegistrationsCsv().catch((err) => toast.bad(err.message))
+              // Match what's on screen — the export used to include drafts
+              // and rejections that the table itself hides.
+              downloadRegistrationsCsv({ status: rejectedOnly ? "rejected" : "completed" }).catch(
+                (err) => toast.bad(err.message)
+              )
             }
           >
             Export CSV
           </Button>
         </div>
 
-        <RegistrationsTable rows={pageRows} minRows={PAGE_SIZE} onSaved={reload} />
+        <RegistrationsTable
+          rows={pageRows}
+          minRows={PAGE_SIZE}
+          onSaved={reload}
+          rejectedOnly={rejectedOnly}
+          onToggleRejected={() => {
+            setRejectedOnly((v) => !v);
+            setPage(1);
+          }}
+        />
 
         <TablePagination page={safePage} totalPages={totalPages} onPage={setPage} />
       </section>

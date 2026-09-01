@@ -12,7 +12,7 @@ import * as aggregate from "./aggregate.js";
 import { personalQrPng } from "./qr.js";
 import { loadPersonRegistrations, matchMemberIndex } from "./registrationLookup.js";
 import { getAppSettings } from "./settings.js";
-import { feedbackState } from "./festClock.js";
+import { eventDayState } from "./festClock.js";
 import { contentTypeFor, downloadBuffer } from "./storage.js";
 import { submissionFilename } from "./submissionAccess.js";
 
@@ -84,7 +84,7 @@ export async function myRegistrations(user) {
   for (const r of rows) {
     const event = events[r.event_id] || {};
     r.event_name = event.name || r.event_id;
-    r.feedback_state = feedbackState(event);
+    r.feedback_state = eventDayState(event);
     r.feedback_closes_at = event.date ? `${event.date}T23:59` : "";
 
     // Everything else on this row is shared by design — the roster, the

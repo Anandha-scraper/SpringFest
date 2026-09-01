@@ -8,13 +8,19 @@
  * headline count and this list disagree while both looked right.
  *
  * Team members are the wrinkle. Only the lead has a `uid`; teammates exist as
- * `members[]` entries with a name and an email, matched exactly the way
- * `registrationLookup.matchMemberIndex()` matches them. A teammate who ALSO
- * leads a registration somewhere collapses into that one row, holding both —
- * same as the lead-side rule above. A teammate who never leads anything gets
- * no row of their own at all: they are visible only inside the lead's own
- * entry (`holders[]`), which already lists every member with their own
- * check-in state. One team is one roster, not one roster per person on it.
+ * `members[]` entries with a name and an email. **Every ticket holder gets
+ * their own row**, teammates included — they turn up, get checked in and hold
+ * an allocation code like anyone else. A teammate who also leads a
+ * registration elsewhere collapses onto that same one row, holding both;
+ * `utils/identity.js` is what makes those two appearances resolve together.
+ *
+ * (This reverses the earlier "one team is one roster" rule. The roster still
+ * exists on the lead's own entry for context, but a member is no longer
+ * *only* visible there.)
+ *
+ * Approved only, matching `participantRows()`: `checkin.toggle` refuses any
+ * registration that isn't confirmed, so an unapproved row here would be a
+ * line an organiser cannot act on.
  *
  * The two check-in marks stay separate here, as they are everywhere else:
  * `fest_checked_in` is the door (one flag per person), while each entry's
@@ -27,8 +33,12 @@
 import { holderCheckins } from "./checkin.service.js";
 import { holderFeedback } from "./feedback.service.js";
 import * as aggregate from "./aggregate.js";
+import { eventDayState } from "./festClock.js";
+import { ticketHolders } from "./qr.js";
+import { buildUidByEmail, keyResolver, normalizeEmail } from "../utils/identity.js";
+import { STATUS_COMPLETED } from "../utils/statuses.js";
 
-const lower = (s) => (s || "").trim().toLowerCase();
+const lower = normalizeEmail;
 
 /** Fest-entry lookup by uid *and* by email.
  *
@@ -75,35 +85,38 @@ function entryFor(row, events, memberIndex) {
     // the registrations view where there is room to read them.
     feedback_given: Boolean(myFeedback?.given),
     feedback_rating: myFeedback?.rating ?? null,
-    // Only teams expand; a solo entry's single holder is the row itself.
-    holders: isTeam ? holders : [],
+    // Has this event's day arrived? "Not arrived" is only a fair thing to say
+    // about someone once their event has actually started — before that there
+    // is nothing to report, and the two must not look the same. Decided
+    // server-side: a browser has no equivalent of nowInFestZone() and would
+    // get the midnight boundary wrong outside Asia/Kolkata.
+    day_state: eventDayState(event),
+    lead_name: holders[0]?.name || "",
+    // Only on the lead's own entry now that every member has a row of their
+    // own: repeating the roster under each of them was the same team printed
+    // N times.
+    holders: isTeam && memberIndex === 0 ? holders : [],
   };
 }
 
-/** Every person who *leads* a registration, with every event they hold.
+/** Every ticket holder, with every event they hold.
  *
- * Someone appears once whether they registered for one event or four. A
- * teammate typed into someone else's team does not get a row of their own
- * unless they also lead something — their attendance is already visible
- * inside the lead's row, and organisers think in teams, not in every seat on
- * a roster. */
+ * Someone appears once whether they hold one event or four, and whether they
+ * created those registrations or were typed into somebody else's team. */
 export async function attendanceRows(data) {
   data = data || (await aggregate.loadAll());
   const { registrations, events, venues, festCheckins } = data;
   const fest = festIndex(festCheckins);
 
   // The same human can reach this list down two different paths: as a lead,
-  // where `personKey()` prefers their Firebase uid, and as someone else's
-  // teammate, where all we have is the email they were typed in as. Keying
-  // those independently splits one person into two rows. So learn every
-  // email->uid pairing the leads give us first, and resolve teammates through
-  // it — whichever path is seen first, both land on the uid.
-  const uidByEmail = new Map();
-  for (const row of registrations) {
-    const email = lower(row.email);
-    if (email && row.uid) uidByEmail.set(email, row.uid);
-  }
-  const keyForEmail = (email) => uidByEmail.get(email) || email;
+  // where their Firebase uid identifies them, and as someone else's teammate,
+  // where all we have is the email they were typed in as. Keying those
+  // independently splits one person into two rows. Shared with
+  // aggregate.participantRows() so the two screens cannot disagree — built
+  // from EVERY registration, not the approved slice, so a uid learned from a
+  // pending row still resolves here.
+  const keyFor = keyResolver(buildUidByEmail(registrations));
+  const approved = registrations.filter((r) => r.status === STATUS_COMPLETED);
 
   // key -> { name, email, uid, entries: [] }
   const people = new Map();
@@ -112,40 +125,36 @@ export async function attendanceRows(data) {
     if (!key) return;
     let person = people.get(key);
     if (!person) {
-      person = { key, name: name || "", email: email || "", uid: uid || "", entries: [] };
+      person = { key, name: "", email: "", uid: "", from_own_account: false, entries: [] };
       people.set(key, person);
     }
-    // Keep the first non-empty name/email we see; a later registration with a
-    // blank field must not erase what an earlier one told us.
-    if (!person.name && name) person.name = name;
-    if (!person.email && email) person.email = email;
+    // Whose spelling of this person's name wins. Their own registration beats
+    // what somebody else typed into a team roster — same provenance rule
+    // aggregate.participantRows() uses, so the two screens agree on how a
+    // person is named. Otherwise keep the first non-empty value: a later
+    // registration with a blank field must not erase an earlier one.
+    const own = Boolean(uid);
+    if (own && !person.from_own_account) {
+      person.name = name || person.name;
+      person.email = email || person.email;
+      person.from_own_account = true;
+    } else {
+      if (!person.name && name) person.name = name;
+      if (!person.email && email) person.email = email;
+    }
     if (!person.uid && uid) person.uid = uid;
     person.entries.push(entry);
   };
 
-  for (const row of registrations) {
-    // The lead: index 0, keyed exactly as the headline stats key them.
-    upsert(
-      aggregate.personKey(row),
-      { name: row.name, email: row.email, uid: row.uid },
-      entryFor(row, events, 0)
-    );
-
-    // Teammates only get a row of their own here if they ALSO lead a
-    // registration somewhere — uidByEmail only has an entry for that case.
-    // A "pure" teammate (never a lead) is deliberately skipped: they stay
-    // visible exactly once, inside the lead's own entry above, rather than
-    // getting a second roster that just repeats the same team.
-    const members = Array.isArray(row.members) ? row.members : [];
-    members.forEach((member, i) => {
-      const email = lower(member?.email);
-      if (!email || !uidByEmail.has(email)) return;
+  // One seat, one entry — the lead at index 0 and every teammate after them.
+  for (const row of approved) {
+    for (const holder of ticketHolders(row)) {
       upsert(
-        keyForEmail(email),
-        { name: member?.name, email, uid: uidByEmail.get(email) },
-        entryFor(row, events, i + 1)
+        keyFor({ uid: holder.uid, email: holder.email }),
+        { name: holder.name, email: holder.email, uid: holder.uid },
+        entryFor(row, events, holder.member_index)
       );
-    });
+    }
   }
 
   const rows = [...people.values()].map((person) => {

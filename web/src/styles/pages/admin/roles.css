@@ -49,9 +49,10 @@
 .assignment-list-lg .assignment-chip { padding: 0.75rem 0.875rem; }
 .assignment-list-lg .assignment-chip > span:first-child { gap: 0.625rem; }
 
-.cell-nowrap { white-space: nowrap; }
-
-.row-actions { display: inline-flex; gap: 0.25rem; }
+/* .cell-nowrap and .row-actions moved to shared.css — one definition, loaded
+   on every admin route rather than whichever page happened to import this
+   sheet. The two used to disagree (flex vs inline-flex) and which one applied
+   depended on the route. */
 
 /* ── Volunteer roster ──────────────────────────────────────────
    One card per team. Mobile-first, same stacking rule as

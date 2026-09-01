@@ -27,6 +27,7 @@ import {
   STATUS_REJECTED,
 } from "../utils/statuses.js";
 import {
+  assertUniqueHolders,
   optionalString,
   parseParticipantDetails,
   parseTeamMember,
@@ -35,6 +36,15 @@ import {
   requireString,
 } from "../utils/validate.js";
 import * as aggregate from "./aggregate.js";
+import {
+  COLLECTION as CLAIMS,
+  claimTargets,
+  claimsToRelease,
+  decideClaims,
+  heldEmailSet,
+  ownerIdsToCheck,
+} from "./registrationClaims.service.js";
+import { ticketHolders } from "./qr.js";
 import { MINT_ON_GATEWAY_VERIFY, mintQuietly } from "./allocation.service.js";
 import { createOrder, fetchPaymentMethod, verifySignature } from "./payment.js";
 import {
@@ -138,7 +148,7 @@ function assertEventOpen(eventData) {
 
 function parseRegistrationCreate(body) {
   const members = Array.isArray(body.members) ? body.members.map(parseTeamMember) : [];
-  return {
+  const payload = {
     event_id: requireString(body.event_id, { field: "event_id" }),
     name: requireString(body.name, { field: "name", minLength: 2 }),
     email: requireEmail(body.email),
@@ -147,6 +157,12 @@ function parseRegistrationCreate(body) {
     team_name: optionalString(body.team_name),
     members,
   };
+  // Before any Firestore work: nobody may occupy two seats on one roster.
+  // This is not only a data rule — the claims below would otherwise collide
+  // with themselves inside a single transaction, turning a typo into an
+  // unexplainable conflict against the registration being created.
+  assertUniqueHolders(ticketHolders(payload));
+  return payload;
 }
 
 /** The caller's own registration, or a 403/404. Every route below this point
@@ -176,6 +192,75 @@ async function openOrder(amount, receipt, unavailable) {
  * A saved draft doesn't commit to paying, so it's exempt from nothing else —
  * full validation still applies (a draft is a real, valid registration, just
  * without a fee/order attached yet). */
+/** Write a registration and the email/phone claims its roster needs, in one
+ * transaction — so either every holder is reserved or nothing is written.
+ *
+ * Everything Firestore reads here is locked for the duration, which is what
+ * makes two simultaneous submissions of the same address resolve to exactly
+ * one winner. It also, as a side effect, closes the older race in
+ * `existingRegistration()`: two concurrent creates by the same account both
+ * used to pass that check and write two rows; now the second one collides on
+ * its own email claim.
+ *
+ * All reads happen before any write, twice over — the claims themselves, then
+ * the registrations any conflicting claim points at — because Firestore
+ * forbids a read after a write inside a transaction (a second *read* round is
+ * fine).
+ *
+ * `previousHolders` is the roster this registration held before, if any: the
+ * difference is released, so resuming a draft with a teammate swapped out
+ * frees the address that teammate was holding.
+ */
+export async function writeWithClaims(
+  db,
+  { regRef, regDoc, merge = false, eventId, eventName, holders, previousHolders = [] }
+) {
+  const claims = db.collection(CLAIMS);
+  const registrationId = regRef.id;
+
+  await db.runTransaction(async (tx) => {
+    const targets = claimTargets({ registrationId, eventId, holders });
+    // Addresses this registration *already* spoke for — the roster as it
+    // stood before this write, never the one being written. That distinction
+    // is the whole security of the rebind rule: taking the new roster too
+    // would let a crafted submission list a stranger's address alongside that
+    // stranger's phone number and thereby claim the binding.
+    const heldEmails = heldEmailSet(previousHolders);
+
+    // ── reads, round one: the claims we want ──────────────────────────
+    const refs = targets.map((t) => claims.doc(t.id));
+    const snaps = refs.length ? await tx.getAll(...refs) : [];
+    const existingByIndex = snaps.map((snap) => (snap.exists ? snap.data() : null));
+
+    // ── reads, round two: whoever currently owns a claim we want ──────
+    const ownerIds = ownerIdsToCheck({ targets, existingByIndex, registrationId, heldEmails });
+    const ownerSnaps = ownerIds.length
+      ? await tx.getAll(...ownerIds.map((id) => db.collection("registrations").doc(id)))
+      : [];
+    const ownerRowsById = {};
+    for (const snap of ownerSnaps) ownerRowsById[snap.id] = snap.exists ? snap.data() : null;
+
+    // ── decide (throws the 409 that refuses the registration) ─────────
+    const writes = decideClaims({
+      targets,
+      existingByIndex,
+      ownerRowsById,
+      registrationId,
+      eventName,
+      heldEmails,
+    });
+    const release = claimsToRelease({
+      before: claimTargets({ registrationId, eventId, holders: previousHolders }),
+      after: targets,
+    });
+
+    // ── writes ────────────────────────────────────────────────────────
+    tx.set(regRef, regDoc, merge ? { merge: true } : {});
+    for (const write of writes) tx.set(claims.doc(write.id), write.doc);
+    for (const id of release) tx.delete(claims.doc(id));
+  });
+}
+
 export async function createOrResume({ user, body }) {
   const saveAsDraft = body.save_as_draft === true;
 
@@ -269,19 +354,34 @@ export async function createOrResume({ user, body }) {
     regRef = db.collection("registrations").doc();
   }
 
+  // Everyone this registration will cover, and everyone it covered before —
+  // the difference is what gets released, so swapping a teammate out of a
+  // resumed draft frees the address they were holding.
+  const holders = ticketHolders({ ...payload, uid: user.uid, user_email: user.email });
+  const previousHolders = existing ? ticketHolders(existing.data() ?? {}) : [];
+  const claimCtx = {
+    eventId: payload.event_id,
+    eventName: eventData.name || "",
+    holders,
+    previousHolders,
+  };
+  const base = {
+    ...payload,
+    team_size: 1 + members.length,
+    uid: user.uid,
+    user_email: user.email,
+    checked_in: false,
+    created_at: new Date().toISOString(),
+  };
+
   if (saveAsDraft) {
     // No fee, no order — a draft is just the form, persisted. Submitting it
     // for real later (a normal, non-draft create) is what turns it into a
     // pending registration and computes the actual charge.
-    await regRef.set({
-      ...payload,
-      team_size: 1 + members.length,
-      uid: user.uid,
-      user_email: user.email,
-      payment_mode: paymentMode,
-      status: STATUS_DRAFT,
-      checked_in: false,
-      created_at: new Date().toISOString(),
+    await writeWithClaims(db, {
+      regRef,
+      regDoc: { ...base, payment_mode: paymentMode, status: STATUS_DRAFT },
+      ...claimCtx,
     });
     aggregate.invalidateLoadAll();
     return { registration_id: regRef.id, status: STATUS_DRAFT };
@@ -291,16 +391,10 @@ export async function createOrResume({ user, body }) {
     // Nothing to charge: skip both payment flows and drop straight into the
     // approval queue. An admin's "yes" is what advances it to completed and
     // mints allocation codes — exactly as a verified payment would.
-    await regRef.set({
-      ...payload,
-      team_size: 1 + members.length,
-      uid: user.uid,
-      user_email: user.email,
-      fee: 0,
-      payment_mode: MODE_FREE,
-      status: STATUS_AWAITING_APPROVAL,
-      checked_in: false,
-      created_at: new Date().toISOString(),
+    await writeWithClaims(db, {
+      regRef,
+      regDoc: { ...base, fee: 0, payment_mode: MODE_FREE, status: STATUS_AWAITING_APPROVAL },
+      ...claimCtx,
     });
     aggregate.invalidateLoadAll();
     return {
@@ -310,16 +404,10 @@ export async function createOrResume({ user, body }) {
     };
   }
 
-  await regRef.set({
-    ...payload,
-    team_size: 1 + members.length,
-    uid: user.uid,
-    user_email: user.email,
-    fee,
-    payment_mode: paymentMode,
-    status: STATUS_PENDING,
-    checked_in: false,
-    created_at: new Date().toISOString(),
+  await writeWithClaims(db, {
+    regRef,
+    regDoc: { ...base, fee, payment_mode: paymentMode, status: STATUS_PENDING },
+    ...claimCtx,
   });
   aggregate.invalidateLoadAll();
 
@@ -463,15 +551,28 @@ export async function addMember({ user, registrationId, body }) {
   if (newSize > teamMax) throw new ApiError(400, `Your team is full (max ${teamMax})`);
 
   const member = parseTeamMember(body, members.length);
+  const nextMembers = [...members, member];
+  // The new teammate must not already be on this roster — as another member
+  // or as the lead themselves.
+  assertUniqueHolders(ticketHolders({ ...row, members: nextMembers }));
+
   const topUp = eventData.fee || 0;
   const update = {
-    members: [...members, member],
+    members: nextMembers,
     team_size: newSize,
     fee: (eventData.fee || 0) * newSize,
   };
+  // Claims for the whole roster, not just the newcomer: this is a merge write,
+  // so re-stating the existing holders' claims is a no-op that also repairs
+  // any that were lost. `previousHolders` is empty because nobody is leaving.
+  const claimCtx = {
+    eventId: row.event_id,
+    eventName: eventData.name || "",
+    holders: ticketHolders({ ...row, members: nextMembers }),
+  };
 
   if (topUp <= 0) {
-    await regRef.update(update);
+    await writeWithClaims(db, { regRef, regDoc: update, merge: true, ...claimCtx });
     aggregate.invalidateLoadAll();
     // Row stays `completed` and never passes back through verify/decide, so
     // the new teammate's slot is filled here.
@@ -483,7 +584,7 @@ export async function addMember({ user, registrationId, body }) {
   update.status = STATUS_PENDING;
 
   if (row.payment_mode === MODE_SCREENSHOT) {
-    await regRef.update(update);
+    await writeWithClaims(db, { regRef, regDoc: update, merge: true, ...claimCtx });
     aggregate.invalidateLoadAll();
     return {
       registration_id: id,
@@ -496,7 +597,7 @@ export async function addMember({ user, registrationId, body }) {
 
   const order = await openOrder(topUp, regRef.id, "Online payments are not configured right now");
   update.order_id = order.id;
-  await regRef.update(update);
+  await writeWithClaims(db, { regRef, regDoc: update, merge: true, ...claimCtx });
   aggregate.invalidateLoadAll();
   return {
     registration_id: id,

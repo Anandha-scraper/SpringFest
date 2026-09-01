@@ -231,3 +231,46 @@ img { max-width: 100%; display: block; }
     scroll-behavior: auto !important;
   }
 }
+
+/* ── Phone input with a +91 prefix ───────────────────────────── */
+/* The prefix is a sibling element, never part of the input's value: the form
+   strips non-digits and the API accepts exactly ten of them, so a "+91" that
+   reached the value would be rejected outright.
+   The wrapper takes over the border and the focus ring — without :focus-within
+   the ring would paint around the inner input only, inside the box. */
+.phone-input {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  transition: border-color 0.16s ease, box-shadow 0.16s ease;
+  min-width: 0;
+}
+.phone-input:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.phone-input__prefix {
+  display: flex;
+  align-items: center;
+  padding: 0 0.5rem 0 0.875rem;
+  font-size: 0.95rem;
+  color: var(--ink-faint);
+  border-right: 1px solid var(--border);
+  user-select: none;
+}
+/* The inner input gives up its own chrome so the wrapper owns the whole box. */
+.phone-input input,
+.form .phone-input input {
+  border: 0;
+  border-radius: 0;
+  padding-left: 0.625rem;
+  background: transparent;
+  min-width: 0;
+}
+.phone-input input:focus,
+.form .phone-input input:focus {
+  outline: none;
+  box-shadow: none;
+}

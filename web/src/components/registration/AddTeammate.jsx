@@ -138,15 +138,19 @@ export default function AddTeammate({ registration, event, resume = false, onClo
             />
 
             <label htmlFor="at-phone">Phone</label>
-            <input
-              id="at-phone"
-              inputMode="numeric"
-              pattern="[0-9]{10}"
-              maxLength={10}
-              required
-              value={member.phone}
-              onChange={(e) => change("phone", digitsOnly(e.target.value))}
-            />
+            <div className="phone-input">
+              <span className="phone-input__prefix" aria-hidden="true">+91</span>
+              <input
+                id="at-phone"
+                type="tel"
+                inputMode="numeric"
+                pattern="[0-9]{10}"
+                maxLength={10}
+                required
+                value={member.phone}
+                onChange={(e) => change("phone", digitsOnly(e.target.value))}
+              />
+            </div>
 
             <DetailFields idPrefix="at" values={member} onChange={change} labelled />
 
