@@ -97,7 +97,16 @@ export default function Attendance() {
     const q = query.trim().toLowerCase();
     if (!q) return people;
     return people.filter((p) =>
-      [p.name, p.email, ...p.entries.map((e) => e.event_name), ...p.entries.map((e) => e.team_name)]
+      [
+        p.name,
+        p.email,
+        ...p.entries.map((e) => e.event_name),
+        ...p.entries.map((e) => e.team_name),
+        // A teammate who never leads anything has no row of their own — see
+        // attendance.service.js — so searching their name has to match here,
+        // inside the lead's own entry, or they'd be unfindable.
+        ...p.entries.flatMap((e) => e.holders.map((h) => h.name)),
+      ]
         .filter(Boolean)
         .some((v) => String(v).toLowerCase().includes(q))
     );

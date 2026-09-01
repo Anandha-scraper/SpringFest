@@ -9,9 +9,12 @@
  *
  * Team members are the wrinkle. Only the lead has a `uid`; teammates exist as
  * `members[]` entries with a name and an email, matched exactly the way
- * `registrationLookup.matchMemberIndex()` matches them. So a teammate gets a row
- * of their own keyed on their email, and someone who leads one team and is a
- * member of another collapses into a single row holding both.
+ * `registrationLookup.matchMemberIndex()` matches them. A teammate who ALSO
+ * leads a registration somewhere collapses into that one row, holding both —
+ * same as the lead-side rule above. A teammate who never leads anything gets
+ * no row of their own at all: they are visible only inside the lead's own
+ * entry (`holders[]`), which already lists every member with their own
+ * check-in state. One team is one roster, not one roster per person on it.
  *
  * The two check-in marks stay separate here, as they are everywhere else:
  * `fest_checked_in` is the door (one flag per person), while each entry's
@@ -70,10 +73,13 @@ function entryFor(row, events, memberIndex) {
   };
 }
 
-/** Every person who holds a registration, with every event they hold.
+/** Every person who *leads* a registration, with every event they hold.
  *
- * Someone appears once whether they registered for one event or four, and
- * whether they led a team or were typed into someone else's. */
+ * Someone appears once whether they registered for one event or four. A
+ * teammate typed into someone else's team does not get a row of their own
+ * unless they also lead something — their attendance is already visible
+ * inside the lead's row, and organisers think in teams, not in every seat on
+ * a roster. */
 export async function attendanceRows(data) {
   data = data || (await aggregate.loadAll());
   const { registrations, events, venues, festCheckins } = data;
@@ -118,15 +124,18 @@ export async function attendanceRows(data) {
       entryFor(row, events, 0)
     );
 
-    // Teammates: no uid of their own, so their email is their identity — the
-    // same match registrationLookup.js makes when they scan their QR.
+    // Teammates only get a row of their own here if they ALSO lead a
+    // registration somewhere — uidByEmail only has an entry for that case.
+    // A "pure" teammate (never a lead) is deliberately skipped: they stay
+    // visible exactly once, inside the lead's own entry above, rather than
+    // getting a second roster that just repeats the same team.
     const members = Array.isArray(row.members) ? row.members : [];
     members.forEach((member, i) => {
       const email = lower(member?.email);
-      if (!email) return; // nothing to key on; they stay visible inside the team's holders
+      if (!email || !uidByEmail.has(email)) return;
       upsert(
         keyForEmail(email),
-        { name: member?.name, email, uid: uidByEmail.get(email) || "" },
+        { name: member?.name, email, uid: uidByEmail.get(email) },
         entryFor(row, events, i + 1)
       );
     });
