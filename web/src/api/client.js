@@ -26,6 +26,37 @@ async function req(path, options = {}, authRequired = false) {
 export const getEvents = () => req("/events");
 export const getEvent = (id) => req(`/events/${id}`);
 
+// ── Venue access code (public — no sign-in, the code is the credential) ──
+/** Resolve a footer-entered code to its team roster. POST, code in the body,
+ *  never a URL — see backend/routes/venue.routes.js for why. */
+export const venueAccess = (code) =>
+  req("/venue/access", { method: "POST", body: JSON.stringify({ code }) });
+
+/** Same POST-with-body shape as venueAccess, but for a file: no JSON, no
+ *  auth header (there's no account here to attach one from), filename read
+ *  off the response the same way downloadAuthedFile() does for staff/
+ *  participant downloads. */
+export async function downloadVenueSubmission(code, registrationId) {
+  const res = await fetch(`${BASE}/venue/submission`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ code, registration_id: registrationId }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || `Could not load the file: ${res.status}`);
+  }
+  const filename = filenameFromDisposition(res, `${registrationId}.bin`);
+  const url = URL.createObjectURL(await res.blob());
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
 // ── Session ─────────────────────────────────────────────────
 /** Exchange the just-minted Firebase ID token for the __session cookie the
  *  server can read on its own. Called once, right after the Google popup —
@@ -135,8 +166,8 @@ export const getVenueRollup = () => req("/admin/venues/rollup", {}, true);
 /** Per-event attendance and evaluation progress — the Manage Roles view. */
 export const getEventRollup = () => req("/admin/events/rollup", {}, true);
 
-/** The raw event doc, including the staff-only marking criteria that the
- *  public /events routes deliberately never return. */
+/** The raw event doc — including `access_code`, which the public /events
+ *  routes deliberately never return (see event.service.js's toEvent()). */
 export const getAdminEvent = (eventId) =>
   req(`/admin/events/${encodeURIComponent(eventId)}`, {}, true);
 
@@ -174,6 +205,14 @@ export const updateEvent = (id, data) =>
 
 export const removeEvent = (id) =>
   req(`/events/${encodeURIComponent(id)}`, { method: "DELETE" }, true);
+
+/** Generate a code, or replace whatever one already existed — one call
+ *  covers both "Generate" and "Rotate" in the UI. Returns { access_code }. */
+export const rotateEventAccessCode = (eventId) =>
+  req(`/admin/events/${encodeURIComponent(eventId)}/access-code`, { method: "POST" }, true);
+
+export const revokeEventAccessCode = (eventId) =>
+  req(`/admin/events/${encodeURIComponent(eventId)}/access-code`, { method: "DELETE" }, true);
 
 // People / roles
 export const getPeople = (role) =>
@@ -291,60 +330,54 @@ export const getVolunteerSummary = () => req("/volunteer/summary", {}, true);
 /** The confirmed teams for the volunteer's event, with per-member check-in state. */
 export const getVolunteerRoster = () => req("/volunteer/roster", {}, true);
 
-/** Authenticated blob URL for a team's submission, staff view. */
-export async function volunteerSubmissionObjectUrl(registrationId) {
-  const res = await fetch(
-    `${BASE}/volunteer/registrations/${encodeURIComponent(registrationId)}/submission`,
-    { headers: await authHeader() }
-  );
-  if (!res.ok) throw new Error(`Could not load the file: ${res.status}`);
-  return URL.createObjectURL(await res.blob());
+/** Pull the filename out of a `Content-Disposition: attachment; filename="…"`
+ * header. Used when the server decides the name (a submission's is its
+ * allocation code, decided from data the client doesn't have), as opposed to
+ * `downloadFile()` below, where the caller already knows it upfront. */
+function filenameFromDisposition(res, fallback) {
+  const header = res.headers.get("content-disposition") || "";
+  const match = header.match(/filename="([^"]+)"/);
+  return match ? match[1] : fallback;
 }
 
-// ── Scoring (was /judge/*, folded into the volunteer role) ───
-/** The events this volunteer staffs, with marking criteria and progress. */
-export const getVolunteerEvents = () => req("/volunteer/events", {}, true);
+/** Fetch an authenticated binary endpoint and save it to disk via a real
+ * `<a download>`, never `window.open(blobUrl)`. A blob: URL opened in a new
+ * tab carries no filename at all — `Content-Disposition`'s filename only
+ * applies to a server-navigated download — so a submission opened that way
+ * used to save with a random name and no extension, unopenable in the app it
+ * came from. This is the one correct pattern; every submission download
+ * (staff or participant) goes through it. */
+async function downloadAuthedFile(path, fallbackName) {
+  const res = await fetch(`${BASE}${path}`, { headers: await authHeader() });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || `Could not load the file: ${res.status}`);
+  }
 
-/** Checked-in teams for one event, with each team's submission and scores. */
-export const getVolunteerParticipants = (eventId) =>
-  req(`/volunteer/events/${encodeURIComponent(eventId)}/participants`, {}, true);
+  const filename = filenameFromDisposition(res, fallbackName);
+  const url = URL.createObjectURL(await res.blob());
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
 
-/** Save (or overwrite) this volunteer's score for one team. */
-export const saveEvaluation = (eventId, { registrationId, scores, note }) =>
-  req(
-    `/volunteer/events/${encodeURIComponent(eventId)}/evaluations`,
-    { method: "POST", body: JSON.stringify({ registration_id: registrationId, scores, note }) },
-    true
+/** A team's submission, staff view (admin or the venue's volunteer). */
+export const downloadVolunteerSubmission = (registrationId) =>
+  downloadAuthedFile(
+    `/volunteer/registrations/${encodeURIComponent(registrationId)}/submission`,
+    `${registrationId}.bin`
   );
-
-export const deleteEvaluation = (eventId, registrationId) =>
-  req(
-    `/volunteer/events/${encodeURIComponent(eventId)}/evaluations/${encodeURIComponent(registrationId)}`,
-    { method: "DELETE" },
-    true
-  );
-
-export const getVolunteerQueue = (eventId) =>
-  req(`/volunteer/events/${encodeURIComponent(eventId)}/queue`, {}, true);
-
-// NOTE: there is no client helper for PUT /volunteer/events/:id/queue. The
-// judging queue can be *read* (getVolunteerQueue, rendered by
-// JudgingQueueView) but nothing in the UI ever sets it — the endpoint exists
-// and works, it just has no screen yet. Kept on the server side deliberately;
-// see CLAUDE.md.
-
-// The scoring screen opens submissions through volunteerSubmissionObjectUrl
-// above — there used to be a judge-flavoured twin of it pointing at
-// /judge/registrations/…, and both now resolve to the same endpoint.
-
-/** Per-event judging results — every team's per-scorer totals + remarks. Admin. */
-export const getEventResults = (eventId) =>
-  req(`/admin/events/${encodeURIComponent(eventId)}/results`, {}, true);
 
 /** Fetch an authenticated binary endpoint and save it to disk.
  *
  * Bypasses req() because the response isn't JSON — the auth header is still
- * needed, since neither the CSV export nor a QR ticket is public. */
+ * needed, since neither the CSV export nor a QR ticket is public. Unlike
+ * `downloadAuthedFile()` above, the caller already knows the filename (a CSV
+ * export or a QR ticket names itself), so there's nothing to parse. */
 async function downloadFile(path, filename) {
   const res = await fetch(`${BASE}${path}`, { headers: await authHeader() });
   if (!res.ok) {

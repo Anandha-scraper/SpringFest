@@ -19,6 +19,20 @@ import { router as apiRouter } from "./routes/index.js";
 
 export const app = express();
 
+// Needed for middleware/rateLimit.js's req.ip to mean the actual visitor,
+// not the address of whatever sits in front of this container. Requests
+// only ever arrive here via web/app/api/[...path]/route.js's server-side
+// fetch, which itself sits behind App Hosting's own load balancer — so by
+// the time a request reaches Express, X-Forwarded-For already has at least
+// the browser's IP on it, appended to by each hop since. `1` trusts exactly
+// the nearest hop (this backend's own Cloud Run ingress) and reads the
+// address just before it. If the real topology ever adds another hop
+// between the two backends, this number is the one thing to revisit — a
+// wrong count doesn't create a security hole (the venue code's real defense
+// is its keyspace, not request volume; see rateLimit.js's header), it just
+// makes the throttle key on the wrong address.
+app.set("trust proxy", 1);
+
 // methods left at cors' default (covers every verb these routes use);
 // allowedHeaders left unset so it reflects whatever the browser actually
 // requested (Authorization, Content-Type, ...) — the practical equivalent

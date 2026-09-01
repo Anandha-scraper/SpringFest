@@ -118,10 +118,8 @@ export default function ManageRoles() {
       </section>
 
       {/* ── Progress per event ───────────────────────────────────────
-          Organisers think in events, not venues: who has turned up, and how
-          far the scoring has got. Both bars are empty until the event's own
-          start time passes — the server sends `progress: null` for that, so
-          "not started" and "started, nothing scored" stay distinguishable. */}
+          Organisers think in events, not venues: who has registered, and how
+          many have turned up. */}
       <div className="venue-grid">
         {rollup.map((ev) => {
           const total = ev.registrations || 0;
@@ -141,22 +139,15 @@ export default function ManageRoles() {
 
               {ev.started ? (
                 <>
-                  {/* Checked in (green) behind evaluated (accent), both over
-                      the same total, so the two read as one progression. */}
                   <span className="bar-track event-progress">
                     <span
                       className="bar-fill bar-fill--in"
                       style={{ "--bar-pct": `${pct(ev.checked_in)}%` }}
                     />
-                    <span
-                      className="bar-fill bar-fill--done"
-                      style={{ "--bar-pct": `${pct(ev.evaluated)}%` }}
-                    />
                   </span>
                   <div className="venue-stat-row">
                     <span><strong>{total}</strong> registered</span>
                     <span><strong>{ev.checked_in}</strong> checked in</span>
-                    <span><strong>{ev.evaluated}</strong> evaluated</span>
                   </div>
                 </>
               ) : (

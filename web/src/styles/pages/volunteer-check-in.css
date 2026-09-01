@@ -69,6 +69,19 @@
   padding: 0.1rem 0.5rem;
 }
 
+/* One-way check-in has nothing left to click once true — a plain mark,
+   never a button. Same look as roster.css's .roster-holder__mark; kept as
+   its own rule rather than a shared class, matching how each page's CSS
+   here stays self-contained. */
+.checkin-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  color: var(--ok);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
 /* From tablet width up, the toggle can sit beside the details instead of
    stacking under them — but the stacked layout above stays the default. */
 @media (min-width: 560px) {

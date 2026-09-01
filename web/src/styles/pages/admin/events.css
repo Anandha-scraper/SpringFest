@@ -35,17 +35,6 @@
   .event-form-schedule { grid-template-columns: 1fr; }
 }
 
-/* Mark allocation (left) beside instructions (right); stacks below laptop. */
-.event-form-split {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-  align-items: start;
-}
-@media (max-width: 899px) {
-  .event-form-split { grid-template-columns: 1fr; }
-}
-
 .event-form .field textarea.input { resize: vertical; min-height: 5.5rem; }
 .field-label {
   display: flex;
@@ -54,32 +43,6 @@
   font-size: 0.8rem;
   font-weight: 600;
   color: var(--ink-soft);
-}
-
-/* ── Mark-allocation criteria editor ──────────────────────────
-   One row per scoring parameter: name, max mark, remove. The total
-   below is the live sum of the marks. */
-.criteria-editor { display: flex; flex-direction: column; gap: 0.5rem; }
-.criteria-row {
-  display: grid;
-  grid-template-columns: 1fr minmax(4rem, 18%) auto;
-  gap: 0.5rem;
-  align-items: center;
-}
-.criteria-foot {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-}
-.criteria-total { font-size: 0.9rem; color: var(--ink-soft); }
-.criteria-total strong { font-size: 1rem; color: var(--ink); }
-
-@media (max-width: 560px) {
-  /* Parameter name on its own line, marks + delete beneath it. */
-  .criteria-row { grid-template-columns: 1fr auto; }
-  .criteria-row > input:first-child { grid-column: 1 / -1; }
 }
 
 /* Category listings — exactly two per row on a laptop:
@@ -114,3 +77,40 @@
 /* Shared Save / Cancel row — full width, sits at the end of the stack. */
 .event-form-time-sep { color: var(--ink-faint); flex-shrink: 0; }
 
+
+/* Access-code control on the edit form — generate/rotate, revoke, and the
+   just-minted code (shown once; there is no route that hands back a
+   persisted one, by design — see the component). */
+.access-code-control {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.85rem 1rem;
+  margin-top: 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+}
+.access-code-control__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.access-code-control__actions { display: flex; gap: 0.5rem; }
+.access-code-control__value {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.access-code-control__value code {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 0.3rem 0.6rem;
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  border: 1px solid var(--border);
+}

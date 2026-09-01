@@ -9,8 +9,8 @@
 //  grants access; this file only says where each role goes and what
 //  its sidebar looks like.
 //
-//  There is no `judge` role: it was folded into `volunteer`, who now
-//  both checks people in and scores them at their venue.
+//  There is no `judge` role: it was folded into `volunteer`, and scoring
+//  itself was later removed — volunteers just check people in now.
 // ─────────────────────────────────────────────────────────────
 
 import {
@@ -20,7 +20,6 @@ import {
   UserPlus,
   Users,
   ListChecks,
-  Star,
   UserCheck,
   Ticket,
   CreditCard,
@@ -59,14 +58,10 @@ export const ROLE_NAV = {
     { label: "Add Roles", to: "/admin/roles", icon: UserPlus },
     { label: "Manage Roles", to: "/admin/allocations", icon: Users },
   ],
-  // Check-in and scoring are one job now — the person staffing a venue
-  // does both, so Scoring sits beside Check-in rather than under a
-  // separate judge dashboard.
   [ROLES.VOLUNTEER]: [
     { label: "Overview", to: "/volunteer", end: true, icon: LayoutDashboard },
     { label: "Check-in", to: "/volunteer/check-in", icon: UserCheck },
     { label: "Roster", to: "/volunteer/tasks", icon: ListChecks },
-    { label: "Scoring", to: "/volunteer/scoring", icon: Star },
   ],
   [ROLES.PARTICIPANT]: [
     { label: "Overview", to: "/participant", end: true, icon: LayoutDashboard },

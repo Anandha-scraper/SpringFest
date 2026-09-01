@@ -14,6 +14,17 @@
 import { ApiError } from "../utils/ApiError.js";
 import { settings } from "../config/index.js";
 import { getStorage } from "../config/firebase.js";
+import { SUBMISSION_TYPES } from "../middleware/upload.js";
+
+// Extension -> mime, inverted from the accept-lists in upload.js so there is
+// one source of truth for "what extension means what type" rather than a
+// second hardcoded map drifting from the first.
+const EXTENSION_TYPES = {
+  png: "image/png",
+  jpg: "image/jpeg",
+  webp: "image/webp",
+  ...Object.fromEntries(Object.entries(SUBMISSION_TYPES).map(([mime, ext]) => [ext, mime])),
+};
 
 function getBucket() {
   if (!settings.STORAGE_BUCKET) {
@@ -50,9 +61,12 @@ export async function downloadBuffer(objectPath) {
 
 /** Objects are stored with the extension we validated on upload, so the path
  * is enough to name the type back — no need to store it separately. Shared by
- * every route that streams bytes: payment proofs (admin.js) and the payment
- * QR (me.js). */
+ * every route that streams bytes: payment proofs, the payment QR, and every
+ * staff/participant submission download. Covers images (proofs, payment QR)
+ * and every SUBMISSION_TYPES document (pdf/ppt/pptx/doc/docx) — a submission
+ * used to always come back as `application/octet-stream` regardless of its
+ * real type, which is what made it open as the wrong format. */
 export function contentTypeFor(objectPath) {
   const ext = objectPath.slice(objectPath.lastIndexOf(".") + 1).toLowerCase();
-  return { png: "image/png", jpg: "image/jpeg", webp: "image/webp" }[ext] || "application/octet-stream";
+  return EXTENSION_TYPES[ext] || "application/octet-stream";
 }

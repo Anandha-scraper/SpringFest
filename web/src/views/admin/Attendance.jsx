@@ -23,58 +23,63 @@ function Mark({ on, yes, no }) {
   );
 }
 
-/** One person's events, shown when their row is expanded. Team entries list
- *  each teammate's own state underneath — a team checks in one member at a
- *  time, so "the team arrived" is never a single fact. */
+/** One person's events, shown when their row is expanded.
+ *
+ * A team entry renders differently depending on whose row it's in. The SAME
+ * registration shows up once under the lead's row and once under each
+ * teammate's own row (this page is deliberately one-row-per-person — see
+ * attendance.service.js), so printing the full roster under every one of
+ * them would repeat it verbatim. Only the lead's own entry (`member_index
+ * === 0`) expands the full holder list; a teammate's own entry is a single
+ * compact line naming whose team it is. */
 function Entries({ entries }) {
   return (
     <ul className="attendance-entries">
-      {entries.map((e) => (
-        <li
-          key={e.registration_id}
-          // Already scored: dimmed, never hidden or disabled. It's a
-          // glance-able "done", not a lock — see the volunteer roster, which
-          // uses the same class for the same reason.
-          className={`attendance-entry${e.evaluated ? " is-evaluated" : ""}`}
-        >
-          <div className="attendance-entry__head">
-            <strong>{e.event_name}</strong>
-            {e.is_team && e.team_name && <span className="cell-sub">team “{e.team_name}”</span>}
-            {e.allocation_code && <span className="status-pill">{e.allocation_code}</span>}
-            {e.venue_name && <span className="cell-sub">{e.venue_name}</span>}
-          </div>
+      {entries.map((e) => {
+        const lead = e.holders.find((h) => h.member_index === 0);
+        const isLeadRow = e.member_index === 0;
+        return (
+          <li key={e.registration_id} className="attendance-entry">
+            <div className="attendance-entry__head">
+              <strong>{e.event_name}</strong>
+              {e.is_team && e.team_name && <span className="cell-sub">team “{e.team_name}”</span>}
+              {e.allocation_code && <span className="status-pill">{e.allocation_code}</span>}
+              {e.venue_name && <span className="cell-sub">{e.venue_name}</span>}
+            </div>
 
-          <div className="attendance-entry__marks">
-            <Mark on={e.checked_in} yes="Checked in" no={e.ever_checked_in ? "Checked out" : "Not checked in"} />
-            <Mark
-              on={e.evaluated}
-              yes={`Scored${e.evaluation_count > 1 ? ` ×${e.evaluation_count}` : ""}`}
-              no="Not scored"
-            />
-            {e.status !== "completed" && (
-              <span className={`status-pill status-pill--${e.status || "unknown"}`}>{e.status}</span>
+            <div className="attendance-entry__marks">
+              <Mark on={e.checked_in} yes="Checked in" no={e.ever_checked_in ? "Checked out" : "Not checked in"} />
+              {e.status !== "completed" && (
+                <span className={`status-pill status-pill--${e.status || "unknown"}`}>{e.status}</span>
+              )}
+            </div>
+
+            {e.is_team && !isLeadRow && lead && (
+              <p className="cell-sub attendance-entry__lead-ref">
+                On {lead.name || "the team"}’s roster — see their row for everyone on it.
+              </p>
             )}
-          </div>
 
-          {e.is_team && e.holders.length > 0 && (
-            <ul className="attendance-holders">
-              {e.holders.map((h) => (
-                <li key={h.member_index} className={h.member_index === e.member_index ? "is-self" : ""}>
-                  <span>
-                    {h.name || <span className="cell-sub">Unnamed</span>}
-                    {h.allocation_code && <span className="cell-sub"> {h.allocation_code}</span>}
-                  </span>
-                  <Mark
-                    on={h.checked_in}
-                    yes="in"
-                    no={h.ever_checked_in ? "out" : "—"}
-                  />
-                </li>
-              ))}
-            </ul>
-          )}
-        </li>
-      ))}
+            {e.is_team && isLeadRow && e.holders.length > 0 && (
+              <ul className="attendance-holders">
+                {e.holders.map((h) => (
+                  <li key={h.member_index} className={h.member_index === e.member_index ? "is-self" : ""}>
+                    <span>
+                      {h.name || <span className="cell-sub">Unnamed</span>}
+                      {h.allocation_code && <span className="cell-sub"> {h.allocation_code}</span>}
+                    </span>
+                    <Mark
+                      on={h.checked_in}
+                      yes="in"
+                      no={h.ever_checked_in ? "out" : "—"}
+                    />
+                  </li>
+                ))}
+              </ul>
+            )}
+          </li>
+        );
+      })}
     </ul>
   );
 }
@@ -92,7 +97,16 @@ export default function Attendance() {
     const q = query.trim().toLowerCase();
     if (!q) return people;
     return people.filter((p) =>
-      [p.name, p.email, ...p.entries.map((e) => e.event_name), ...p.entries.map((e) => e.team_name)]
+      [
+        p.name,
+        p.email,
+        ...p.entries.map((e) => e.event_name),
+        ...p.entries.map((e) => e.team_name),
+        // A teammate who never leads anything has no row of their own — see
+        // attendance.service.js — so searching their name has to match here,
+        // inside the lead's own entry, or they'd be unfindable.
+        ...p.entries.flatMap((e) => e.holders.map((h) => h.name)),
+      ]
         .filter(Boolean)
         .some((v) => String(v).toLowerCase().includes(q))
     );
@@ -147,13 +161,12 @@ export default function Attendance() {
                 <thead>
                   <tr>
                     <th>Person</th>
-                    {/* The door is one flag for the whole fest; attendance and
-                        scoring are counted per event. Kept as separate columns
-                        because they're separate facts. */}
+                    {/* The door is one flag for the whole fest; attendance is
+                        counted per event. Kept as separate columns because
+                        they're separate facts. */}
                     <th>Fest entry</th>
                     <th className="num">Events</th>
                     <th className="num">Attended</th>
-                    <th className="num">Scored</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -182,11 +195,10 @@ export default function Attendance() {
                           </td>
                           <td className="num">{p.events_count}</td>
                           <td className="num">{p.attended_count}</td>
-                          <td className="num">{p.evaluated_count}</td>
                         </tr>
                         {expanded && (
                           <tr className="attendance-detail">
-                            <td colSpan={5}>
+                            <td colSpan={4}>
                               <Entries entries={p.entries} />
                             </td>
                           </tr>

@@ -8,7 +8,7 @@
  */
 import { getDb } from "../config/firebase.js";
 import { ApiError } from "../utils/ApiError.js";
-import { downloadBuffer } from "./storage.js";
+import { contentTypeFor, downloadBuffer } from "./storage.js";
 
 /** The single event held at this volunteer's assigned venue, or "" if they
  * have no venue or the venue backs no event. A venue backs at most one event
@@ -33,6 +33,17 @@ export async function staffCanAccessEvent(user, eventId) {
   return false;
 }
 
+/** The name a submission is served under. The lead's own allocation code
+ * (`SFTA1.pptx`) means something to a volunteer at a desk; the Firestore
+ * document id doesn't. Falls back to the registration id only for a
+ * registration whose codes somehow never minted — shouldn't normally happen
+ * for a `completed` row, but the file must still be openable if it does. */
+export function submissionFilename(row, registrationId) {
+  const ext = row.submission_ext || "bin";
+  const code = Array.isArray(row.allocation_codes) ? row.allocation_codes[0] : "";
+  return `${code || registrationId}.${ext}`;
+}
+
 export async function staffSubmissionFile({ user, registrationId }) {
   const doc = await getDb().collection("registrations").doc(registrationId).get();
   if (!doc.exists) throw new ApiError(404, "Registration not found");
@@ -45,6 +56,7 @@ export async function staffSubmissionFile({ user, registrationId }) {
 
   return {
     buffer: await downloadBuffer(row.submission_path),
-    filename: `${registrationId}.${row.submission_ext || "bin"}`,
+    filename: submissionFilename(row, registrationId),
+    contentType: contentTypeFor(row.submission_path),
   };
 }

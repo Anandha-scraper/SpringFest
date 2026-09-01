@@ -13,6 +13,7 @@ import { personalQrPng } from "./qr.js";
 import { loadPersonRegistrations, matchMemberIndex } from "./registrationLookup.js";
 import { getAppSettings } from "./settings.js";
 import { contentTypeFor, downloadBuffer } from "./storage.js";
+import { submissionFilename } from "./submissionAccess.js";
 
 /** The caller's identity, role, and whatever they've been assigned.
  *
@@ -89,7 +90,8 @@ export async function submissionFile(user, registrationId) {
 
   return {
     buffer: await downloadBuffer(row.submission_path),
-    filename: `${registrationId}.${row.submission_ext || "bin"}`,
+    filename: submissionFilename(row, registrationId),
+    contentType: contentTypeFor(row.submission_path),
   };
 }
 

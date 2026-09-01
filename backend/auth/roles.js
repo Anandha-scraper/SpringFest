@@ -12,9 +12,8 @@
  * signs in and isn't a volunteer or admin simply is one.
  *
  * There used to be a third assignable role, `judge`, holding `event_ids`. It
- * was folded into `volunteer`: the person covering a venue now both checks
- * people in and scores them, so a volunteer's single `venue_id` is the whole
- * assignment model (see services/evaluation.service.js).
+ * was folded into `volunteer` and later removed entirely along with scoring,
+ * so a volunteer's single `venue_id` is the whole assignment model.
  */
 
 import { settings } from "../config/index.js";

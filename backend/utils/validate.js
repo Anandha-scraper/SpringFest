@@ -118,58 +118,6 @@ export function parseParticipantDetails(raw, prefix = "") {
   return { college, department, year, location };
 }
 
-/** An event's scoring scheme: named parameters, each with a max mark. Scorers
- * score against these, and the total shown to organisers and scorers is always
- * the sum of the maxes — it is never stored. Anything that isn't an array
- * (e.g. a legacy free-text value) becomes an empty scheme rather than an
- * error, so an old event just opens with no parameters to re-enter. */
-export function parseMarkingCriteria(raw, { required = false } = {}) {
-  if (!Array.isArray(raw) || raw.length === 0) {
-    if (required) {
-      throw new ApiError(400, "marking_criteria: at least one scoring parameter is required");
-    }
-    return [];
-  }
-  if (raw.length > 30) throw new ApiError(400, "marking_criteria: at most 30 parameters");
-  return raw.map((row, i) => ({
-    label: requireString(row?.label, { field: `marking_criteria[${i}].label`, minLength: 1 }),
-    max: requireInt(row?.max, { field: `marking_criteria[${i}].max`, min: 1 }),
-  }));
-}
-
-/** One scorer's entry, checked against the event's `marking_criteria`.
- * Every criterion must get a value, each an integer in `[0, max]`, and no
- * unknown labels. Returns the normalized rows plus their `total` — the total
- * is derived, never trusted from the client. */
-export function parseEvaluationScores(raw, criteria) {
-  if (!Array.isArray(criteria) || criteria.length === 0) {
-    throw new ApiError(409, "This event has no scoring criteria yet — ask an organiser to add them.");
-  }
-  if (!Array.isArray(raw)) throw new ApiError(400, "scores: expected a list of { label, value }");
-
-  const byLabel = new Map(raw.map((r) => [r?.label, r?.value]));
-  for (const r of raw) {
-    if (!criteria.some((c) => c.label === r?.label)) {
-      throw new ApiError(400, `scores: unknown criterion "${r?.label}"`);
-    }
-  }
-
-  let total = 0;
-  const scores = criteria.map((c) => {
-    if (!byLabel.has(c.label)) {
-      throw new ApiError(400, `scores: missing a value for "${c.label}"`);
-    }
-    const value = requireInt(byLabel.get(c.label), { field: `scores["${c.label}"]`, min: 0 });
-    if (value > c.max) {
-      throw new ApiError(400, `scores: "${c.label}" can be at most ${c.max}`);
-    }
-    total += value;
-    return { label: c.label, value };
-  });
-
-  return { scores, total };
-}
-
 /** A team member entry, matching TeamMember in the old Pydantic schema. */
 export function parseTeamMember(raw, index) {
   const prefix = `members[${index}]`;

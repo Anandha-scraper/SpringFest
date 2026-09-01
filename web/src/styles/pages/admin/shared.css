@@ -481,7 +481,6 @@
   min-width: 0;
 }
 .bar-fill--in { background: var(--ok); }
-.bar-fill--done { background: var(--accent); }
 /* An empty track still needs its height when the event hasn't started. */
 .event-progress:empty { min-height: 0.625rem; }
 
@@ -514,16 +513,6 @@
 .reg-table-wrap { min-height: var(--reg-table-min-h, auto); }
 .data-table--fixed col { width: var(--col-w, auto); }
 
-
-/* ── Already scored ───────────────────────────────────────────
-   One class, used everywhere a team or an entry can be "done": the admin
-   attendance list, the volunteer roster and the scoring list. Opacity only —
-   the row stays fully clickable and downloadable, because this is a
-   glance-able "already scored", not a lock. Never pair it with
-   pointer-events: none or [disabled]. */
-.is-evaluated { opacity: 0.45; }
-.is-evaluated:hover,
-.is-evaluated:focus-within { opacity: 1; }
 
 /* ── Attendance ───────────────────────────────────────────────
    One row per person, expandable to their events. */
@@ -563,6 +552,11 @@
 }
 
 .attendance-entry__marks { margin-top: 0.25rem; }
+
+/* A teammate's own entry for a registration the lead also holds — see
+   Entries() in Attendance.jsx for why only one of the two rows expands the
+   full roster. */
+.attendance-entry__lead-ref { margin: 0.375rem 0 0; font-style: italic; }
 
 .attendance-holders {
   margin-top: 0.5rem;

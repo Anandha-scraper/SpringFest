@@ -51,9 +51,79 @@
 
 .cell-nowrap { white-space: nowrap; }
 
-
-/* Judging queue ("now evaluating / up next"), shared by judge + volunteer. */
-.queue-view p { margin: 0 0 0.375rem; display: flex; align-items: center; gap: 0.375rem; }
-.queue-upcoming { margin: 0; padding-left: 1.25rem; display: grid; gap: 0.25rem; }
-.queue-upcoming li { display: flex; align-items: center; gap: 0.375rem; }
 .row-actions { display: inline-flex; gap: 0.25rem; }
+
+/* ── Volunteer roster ──────────────────────────────────────────
+   One card per team. Mobile-first, same stacking rule as
+   volunteer-check-in.css's .checkin-row: everything stacks below 560px
+   (a team name, a "View submission" button and a holder's "Check in"
+   button all fighting for one line is what broke on a phone) and goes
+   horizontal above it. */
+.roster-team {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.5rem;
+  padding: 0.75rem 0.875rem;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+}
+
+.roster-team__head {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+.roster-team__head .btn { width: 100%; justify-content: center; }
+
+.roster-holders {
+  list-style: none;
+  margin: 0.25rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.roster-holder {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.375rem;
+}
+.roster-holder__name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+.roster-holder .btn { width: 100%; justify-content: center; }
+
+/* A checked-in holder has nothing left to do — a plain mark, not a
+   button, and never clickable. See Part 2: check-in is one-way. */
+.roster-holder__mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  color: var(--ok);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+@media (min-width: 560px) {
+  .roster-team__head {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .roster-team__head .btn { width: auto; }
+
+  .roster-holder {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .roster-holder .btn { width: auto; }
+}

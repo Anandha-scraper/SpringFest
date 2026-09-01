@@ -243,6 +243,25 @@
 .contact-list a:hover,
 .contact-group a:hover { color: var(--accent); }
 
+/* Staff access code — permanently visible, styled as one more contact-group
+   entry rather than set apart, so it reads as "part of the footer" and not
+   as a call-out. */
+.venue-access-form { display: flex; flex-direction: column; gap: 4px; min-width: 170px; }
+.venue-access-form__label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.venue-access-form__row { display: flex; gap: 6px; }
+.venue-access-form__row .input { padding: 8px 10px; font-size: 0.85rem; }
+.venue-access-form__error {
+  margin: 2px 0 0;
+  font-size: 0.78rem;
+  color: #ffb4a8;
+}
+
 .contact-map {
   display: block;
   border-radius: 14px;

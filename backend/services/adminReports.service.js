@@ -45,9 +45,7 @@ export function listRegistrations({ eventId, status }) {
   return filteredRegistrations(eventId, status);
 }
 
-/** One raw event doc, for prefilling the admin edit form — including
- * `marking_criteria`, which event.service.js's toEvent() deliberately never
- * emits because GET /api/events is public. */
+/** One raw event doc, for prefilling the admin edit form. */
 export async function rawEvent(eventId) {
   const doc = await getDb().collection("events").doc(eventId).get();
   if (!doc.exists) throw new ApiError(404, "Event not found");
@@ -135,63 +133,6 @@ export async function eventParticipants(eventId) {
     checked_in: rows.filter((r) => r.checked_in).length,
     revenue: completed.reduce((sum, r) => sum + (r.fee || 0), 0),
     participants: rows,
-  };
-}
-
-/** Judging results for one event: every checked-in team with each scorer's
- * total and remark, the average across scorers, and a rank on that average.
- * `marking_criteria` comes straight off the event doc (aggregate.loadAll keeps
- * the whole document), which is why this lives here and not on a public read. */
-export async function eventResults(eventId) {
-  const data = await aggregate.loadAll();
-  const event = data.events[eventId];
-  if (!event) throw new ApiError(404, "Event not found");
-
-  const criteria = Array.isArray(event.marking_criteria) ? event.marking_criteria : [];
-  const criteriaTotal = criteria.reduce((s, c) => s + (c.max || 0), 0);
-
-  const rows = data.registrations
-    .filter((r) => r.event_id === eventId && r.status === aggregate.STATUS_COMPLETED)
-    .filter((r) => (r.member_checkins || []).length > 0)
-    .map((r) => {
-      const evaluations = (r.evaluations || []).map((e) => ({
-        judge_name: e.judge_name || e.judge_email,
-        total: e.total || 0,
-        note: e.note || "",
-        scores: e.scores || [],
-        updated_at: e.updated_at || "",
-      }));
-      const average = evaluations.length
-        ? evaluations.reduce((s, e) => s + e.total, 0) / evaluations.length
-        : null;
-      return {
-        registration_id: r.id,
-        team_name: r.team_name || "",
-        lead_name: r.name || "",
-        allocation_codes: r.allocation_codes || [],
-        evaluations,
-        average,
-      };
-    });
-
-  const ranked = [...rows].filter((r) => r.average !== null).sort((a, b) => b.average - a.average);
-  ranked.forEach((r, i) => {
-    r.rank = i > 0 && ranked[i - 1].average === r.average ? ranked[i - 1].rank : i + 1;
-  });
-  rows.sort(
-    (a, b) =>
-      (b.average ?? -1) - (a.average ?? -1) ||
-      (a.team_name || a.lead_name).localeCompare(b.team_name || b.lead_name)
-  );
-
-  return {
-    event: {
-      event_id: eventId,
-      name: event.name || eventId,
-      marking_criteria: criteria,
-      criteria_total: criteriaTotal,
-    },
-    results: rows,
   };
 }
 

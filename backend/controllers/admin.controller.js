@@ -17,6 +17,7 @@ import {
   getAppSettings,
   savePaymentQr,
 } from "../services/settings.js";
+import * as venueAccess from "../services/venueAccess.service.js";
 import * as venues from "../services/venue.service.js";
 
 // ── Dashboards ───────────────────────────────────────────────
@@ -82,8 +83,16 @@ export async function eventParticipants(req, res) {
   res.json(await adminReports.eventParticipants(req.params.eventId));
 }
 
-export async function eventResults(req, res) {
-  res.json(await adminReports.eventResults(req.params.eventId));
+/** Generate a code, or replace whatever one already existed — same
+ * operation either way, so one route covers both "Generate" and "Rotate"
+ * in the UI. */
+export async function rotateAccessCode(req, res) {
+  res.json({ access_code: await venueAccess.rotateAccessCode(req.params.eventId) });
+}
+
+export async function revokeAccessCode(req, res) {
+  await venueAccess.revokeAccessCode(req.params.eventId);
+  res.status(204).end();
 }
 
 export async function registrationsCsv(req, res) {
