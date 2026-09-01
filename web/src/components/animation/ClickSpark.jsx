@@ -14,7 +14,8 @@ const ClickSpark = ({
 }) => {
   const canvasRef = useRef(null);
   const sparksRef = useRef([]);
-  const startTimeRef = useRef(null);
+  const rafRef = useRef(null);
+  const startLoopRef = useRef(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -70,12 +71,7 @@ const ClickSpark = ({
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
 
-    let animationId;
-
     const draw = timestamp => {
-      if (!startTimeRef.current) {
-        startTimeRef.current = timestamp;
-      }
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       sparksRef.current = sparksRef.current.filter(spark => {
@@ -105,13 +101,29 @@ const ClickSpark = ({
         return true;
       });
 
-      animationId = requestAnimationFrame(draw);
+      // Nothing left to animate. The clear above already wiped the last
+      // frame, so let the loop stop rather than keep waking the CPU every
+      // 16ms for an empty canvas — this component wraps the entire app, so
+      // an always-on loop here costs battery on every route, not just here.
+      if (sparksRef.current.length === 0) {
+        rafRef.current = null;
+        return;
+      }
+
+      rafRef.current = requestAnimationFrame(draw);
     };
 
-    animationId = requestAnimationFrame(draw);
+    // Started by a click, not on mount — see handleClick.
+    startLoopRef.current = () => {
+      if (rafRef.current === null) rafRef.current = requestAnimationFrame(draw);
+    };
 
     return () => {
-      cancelAnimationFrame(animationId);
+      startLoopRef.current = null;
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
     };
   }, [sparkColor, sparkSize, sparkRadius, sparkCount, duration, easeFunc, extraScale]);
 
@@ -131,6 +143,7 @@ const ClickSpark = ({
     }));
 
     sparksRef.current.push(...newSparks);
+    startLoopRef.current?.();
   };
 
   return (

@@ -12,7 +12,8 @@
   background: linear-gradient(180deg, rgba(246, 246, 247, 0.82) 0%, rgba(238, 238, 238, 0.86) 100%);
 }
 
-/* CSS blob fallback — always painted, sits under the WebGL canvas */
+/* The hero backdrop. Was the fallback under a WebGL canvas; that canvas is
+   gone, so these are the backdrop itself now. */
 .hero-blobs { position: absolute; inset: 0; z-index: 0; }
 .blob {
   position: absolute;
@@ -32,18 +33,28 @@
   66%      { transform: translate(-24px, 22px) scale(0.96); }
 }
 
-/* Aurora is an additive glow built for dark backgrounds — soften it
-   heavily and wash it out with a cream veil so it reads as pastel. */
-/* Aurora is an additive glow built for dark backgrounds. On the light grey
-   theme it has to stay faint or it floods the page with orange. */
-.hero-aurora {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  opacity: 0.18;
-  mix-blend-mode: multiply;
-  pointer-events: none;
+/* Phones paint these once and never again. The `scale()` in `float` is what
+   makes the animated version expensive: changing scale invalidates the blur,
+   so a 90px-radius blur over four large elements gets re-rasterized every
+   frame — the single heaviest thing on this page for a mobile GPU. Static,
+   with a smaller kernel, it rasterizes once and is composited for free.
+   Desktop keeps the full effect. */
+@media (max-width: 899px) {
+  .blob {
+    animation: none;
+    filter: blur(60px);
+  }
 }
+
+/* Same bargain for anyone who has asked the OS for less motion — the colour
+   wash stays, the movement doesn't. Matches the check SplitFlapText already
+   makes in JS. */
+@media (prefers-reduced-motion: reduce) {
+  .blob { animation: none; }
+}
+
+/* Sits over the blobs and washes them out toward the centre, so the
+   HeroCard reads against a near-flat cream field rather than raw colour. */
 .hero-veil {
   position: absolute;
   inset: 0;

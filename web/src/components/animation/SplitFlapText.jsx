@@ -60,6 +60,42 @@ const usePrefersReducedMotion = () => {
   return prefersReduced;
 };
 
+/** True while the board is on screen and the tab is foregrounded.
+ *
+ * The phrase cycle is a self-rescheduling setTimeout that kicks off a fresh
+ * flip animation forever, so without this it keeps flipping through phrases
+ * nobody is looking at. Same idea as LogoLoop's useIsAnimating; kept local to
+ * each component rather than shared, since the two gate different things (a
+ * continuous rAF loop there, a repeating timer here). */
+const useIsOnScreen = ref => {
+  const [onScreen, setOnScreen] = useState(true);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return undefined;
+
+    let visible = true;
+    const sync = () => setOnScreen(visible && !document.hidden);
+
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        visible = entry.isIntersecting;
+        sync();
+      },
+      { rootMargin: '128px' }
+    );
+    io.observe(el);
+    document.addEventListener('visibilitychange', sync);
+
+    return () => {
+      io.disconnect();
+      document.removeEventListener('visibilitychange', sync);
+    };
+  }, [ref]);
+
+  return onScreen;
+};
+
 const SplitFlapText = ({
   words = ['LAUNCH READY', 'SYNC ONLINE', 'SIGNAL LIVE'],
   text,
@@ -80,6 +116,8 @@ const SplitFlapText = ({
   ...props
 }) => {
   const prefersReducedMotion = usePrefersReducedMotion();
+  const rootRef = useRef(null);
+  const isOnScreen = useIsOnScreen(rootRef);
   const rafRef = useRef(null);
   const cycleTimerRef = useRef(null);
   const currentTextRef = useRef('');
@@ -116,7 +154,9 @@ const SplitFlapText = ({
     currentTextRef.current = firstPhrase;
     setTiles(createTiles(firstPhrase));
 
-    if (normalizedPhrases.length <= 1 || typeof window === 'undefined') {
+    // Off screen or backgrounded: the board sits on its first phrase and no
+    // timer is armed. It picks the cycle back up when it scrolls into view.
+    if (normalizedPhrases.length <= 1 || typeof window === 'undefined' || !isOnScreen) {
       return clearAnimation;
     }
 
@@ -260,7 +300,7 @@ const SplitFlapText = ({
       cancelled = true;
       clearAnimation();
     };
-  }, [normalizedPhrases, width, loop, cycleDelay, flipDuration, stagger, flipsPerChar, charset, prefersReducedMotion]);
+  }, [normalizedPhrases, width, loop, cycleDelay, flipDuration, stagger, flipsPerChar, charset, prefersReducedMotion, isOnScreen]);
 
   const settledText = tiles
     .map(tile => tile.current)
@@ -278,6 +318,7 @@ const SplitFlapText = ({
 
   return (
     <div
+      ref={rootRef}
       className={`split-flap-text ${className}`.trim()}
       style={componentStyle}
       role="img"
