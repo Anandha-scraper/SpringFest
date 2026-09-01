@@ -146,5 +146,9 @@ fi
 if [ "$DRY_RUN" = 1 ]; then
   echo "Dry run — nothing was written. Re-run without --dry-run to apply."
 else
-  echo "Done. Next: DEPLOYMENT.md step 2 (create the API backend)."
+  if [ -n "$API_ORIGIN_VALUE" ] || [ -n "$GRANT_BACKENDS" ]; then
+    echo "Done."
+  else
+    echo "Done. Next: DEPLOYMENT.md step 2 (create the API backend)."
+  fi
 fi
