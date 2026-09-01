@@ -52,6 +52,13 @@ function Entries({ entries }) {
               {e.status !== "completed" && (
                 <span className={`status-pill status-pill--${e.status || "unknown"}`}>{e.status}</span>
               )}
+              {/* Rating only, and inside the entry rather than as a table
+                  column: this screen answers "who turned up", the comments
+                  have room to be read on the Registrations page, and the
+                  expanded row's colSpan is hardcoded to the header count. */}
+              {e.feedback_given && (
+                <span className="cell-sub">Rated {e.feedback_rating}/5</span>
+              )}
             </div>
 
             {e.is_team && !isLeadRow && lead && (

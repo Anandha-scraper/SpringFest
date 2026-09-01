@@ -39,17 +39,22 @@ export function invalidateVenueNames() {
   invalidate(VENUE_NAMES_KEY);
 }
 
-// Changing any of these after someone has registered would rewrite the deal
-// they signed up to, so they freeze. Venue and time can still move.
-export const LOCKED_FIELDS = new Set([
-  "name",
-  "fee",
-  "date",
-  "category",
-  "is_team_event",
-  "team_min",
-  "team_max",
-]);
+// Immutable from the moment the event exists. The fee is the deal a
+// participant agrees to, and unlike the fields below there is no "before
+// anyone registered" window in which moving it is harmless — an event created
+// at ₹200 and quietly edited to ₹400 before the first sign-up is exactly the
+// surprise this prevents.
+export const ALWAYS_LOCKED = new Set(["fee"]);
+
+// Frozen once anyone has registered. The allocation code SF<category><event><n>
+// is derived from these two, so changing either orphans every code already
+// minted (services/allocation.service.js).
+//
+// Date, times, team sizes, venue and description are deliberately NOT here:
+// a mistyped event date is the single most common thing an organiser needs to
+// fix while the fest is running, and freezing it at the first registration
+// made that unfixable.
+export const LOCKED_FIELDS = new Set(["name", "category"]);
 
 /** A paid event is useless if nobody can pay for it. Require a working payment
  * path — the Razorpay gateway configured, or the screenshot UPI id + QR set and
@@ -226,10 +231,25 @@ export async function updateEvent(eventId, body) {
   const current = doc.data() ?? {};
   const changes = parseEventPatch(body);
 
+  // Checked before the registrations gate below, because this one applies
+  // whether or not anyone has signed up. Same no-op-tolerant diff: resending
+  // an unchanged fee is not an edit, so an admin saving the rest of the form
+  // never trips over it.
+  const fixed = [...ALWAYS_LOCKED].filter(
+    (f) => changes[f] !== undefined && changes[f] !== current[f]
+  );
+  if (fixed.length) {
+    throw new ApiError(
+      403,
+      `The ${fixed.join(", ")} can't be changed after an event is created.`
+    );
+  }
+
   const locked = await hasRegistrations(eventId);
   if (locked) {
-    // People have already paid against this event's terms, so the terms
-    // stop being editable. Venue, time and description still move.
+    // People have already registered under this event's name and category,
+    // and their allocation codes are derived from both. Everything else —
+    // date, time, venue, team sizes, description — still moves.
     const frozen = Object.keys(changes)
       .filter((f) => LOCKED_FIELDS.has(f) && changes[f] !== current[f])
       .sort();
@@ -237,7 +257,7 @@ export async function updateEvent(eventId, body) {
       throw new ApiError(
         403,
         `This event already has registrations — ${frozen.join(", ")} can no longer ` +
-          "be changed. Venue, time and description are still editable."
+          "be changed. Date, time, venue, team size and description are still editable."
       );
     }
   }
@@ -254,6 +274,17 @@ export async function updateEvent(eventId, body) {
   const start = changes.start_time ?? current.start_time ?? "";
   const end = changes.end_time ?? current.end_time ?? "";
   if (start && end && start >= end) throw new ApiError(400, "End time must be after the start time");
+
+  // Team sizes used to be frozen the moment anyone registered, so createEvent
+  // was the only place this could go wrong. Now that they stay editable, the
+  // same check has to run here — otherwise an admin can set team_max below
+  // team_min on a live event and nobody can register for it at all.
+  const isTeam = changes.is_team_event ?? current.is_team_event ?? false;
+  const teamMin = changes.team_min ?? current.team_min ?? 1;
+  const teamMax = changes.team_max ?? current.team_max ?? 1;
+  if (isTeam && teamMax < teamMin) {
+    throw new ApiError(400, "team_max must be at least team_min");
+  }
 
   changes.updated_at = new Date().toISOString();
   await ref.set(changes, { merge: true });

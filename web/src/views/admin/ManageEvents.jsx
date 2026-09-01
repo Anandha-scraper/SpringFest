@@ -19,7 +19,11 @@ import {
   updateEvent,
 } from "@/api/client.js";
 import { useApi } from "@/hooks/useApi.js";
-import { EVENT_CATEGORIES } from "@/content/formOptions.js";
+import {
+  ALWAYS_LOCKED_EVENT_FIELDS,
+  EVENT_CATEGORIES,
+  LOCKED_EVENT_FIELDS,
+} from "@/content/formOptions.js";
 import { formatEventTime, rupees } from "@/utils/format.js";
 import { DatePicker } from "@/components/ui/date-picker.jsx";
 import { TimePicker } from "@/components/ui/time-picker.jsx";
@@ -116,18 +120,17 @@ export default function ManageEvents() {
     };
     try {
       if (editing) {
-        // Send only what's editable, so a locked field never triggers a 403
-        // just by being present and unchanged.
-        const editable = locked
-          ? {
-              venue_id: payload.venue_id,
-              start_time: payload.start_time,
-              end_time: payload.end_time,
-              description: payload.description,
-              instructions: payload.instructions,
-              allow_submissions: payload.allow_submissions,
-            }
-          : payload;
+        // Strip what's locked rather than listing what isn't: an allow-list
+        // silently drops any field added to the form later, and this has to
+        // stay in step with two server-side sets. A locked field must never
+        // be sent — the server 403s on one even when the value is unchanged.
+        const frozen = [
+          ...ALWAYS_LOCKED_EVENT_FIELDS,
+          ...(locked ? LOCKED_EVENT_FIELDS : []),
+        ];
+        const editable = Object.fromEntries(
+          Object.entries(payload).filter(([field]) => !frozen.includes(field))
+        );
         await updateEvent(editing.id, editable);
         toast.ok(`${editing.name} saved.`);
       } else {
@@ -293,8 +296,9 @@ export default function ManageEvents() {
 
         {locked && (
           <p className="notice">
-            People have already registered for this event, so its name, fee, date and category are
-            fixed. You can still change the venue, timing and description.
+            People have already registered for this event, so its name and category are fixed —
+            allocation codes are built from both. The date, timing, venue, team size and
+            description are all still editable.
           </p>
         )}
 
@@ -375,12 +379,15 @@ export default function ManageEvents() {
                 <option key={v.id} value={v.id}>{v.name}</option>
               ))}
             </select>
+            {/* Fixed as soon as the event exists, not merely once someone
+                has registered: the fee is the deal a participant signs up to. */}
             <input
               className="input"
               name="fee"
               type="number"
               min="0"
-              disabled={locked}
+              disabled={!!editing}
+              title={editing ? "The fee can't be changed after an event is created." : undefined}
               placeholder={form.is_team_event ? "Fee per person (₹)" : "Fee (₹)"}
               value={form.fee}
               onChange={change}
@@ -396,7 +403,6 @@ export default function ManageEvents() {
               onChange={(date) => setForm({ ...form, date })}
               min={today()}
               max={null}
-              disabled={locked}
             />
             <TimePicker
               value={form.start_time}
@@ -434,7 +440,6 @@ export default function ManageEvents() {
             <input
               type="checkbox"
               checked={form.is_team_event}
-              disabled={locked}
               onChange={(e) => setForm({ ...form, is_team_event: e.target.checked })}
             />
             Team event
@@ -444,7 +449,6 @@ export default function ManageEvents() {
                   className="input input-sm"
                   type="number"
                   min="1"
-                  disabled={locked}
                   value={form.team_min}
                   onChange={(e) => setForm({ ...form, team_min: e.target.value })}
                 />
@@ -453,7 +457,6 @@ export default function ManageEvents() {
                   className="input input-sm"
                   type="number"
                   min="1"
-                  disabled={locked}
                   value={form.team_max}
                   onChange={(e) => setForm({ ...form, team_max: e.target.value })}
                 />

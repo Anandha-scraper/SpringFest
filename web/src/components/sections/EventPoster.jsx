@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CalendarDays, Clock, Wallet } from "lucide-react";
+import { CalendarDays, Clock, Users, Wallet } from "lucide-react";
 import "@/styles/components/event-poster.css";
 import ComicButton from "@/components/common/ComicButton.jsx";
 import { formatEventDate, formatEventTimeRange, rupees } from "@/utils/format.js";
@@ -28,7 +28,17 @@ export default function EventPoster({ event, onRegister }) {
 
   const date = formatEventDate(event) || "Date TBA";
   const time = formatEventTimeRange(event) || "Time TBA";
-  const fee = Number(event?.fee) > 0 ? rupees(event.fee) : "Free";
+  // "/ person" matters: the server charges fee x headcount, so a bare ₹200 on
+  // a team event is what somebody reads before paying ₹800. Same wording the
+  // event page uses.
+  const isTeam = Boolean(event?.is_team_event);
+  const paid = Number(event?.fee) > 0;
+  const fee = paid ? `${rupees(event.fee)}${isTeam ? " / person" : ""}` : "Free";
+  const teamMin = event?.team_min || 1;
+  const teamMax = event?.team_max || 1;
+  const size = isTeam
+    ? `Team of ${teamMin === teamMax ? teamMin : `${teamMin}–${teamMax}`}`
+    : "Individual";
   const instructions = (event?.instructions || "").trim();
 
   return (
@@ -84,6 +94,10 @@ export default function EventPoster({ event, onRegister }) {
                 <li>
                   <Wallet size={16} aria-hidden="true" />
                   {fee}
+                </li>
+                <li>
+                  <Users size={16} aria-hidden="true" />
+                  {size}
                 </li>
               </ul>
             )}

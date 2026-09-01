@@ -7,6 +7,7 @@ import { CalendarDays, MapPin, Users, Wallet } from "lucide-react";
 import {
   createRegistration,
   getEvent,
+  getEvents,
   getMyRegistrations,
   submitPaymentProof,
 } from "@/api/client.js";
@@ -19,6 +20,11 @@ import RegistrationResultDialog from "@/components/registration/RegistrationResu
 import Loader from "@/components/common/Loader.jsx";
 import { useDeferredLoading } from "@/hooks/useDeferredLoading.js";
 import { homeForRole } from "@/content/roles.js";
+
+// Statuses that hold a slot against the per-category cap. Mirrors
+// LIVE_STATUSES in backend/utils/statuses.js — `draft` counts there too, so a
+// saved-but-unfinished form is shown as using up an allowance here as well.
+const HOLDS_A_SLOT = ["draft", "pending", "awaiting_approval", "completed", "rejected"];
 
 /** Pull just the form-shaped fields out of a saved draft (or any registration
  * row) — the row also carries id/status/fee/etc. that the form has no use
@@ -53,7 +59,7 @@ export default function EventDetail() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const resumeId = searchParams.get("resume") || "";
-  const { paymentUpiId, hasPaymentQr, registrationOpen, role } = useAuth();
+  const { categoryLimits, paymentUpiId, hasPaymentQr, registrationOpen, role } = useAuth();
 
   const [event, setEvent] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -72,17 +78,26 @@ export default function EventDetail() {
   // scopes that list to them, so a guessed id in the URL buys nothing.
   const [resume, setResume] = useState(null);
   const isDraftResume = resume?.status === "draft";
+  // Everything this person already holds, and every event's category — used
+  // for the resume lookup and for the per-category cap notice below. Fetched
+  // unconditionally (it used to be gated on ?resume=): the cap has to be known
+  // on a plain visit too, or the form only refuses after it has been filled in.
+  const [myRegs, setMyRegs] = useState(null);
+  const [allEvents, setAllEvents] = useState([]);
 
   useEffect(() => {
-    if (!resumeId) return;
     let live = true;
-    getMyRegistrations()
-      .then((rows) => {
-        if (live) setResume((rows || []).find((r) => r.id === resumeId) || null);
+    Promise.all([getMyRegistrations(), getEvents()])
+      .then(([rows, events]) => {
+        if (!live) return;
+        setMyRegs(rows || []);
+        setAllEvents(events || []);
+        if (resumeId) setResume((rows || []).find((r) => r.id === resumeId) || null);
       })
       .catch(() => {
-        // A resume that can't be loaded just means a blank form, which is the
-        // same place the participant would have landed without the link.
+        // Signed out, or the call failed: the form still renders and the
+        // server stays the authority on both the cap and the resume.
+        if (live) setMyRegs([]);
       });
     return () => {
       live = false;
@@ -188,14 +203,37 @@ export default function EventDetail() {
   }
   if (loading || !event) return <Loader />;
 
+  // Both gates, not just the fest-wide one: an organiser can close a single
+  // event whose slots are full while the rest of the fest keeps taking
+  // entries, and the server refuses that case whether or not this page says so.
+  const eventClosed = event.registration_open === false;
+  const closed = !registrationOpen || eventClosed;
+
+  // Courtesy check only — the server enforces the same rule and is the
+  // authority. Rows for *this* event are excluded because those are a resume,
+  // which never consumes a fresh slot.
+  const categoryOf = new Map((allEvents || []).map((e) => [e.id, e.category || ""]));
+  const limit = Number(categoryLimits?.[event.category]) || 0;
+  const heldInCategory = (myRegs || []).filter(
+    (r) =>
+      r.event_id !== id &&
+      HOLDS_A_SLOT.includes(r.status) &&
+      categoryOf.get(r.event_id) === event.category
+  );
+  const capReached = limit > 0 && heldInCategory.length >= limit;
+
   return (
     <div className="container event-register">
       <div className="detail-card">
         {error && <p className="error">{error}</p>}
-        {!registrationOpen && !awaitingProof ? (
+        {closed && !awaitingProof ? (
           <div className="notice notice-warn">
             <strong>Registration is closed</strong>
-            <p>The organisers aren't accepting new sign-ups right now.</p>
+            <p>
+              {eventClosed && registrationOpen
+                ? `The organisers aren't accepting new sign-ups for ${event.name} right now.`
+                : "The organisers aren't accepting new sign-ups right now."}
+            </p>
           </div>
         ) : awaitingProof ? (
           <>
@@ -213,6 +251,15 @@ export default function EventDetail() {
               submitting={submitting}
             />
           </>
+        ) : capReached ? (
+          <div className="notice notice-warn">
+            <strong>You've reached the {event.category} limit</strong>
+            <p>
+              You can register for at most {limit} {event.category} event
+              {limit === 1 ? "" : "s"}, and you already have{" "}
+              {heldInCategory.map((r) => r.event_name).join(", ")}.
+            </p>
+          </div>
         ) : (
           <>
             <h2>Your details</h2>

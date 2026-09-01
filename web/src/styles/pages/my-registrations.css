@@ -299,3 +299,75 @@
   color: var(--ink-faint);
 }
 
+
+/* ── Per-person event feedback (My Registrations) ────────────── */
+/* One rating + comment per ticket holder, editable until the event's day
+   ends. Sits under the submission control on a registration card, and stays
+   inside the card's own column so a long comment can't widen it. */
+.event-card__feedback {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--line);
+  min-width: 0;
+}
+
+.event-card__feedback-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.event-card__feedback-stars {
+  display: inline-flex;
+  gap: 0.125rem;
+  align-items: center;
+}
+
+/* Unfilled stars stay visible rather than invisible — a row of five outlines
+   reads as "pick one", where two filled stars alone reads as a rating of two. */
+.event-card__star {
+  display: inline-grid;
+  place-items: center;
+  padding: 0.125rem;
+  border: 0;
+  background: none;
+  color: var(--ink-faint);
+  cursor: pointer;
+}
+
+.event-card__star.is-on {
+  color: var(--warn, #f59e0b);
+  fill: currentColor;
+}
+
+.event-card__star:disabled {
+  cursor: default;
+}
+
+.event-card__feedback textarea.input {
+  resize: vertical;
+  min-height: 2.75rem;
+}
+
+.event-card__feedback-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.event-card__feedback-read {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.event-card__feedback-text {
+  color: var(--ink-soft);
+  overflow-wrap: anywhere;
+}

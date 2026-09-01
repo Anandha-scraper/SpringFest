@@ -17,11 +17,13 @@ import {
   requireString,
 } from "../utils/validate.js";
 import * as aggregate from "./aggregate.js";
+import { averageRating } from "./feedback.service.js";
 
 export const CSV_COLUMNS = [
   "id", "name", "email", "phone", "college", "department", "year", "location",
   "event_id", "event_name", "status", "checked_in", "fee", "team_name", "team_size",
   "allocation_codes",
+  "feedback",
   "payment_mode", "transaction_id", "order_id", "payment_id", "payment_method",
   "created_at", "paid_at",
 ];
@@ -132,6 +134,10 @@ export async function eventParticipants(eventId) {
     completed: completed.length,
     checked_in: rows.filter((r) => r.checked_in).length,
     revenue: completed.reduce((sum, r) => sum + (r.fee || 0), 0),
+    // Envelope only — `participants` stays the raw registration docs, so
+    // feedback[] rides along on each row untouched.
+    feedback_count: rows.reduce((n, r) => n + (r.feedback || []).length, 0),
+    feedback_avg: averageRating(rows),
     participants: rows,
   };
 }
@@ -142,9 +148,32 @@ export async function registrationsCsv({ eventId, status }) {
 
   const csvEscape = (value) => {
     const s = String(value ?? "");
-    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    // \r matters as much as \n: rows are separated by \r\n below, so a lone
+    // carriage return inside a cell — which is exactly what a browser textarea
+    // submits — splits the row and shifts every column after it. Feedback
+    // comments are normalised on write too (feedback.service.js); this covers
+    // anything already on file.
+    return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
   };
-  const cell = (r, c) => (c === "allocation_codes" ? (r.allocation_codes || []).join(" ") : r[c]);
+  // One row is one registration but feedback is per person, so the whole team's
+  // answers share a cell — same flattening as allocation_codes above.
+  const cell = (r, c) => {
+    if (c === "allocation_codes") return (r.allocation_codes || []).join(" ");
+    if (c === "feedback") {
+      return (r.feedback || [])
+        .map((f) => {
+          // Flattened to a single line. A quoted field may legally contain a
+          // newline, but it still costs one row per line in anything that
+          // splits naively, and an organiser scanning this in a spreadsheet
+          // wants one row per registration. saveFeedback already strips \r
+          // from new comments; this also covers whatever is on file.
+          const comment = (f.comment || "").replace(/\s*[\r\n]+\s*/g, " ").trim();
+          return `${f.name || f.email} ${f.rating}/5${comment ? `: ${comment}` : ""}`;
+        })
+        .join(" | ");
+    }
+    return r[c];
+  };
   const lines = [CSV_COLUMNS.join(",")];
   for (const r of rows) lines.push(CSV_COLUMNS.map((c) => csvEscape(cell(r, c) ?? "")).join(","));
 

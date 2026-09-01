@@ -172,3 +172,36 @@
   font-size: 0.82rem;
 }
 
+
+/* ── Per-category registration limits ────────────────────────── */
+/* One number per event category. Laid out as a label/input/hint grid so the
+   inputs line up in a column regardless of how long a category name is. */
+.category-limit-list {
+  list-style: none;
+  margin: 0 0 1rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.category-limit-list li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 5rem minmax(0, 7rem);
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.category-limit-list label {
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+@media (max-width: 480px) {
+  .category-limit-list li {
+    grid-template-columns: minmax(0, 1fr) 4.5rem;
+  }
+  .category-limit-list .cell-sub {
+    grid-column: 1 / -1;
+  }
+}

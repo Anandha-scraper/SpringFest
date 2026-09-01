@@ -6,6 +6,12 @@
  * `event.fee * headcount` computed server-side, team size comes from the
  * event, and status only ever advances here. See utils/statuses.js for the
  * lifecycle diagram.
+ *
+ * Three gates stand in front of creating one: the fest-wide `registration_open`,
+ * the event's own flag (`assertEventOpen`), and the per-category cap from
+ * settings/app (`assertCategoryCapacity`). None of them applies to finishing a
+ * payment already in flight — verifyPayment, submitProof and resumeTopUp are
+ * deliberately outside all three.
  */
 import { getDb } from "../config/firebase.js";
 import { settings } from "../config/index.js";
@@ -31,7 +37,13 @@ import {
 import * as aggregate from "./aggregate.js";
 import { MINT_ON_GATEWAY_VERIFY, mintQuietly } from "./allocation.service.js";
 import { createOrder, fetchPaymentMethod, verifySignature } from "./payment.js";
-import { MODE_FREE, MODE_GATEWAY, MODE_SCREENSHOT, getAppSettings } from "./settings.js";
+import {
+  MODE_FREE,
+  MODE_GATEWAY,
+  MODE_SCREENSHOT,
+  categoryLimit,
+  getAppSettings,
+} from "./settings.js";
 import { uploadBuffer } from "./storage.js";
 
 /** This user's live registration for this event, if there is one.
@@ -50,6 +62,58 @@ async function existingRegistration(db, uid, eventId) {
     if (LIVE_STATUSES.includes(doc.data()?.status)) return doc;
   }
   return null;
+}
+
+/** Enforce the per-category cap from settings/app: at most N events in one
+ * category per person, where 0 (or an unset category) means no cap.
+ *
+ * **Only registrations this person LEADS are counted.** A teammate's seat is
+ * an email inside someone else's `members[]`, an array of maps Firestore
+ * cannot query, so counting those would mean scanning the whole collection on
+ * every create. That is an accepted limitation and not an oversight: the cap
+ * constrains who *creates* registrations, and somebody who joins three teams
+ * as a member can still hold more events than their category allows.
+ *
+ * Which statuses count is exactly LIVE_STATUSES, deliberately including
+ * `draft`. A draft looks like it shouldn't hold a slot, but excluding it would
+ * void the whole feature: the resume path below reuses the existing document
+ * and so never reaches this check, which means four saved drafts could all be
+ * promoted to real registrations without the cap ever being consulted.
+ * `rejected` counts for the same reason — it is non-terminal and resubmits
+ * against the same row.
+ */
+async function assertCategoryCapacity(db, uid, event) {
+  const category = event.category || "";
+  const limit = categoryLimit(await getAppSettings(), category);
+  if (!limit || !category) return;
+
+  const [regsSnap, eventsSnap] = await Promise.all([
+    db.collection("registrations").where("uid", "==", uid).get(),
+    // Read live rather than through aggregate.loadAll(): createOrResume
+    // already reads its own event doc directly, and a registration must not
+    // be allowed or refused on the strength of a 20s-stale cache.
+    db.collection("events").get(),
+  ]);
+  const events = Object.fromEntries(eventsSnap.docs.map((d) => [d.id, d.data() ?? {}]));
+
+  const held = [];
+  for (const doc of regsSnap.docs) {
+    const row = doc.data() ?? {};
+    if (!LIVE_STATUSES.includes(row.status)) continue;
+    const other = events[row.event_id || ""];
+    if (!other || (other.category || "") !== category) continue;
+    held.push(other.name || row.event_id);
+  }
+  if (held.length < limit) return;
+
+  // Name what they already hold. There is no way to cancel a registration in
+  // this app, so "you're at the limit" on its own leaves them stuck with no
+  // idea which row to finish or ask an organiser to remove.
+  throw new ApiError(
+    409,
+    `You can register for at most ${limit} ${category} event${limit === 1 ? "" : "s"}, ` +
+      `and you already have ${held.map((n) => `"${n}"`).join(", ")}.`
+  );
 }
 
 /** The per-event half of the registration gate.
@@ -194,6 +258,14 @@ export async function createOrResume({ user, body }) {
       };
     }
   } else {
+    // Only a genuinely new ticket consumes a slot. The `if (existing)` branch
+    // above hands back the same document — a draft being finished, an
+    // abandoned checkout resumed, a rejection resubmitted — so checking there
+    // would make every resume block on its own row. Placing the check here
+    // rather than passing an "except this one" id is what keeps that
+    // impossible. It also sits after every cheap rejection above, so the
+    // extra reads only happen on a request that would otherwise succeed.
+    await assertCategoryCapacity(db, user.uid, eventData);
     regRef = db.collection("registrations").doc();
   }
 
@@ -382,6 +454,8 @@ export async function addMember({ user, registrationId, body }) {
   const eventData = eventSnap.data() ?? {};
   assertEventOpen(eventData);
   if (!eventData.is_team_event) throw new ApiError(400, "This isn't a team event");
+  // No per-category cap check here, on purpose: the cap counts only what a
+  // person leads (see assertCategoryCapacity), and this adds a teammate.
 
   const members = Array.isArray(row.members) ? row.members : [];
   const newSize = 2 + members.length;

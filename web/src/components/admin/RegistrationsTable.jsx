@@ -370,6 +370,17 @@ export default function RegistrationsTable({ rows, minRows = 0, onSaved }) {
                     <div className="reg-detail-row">
                       <span>Attended</span><span>{e.checked_in ? "Checked in" : "Not checked in"}</span>
                     </div>
+                    {/* Per person, so a team shows one line each. No column for
+                        this in the table itself — COLS drives a fixed layout
+                        and every width would need rebalancing. */}
+                    {(e.feedback || []).map((f) => (
+                      <div className="reg-detail-row" key={f.member_index}>
+                        <span>Feedback — {f.name || f.email}</span>
+                        <span>
+                          {f.rating}/5{f.comment ? ` · ${f.comment}` : ""}
+                        </span>
+                      </div>
+                    ))}
                     <div className="reg-detail-row"><span>Amount</span><span>{money(e.fee)}</span></div>
                     {/* Screenshot payments carry a transaction reference and an
                         admin's verdict instead of gateway ids. */}

@@ -88,6 +88,16 @@ export const addTeamMember = (registrationId, member) =>
 export const getTopupPayment = (registrationId) =>
   req(`/registrations/${encodeURIComponent(registrationId)}/topup`, {}, true);
 
+/** One feedback per person per registration, editable until the event's day
+ *  ends. No member_index in the body: the caller's own seat is resolved
+ *  server-side from their uid/email, so nobody can write as somebody else. */
+export const saveEventFeedback = (registrationId, { rating, comment }) =>
+  req(
+    `/registrations/${encodeURIComponent(registrationId)}/feedback`,
+    { method: "PUT", body: JSON.stringify({ rating, comment }) },
+    true
+  );
+
 /** Proof of an out-of-band payment: transaction reference + screenshot.
  *
  * Multipart, so it sidesteps req()'s JSON body — and deliberately sets no

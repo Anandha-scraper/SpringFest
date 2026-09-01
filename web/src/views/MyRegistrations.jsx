@@ -18,6 +18,7 @@ import StatusPill from "@/components/admin/StatusPill.jsx";
 import Loader from "@/components/common/Loader.jsx";
 import { useDeferredLoading } from "@/hooks/useDeferredLoading.js";
 import EventSubmission from "@/components/registration/EventSubmission.jsx";
+import EventFeedback from "@/components/registration/EventFeedback.jsx";
 import AddTeammate from "@/components/registration/AddTeammate.jsx";
 
 /** The signed-in person's one badge — scanning it is how a volunteer sees
@@ -228,7 +229,13 @@ export default function MyRegistrations() {
                 !!event.is_team_event &&
                 (r.team_size || 1) < (event.team_max || 1) &&
                 r.status === "completed" &&
-                registrationOpen;
+                registrationOpen &&
+                // The event's own gate as well as the fest-wide one: an
+                // organiser can close a single full event while the rest of
+                // the fest keeps taking entries, and addMember refuses that
+                // server-side either way. `!== false` because events created
+                // before the flag existed have no value and count as open.
+                event.registration_open !== false;
               // The plain resume-payment link is only for a first payment that
               // never completed — a top-up gets its own resume button instead.
               // A rejected *free* registration has no payment to redo, just a
@@ -297,6 +304,17 @@ export default function MyRegistrations() {
                       registrationId={r.id}
                       canUpload={r.member_index === 0}
                       filename={r.submission_filename}
+                    />
+                  )}
+                  {/* Per person, not per team — every holder answers for
+                      themselves. An undated event has no window to open, so
+                      it shows nothing at all rather than a dead control. */}
+                  {r.status === "completed" && r.feedback_state !== "undated" && (
+                    <EventFeedback
+                      registrationId={r.id}
+                      initial={r.my_feedback}
+                      state={r.feedback_state}
+                      closesAt={r.feedback_closes_at}
                     />
                   )}
                 </div>

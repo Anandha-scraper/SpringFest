@@ -27,3 +27,14 @@ export const STUDY_YEARS = ["1", "2", "3", "4", "PG"];
 
 /** "Year 2" for numeric years, bare "PG" for postgrads. */
 export const yearLabel = (y) => (y === "PG" ? "PG" : `Year ${y}`);
+
+/** Which event fields the admin form must disable, mirroring the two sets in
+ *  backend/services/event.service.js — keep in sync with them.
+ *
+ *  ALWAYS_LOCKED_EVENT_FIELDS is immutable from the moment an event exists;
+ *  LOCKED_EVENT_FIELDS freezes only once the event has registrations, because
+ *  the allocation code SF<category><event><n> is derived from those two. The
+ *  server enforces both; these exist so the form greys out the right inputs
+ *  and never PATCHes a field that would 403. */
+export const ALWAYS_LOCKED_EVENT_FIELDS = ["fee"];
+export const LOCKED_EVENT_FIELDS = ["name", "category"];
