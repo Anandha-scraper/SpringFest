@@ -299,6 +299,17 @@ export default function MyRegistrations() {
                   {topupReview && (
                     <p className="muted myreg-event__note">New teammate's payment is under review.</p>
                   )}
+                  {/* Why it was turned down, on the screen the participant
+                      actually looks at. The reason was only ever shown on the
+                      resubmit form, and that form is reached through a link
+                      that a *free* rejected registration never gets — so for
+                      those it was invisible everywhere. */}
+                  {r.status === "rejected" && r.review_note && (
+                    <div className="notice notice-warn myreg-event__note">
+                      <strong>Not approved</strong>
+                      <p>{r.review_note}</p>
+                    </div>
+                  )}
                   {event.allow_submissions && r.status === "completed" && (
                     <EventSubmission
                       registrationId={r.id}

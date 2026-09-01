@@ -164,7 +164,11 @@ export const getAdminStats = () => req("/admin/stats", {}, true);
 export const getAuthUsers = () => req("/admin/auth-users", {}, true);
 
 /** One row per person, with their events rolled up. The Registrations screen. */
-export const getParticipants = () => req("/admin/participants", {}, true);
+/** One row per ticket holder — teammates included, not just the people who
+ *  created a registration. Approved only unless `status` asks otherwise; the
+ *  admin table uses "rejected" for its rejected-only view. */
+export const getParticipants = (status) =>
+  req(`/admin/participants${status ? `?status=${encodeURIComponent(status)}` : ""}`, {}, true);
 
 /** One row per person: every event they hold, their door mark, per-event
  *  check-in and scoring state. The Attendance screen. */

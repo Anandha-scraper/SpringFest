@@ -4,6 +4,7 @@
  * stay a single readable list of checks instead of duplicating regexes.
  */
 import { ApiError } from "./ApiError.js";
+import { normalizeEmail, normalizePhone } from "./identity.js";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -127,4 +128,52 @@ export function parseTeamMember(raw, index) {
     phone: requirePhone(raw?.phone, { field: `${prefix}.phone` }),
     ...parseParticipantDetails(raw, prefix),
   };
+}
+
+/** Nobody may occupy two seats on the same registration.
+ *
+ * Each holder is validated in isolation by `parseTeamMember`, so nothing
+ * stopped the lead typing their own address in as a teammate, or two members
+ * sharing one. That is not a hypothetical: it is what produced duplicate
+ * React keys in the admin's person dialog, and it would make the per-event
+ * uniqueness claims below conflict with themselves inside a single write.
+ *
+ * A 400 rather than a 409: this is a malformed roster, caught before any
+ * Firestore work, not a conflict with anything already stored.
+ *
+ * `holders` is `services/qr.js`'s `ticketHolders()` shape — index 0 is the
+ * lead — so the message can name the seat the way the form numbers it.
+ */
+export function assertUniqueHolders(holders) {
+  const seat = (i) => (i === 0 ? "the team lead" : `Member ${i + 1}`);
+  const seenEmail = new Map();
+  const seenPhone = new Map();
+
+  (holders || []).forEach((holder, i) => {
+    const email = normalizeEmail(holder?.email);
+    if (email) {
+      const first = seenEmail.get(email);
+      if (first !== undefined) {
+        throw new ApiError(
+          400,
+          `${i === 0 ? "email" : `members[${i - 1}].email`}: ${email} is already used by ` +
+            `${seat(first)} — everyone on a team needs their own email address.`
+        );
+      }
+      seenEmail.set(email, i);
+    }
+
+    const phone = normalizePhone(holder?.phone);
+    if (phone) {
+      const first = seenPhone.get(phone);
+      if (first !== undefined) {
+        throw new ApiError(
+          400,
+          `${i === 0 ? "phone" : `members[${i - 1}].phone`}: ${phone} is already used by ` +
+            `${seat(first)} — everyone on a team needs their own phone number.`
+        );
+      }
+      seenPhone.set(phone, i);
+    }
+  });
 }

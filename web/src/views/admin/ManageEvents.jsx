@@ -524,7 +524,12 @@ export default function ManageEvents() {
                         <td>{ev.venue_name || <span className="cell-sub">Unassigned</span>}</td>
                         <td className="cell-nowrap">{formatEventTime(ev) || "—"}</td>
                         <td className="num">{ev.fee > 0 ? rupees(ev.fee) : "Free"}</td>
-                        <td className="row-actions">
+                        {/* The flex container goes *inside* the cell, not on
+                            it: `display:flex` on a <td> throws away its
+                            vertical-align, which is why these two buttons sat
+                            adrift of the rest of the row. */}
+                        <td className="row-actions-cell">
+                          <div className="row-actions">
                           <button className="btn btn-ghost btn-sm" type="button" onClick={() => edit(ev)}>
                             Edit
                           </button>
@@ -545,6 +550,7 @@ export default function ManageEvents() {
                           >
                             Delete
                           </button>
+                          </div>
                         </td>
                       </tr>
                     ))}

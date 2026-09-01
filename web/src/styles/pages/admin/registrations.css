@@ -71,3 +71,36 @@
   font-size: 0.82rem;
 }
 
+
+/* ── Status column toggle ────────────────────────────────────── */
+/* The Status header doubles as the only door to rejected registrations, so it
+   has to read as pressable while still looking like a column heading. */
+.th-toggle {
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  color: inherit;
+}
+.th-toggle:hover {
+  color: var(--accent);
+}
+
+/* ── Mobile: drop the two columns the drawer already carries ──── */
+/* College and Contact are both one tap away in the detail drawer, so on a
+   phone they are the two worth surrendering to give the rest room.
+   `table-layout: fixed` is dropped along with them rather than trying to
+   rebalance the <colgroup>: with two of its eight <col>s no longer matching a
+   rendered cell, fixed layout distributes the leftover width unpredictably.
+   Auto layout just sizes the six that remain. */
+@media (max-width: 560px) {
+  .reg-table-wrap .data-table--fixed {
+    table-layout: auto;
+    min-width: 32rem;
+  }
+  .reg-table-wrap th:nth-child(2),
+  .reg-table-wrap th:nth-child(3),
+  .reg-table-wrap td:nth-child(2),
+  .reg-table-wrap td:nth-child(3) {
+    display: none;
+  }
+}

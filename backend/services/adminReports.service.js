@@ -9,6 +9,7 @@
 import { getDb } from "../config/firebase.js";
 import { ApiError } from "../utils/ApiError.js";
 import {
+  assertUniqueHolders,
   optionalString,
   parseParticipantDetails,
   parseTeamMember,
@@ -17,6 +18,8 @@ import {
   requireString,
 } from "../utils/validate.js";
 import * as aggregate from "./aggregate.js";
+import { writeWithClaims } from "./registration.service.js";
+import { ticketHolders } from "./qr.js";
 import { averageRating } from "./feedback.service.js";
 
 export const CSV_COLUMNS = [
@@ -113,7 +116,26 @@ export async function editRegistration(registrationId, body) {
   }
   if (!Object.keys(changes).length) throw new ApiError(400, "Nothing to update");
 
-  await regRef.set(changes, { merge: true });
+  const next = { ...row, ...changes };
+  // Same roster rule the participant form is held to — an admin fixing a typo
+  // must not be able to put one address on two seats.
+  assertUniqueHolders(ticketHolders(next));
+
+  // This is the second write path for emails and phone numbers, so it has to
+  // move their claims too: release what this registration no longer holds and
+  // claim what it now does, in the same transaction as the edit. Without it an
+  // admin's correction would leave the old address locked and the new one
+  // unreserved.
+  const data = await aggregate.loadAll();
+  await writeWithClaims(getDb(), {
+    regRef,
+    regDoc: changes,
+    merge: true,
+    eventId: row.event_id || "",
+    eventName: aggregate.eventName(data.events, row.event_id || ""),
+    holders: ticketHolders(next),
+    previousHolders: ticketHolders(row),
+  });
   aggregate.invalidateLoadAll();
   return { id: regRef.id, ...row, ...changes };
 }

@@ -64,12 +64,12 @@ export const fest = {
   ],
 
   contact: {
-    faculty: { name: "Mr. V. PRAKASHAM", phone: "99651 90985" },
+    faculty: { name: "Mr. V. PRAKASHAM", phone: "+91 99651 90985" },
     students: [
-      { name: "DHIVAGAR P.R", phone: "7339224113" },
-      { name: "PRAVEEN K", phone: "638179634" },
-      { name: "BAARHAVI M D", phone: "6369163774" },
-      { name: "SANGAMITHA P", phone: "7010699283" },
+      { name: "DHIVAGAR P.R", phone: "+91 7339224113" },
+      { name: "PRAVEEN K", phone: "+91 6381796344" },
+      { name: "BAARHAVI M D", phone: "+91 6369163774" },
+      { name: "SANGAMITHA P", phone: "+91 7010699283" },
     ],
     mapEmbed:
       "https://www.google.com/maps?q=K.S.R.%20College%20of%20Engineering%2C%20Tiruchengode&output=embed",

@@ -14,7 +14,20 @@ import { settings } from "../config/index.js";
 import { getDb, getStorage } from "../config/firebase.js";
 
 const CONFIRM = process.argv.includes("--yes");
-const FULL_WIPE_COLLECTIONS = ["events", "registrations", "venues", "fest_checkins"];
+// `registration_claims` is not optional here: those documents are what make
+// an email or phone number unavailable, so leaving them behind would wipe the
+// fest and then refuse every re-registration. `counters` likewise — allocation
+// numbering is keyed on the event id, which is the slugified name, so
+// recreating an event with the same name used to resume numbering from the
+// old count.
+const FULL_WIPE_COLLECTIONS = [
+  "events",
+  "registrations",
+  "venues",
+  "fest_checkins",
+  "registration_claims",
+  "counters",
+];
 const STORAGE_PREFIXES = ["payment-proofs/", "payment-qr/", "submissions/"];
 
 async function deleteQuery(query, label) {

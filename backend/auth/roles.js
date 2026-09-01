@@ -17,6 +17,7 @@
  */
 
 import { settings } from "../config/index.js";
+import { normalizeEmail } from "../utils/identity.js";
 import { getDb } from "../config/firebase.js";
 
 export const ROLE_ADMIN = "admin";
@@ -36,9 +37,11 @@ export const ASSIGNABLE_ROLES = new Set([ROLE_ADMIN, ROLE_VOLUNTEER]);
 
 export const COLLECTION = "roles";
 
-export function normalizeEmail(email) {
-  return (email || "").trim().toLowerCase();
-}
+/** Re-exported, not redefined: utils/identity.js is the single definition of
+ * "the same email", shared with the admin rollups and the registration write
+ * path. A second copy here is how the three definitions this codebase used to
+ * carry got out of step in the first place. */
+export { normalizeEmail };
 
 /** The caller's role, plus whatever they've been assigned (a volunteer's
  * venue_id) — one Firestore read, not two.

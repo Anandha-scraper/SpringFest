@@ -531,3 +531,32 @@
     transition: none;
   }
 }
+
+/* ── "click here" hint beside REGISTER ───────────────────────── */
+/* Uses the poster's own token palette (--dp-*), so it inverts with
+   .doodlepro.is-flipped for free rather than needing a dark-mode branch.
+   Sized off the same mono micro-type as .doodlepro__label. The footer's
+   space-between pushes this to the left edge and the button to the right;
+   `flex: 0 1 auto` + min-width:0 lets the hint give way first, since the
+   button's ~91px is the part that must never wrap. */
+.doodlepro__hint {
+  flex: 0 1 auto;
+  min-width: 0;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 0.58rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--dp-muted);
+  white-space: nowrap;
+  transform: rotate(-3deg);
+  transition: color 0.5s ease;
+}
+
+/* Below the small-phone breakpoint the footer has no room to spare — the
+   button alone fills it. Same 400px threshold .doodlepro__arrow uses. */
+@media (max-width: 400px) {
+  .doodlepro__hint {
+    display: none;
+  }
+}

@@ -36,7 +36,7 @@ function Entries({ entries }) {
   return (
     <ul className="attendance-entries">
       {entries.map((e) => {
-        const lead = e.holders.find((h) => h.member_index === 0);
+        const leadName = e.lead_name;
         const isLeadRow = e.member_index === 0;
         return (
           <li key={e.registration_id} className="attendance-entry">
@@ -48,7 +48,17 @@ function Entries({ entries }) {
             </div>
 
             <div className="attendance-entry__marks">
-              <Mark on={e.checked_in} yes="Checked in" no={e.ever_checked_in ? "Checked out" : "Not checked in"} />
+              {/* Before the event's own day there is nothing to report — and
+                  "not arrived" must not be said about someone whose event
+                  hasn't happened. `day_state` is computed server-side because
+                  the window is a fest-timezone comparison. */}
+              {e.day_state === "before" || e.day_state === "undated" ? (
+                <span className="cell-sub">
+                  {e.day_state === "undated" ? "No date set" : "Not started yet"}
+                </span>
+              ) : (
+                <Mark on={e.ever_checked_in} yes="Arrived" no="Not arrived" />
+              )}
               {e.status !== "completed" && (
                 <span className={`status-pill status-pill--${e.status || "unknown"}`}>{e.status}</span>
               )}
@@ -61,9 +71,9 @@ function Entries({ entries }) {
               )}
             </div>
 
-            {e.is_team && !isLeadRow && lead && (
+            {e.is_team && !isLeadRow && leadName && (
               <p className="cell-sub attendance-entry__lead-ref">
-                On {lead.name || "the team"}’s roster — see their row for everyone on it.
+                On {leadName || "the team"}’s roster.
               </p>
             )}
 
@@ -112,7 +122,6 @@ export default function Attendance() {
         // A teammate who never leads anything has no row of their own — see
         // attendance.service.js — so searching their name has to match here,
         // inside the lead's own entry, or they'd be unfindable.
-        ...p.entries.flatMap((e) => e.holders.map((h) => h.name)),
       ]
         .filter(Boolean)
         .some((v) => String(v).toLowerCase().includes(q))

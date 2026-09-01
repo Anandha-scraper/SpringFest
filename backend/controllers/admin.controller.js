@@ -8,6 +8,7 @@
 import { IMAGE_TYPES } from "../middleware/upload.js";
 import * as adminReports from "../services/adminReports.service.js";
 import * as aggregate from "../services/aggregate.js";
+import { STATUS_COMPLETED, STATUS_REJECTED } from "../utils/statuses.js";
 import * as approvals from "../services/approval.service.js";
 import * as attendance from "../services/attendance.service.js";
 import * as people from "../services/people.service.js";
@@ -37,7 +38,11 @@ export async function authUsers(req, res) {
 /** One row per person — the Registrations screen. See services/aggregate.js
  * for why this isn't just the registration list. */
 export async function participants(req, res) {
-  res.json(await aggregate.participantRows());
+  // Approved unless the admin explicitly asks for the rejected pile — the one
+  // other status this screen can show. Anything else would quietly hand back
+  // drafts, which is what the page was fixed to stop doing.
+  const status = req.query.status === STATUS_REJECTED ? STATUS_REJECTED : STATUS_COMPLETED;
+  res.json(await aggregate.participantRows(undefined, status));
 }
 
 /** One row per person, with every event they hold and where each has got to —

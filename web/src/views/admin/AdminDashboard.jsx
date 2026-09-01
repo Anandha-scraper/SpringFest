@@ -35,7 +35,10 @@ export default function AdminDashboard() {
         <div className="stat-cards">
           {/* Sign-ins, not registration rows: every non-staff Google account. */}
           <StatCard label="Signed-in Users" value={authUsers?.participants ?? stats.signed_users} />
-          {/* People, not rows: someone who enters four events is one signed user. */}
+          {/* Approved people, and every ticket holder — a teammate counts as much
+              as whoever filled the form in. Someone entering four events is
+              still one person. Drafts and rejections are not counted: they
+              are not people who are coming. */}
           <StatCard label="Registered Users" value={stats.signed_users} />
           {/* People who cleared the fest-entry door — live all fest, not just
               on registration day. A separate axis from event check-in and
@@ -75,7 +78,6 @@ export default function AdminDashboard() {
                   <th>Event</th>
                   <th className="num">Registrations</th>
                   <th className="num">Checked in</th>
-                  <th className="num">Completed</th>
                   <th>Volunteer</th>
                 </tr>
               </thead>
@@ -92,7 +94,6 @@ export default function AdminDashboard() {
                     </td>
                     <td className="num">{v.registrations}</td>
                     <td className="num">{v.checked_in}</td>
-                    <td className="num">{v.completed}</td>
                     <td>{v.volunteers.join(", ") || <span className="cell-sub">—</span>}</td>
                   </tr>
                 ))}

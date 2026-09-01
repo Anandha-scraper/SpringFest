@@ -30,8 +30,12 @@ export default function PersonDetailsDialog({ open, onClose, title, subtitle, pe
         </AlertDialogHeader>
 
         <ul className="team-list person-list">
+          {/* Keyed on position, not email. A roster can legitimately repeat an
+              address — a lead typed in as their own teammate, say — and a
+              display component must never crash on the data it is handed,
+              whatever the write path allows. */}
           {people.map((p, i) => (
-            <li key={p.email || i}>
+            <li key={`${p.email || "anon"}-${i}`}>
               <span>
                 <strong>{p.name || "—"}</strong>
                 {p.lead && <span className="status-pill status-pill--lead">lead</span>}
