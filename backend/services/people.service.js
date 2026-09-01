@@ -1,5 +1,5 @@
-/** Admin-side role management: who is a judge, who is a volunteer, and what
- * each of them is assigned to.
+/** Admin-side role management: who is a volunteer, and what they're assigned
+ * to.
  *
  * The role *resolution* rules live in auth/roles.js — this is the write side
  * plus the guards that only matter when an admin is doing the writing (you
@@ -60,7 +60,9 @@ export async function addPerson({ body, actorEmail }) {
   return row;
 }
 
-/** Judges get events, volunteers get a venue. */
+/** Volunteers get a venue — and, since the venue backs exactly one event, that
+ * is also what they check people into and score. There is no per-event
+ * assignment any more: it belonged to the judge role, which was folded in. */
 export async function setAssignments({ email, body }) {
   const key = roles.normalizeEmail(email);
   const db = getDb();
@@ -68,26 +70,6 @@ export async function setAssignments({ email, body }) {
   const doc = await db.collection(roles.COLLECTION).doc(key).get();
   if (!doc.exists) throw new ApiError(404, "No role record for that address");
   const role = doc.data()?.role;
-
-  const eventIds = body.event_ids;
-  if (eventIds !== undefined && eventIds !== null) {
-    if (role !== roles.ROLE_JUDGE) throw new ApiError(400, "Only judges are assigned to events");
-    const eventsSnap = await db.collection("events").get();
-    const events = Object.fromEntries(
-      eventsSnap.docs.map((d) => [d.id, { id: d.id, ...(d.data() ?? {}) }])
-    );
-    const missing = eventIds.filter((e) => !events[e]);
-    if (missing.length) throw new ApiError(404, `Unknown event(s): ${missing.join(", ")}`);
-    // A judge can hold several events but can't be in two rooms at once.
-    const clash = roles.findConflict(eventIds, events);
-    if (clash) {
-      const [first, second] = clash;
-      throw new ApiError(
-        409,
-        `"${first.name}" and "${second.name}" overlap in time — a judge can't cover both.`
-      );
-    }
-  }
 
   const venueId = body.venue_id;
   if (venueId !== undefined && venueId !== null) {
@@ -100,7 +82,6 @@ export async function setAssignments({ email, body }) {
   }
 
   const row = await roles.setAssignments(key, {
-    eventIds: eventIds === null ? undefined : eventIds,
     venueId: venueId === null ? undefined : venueId,
   });
   aggregate.invalidateLoadAll();

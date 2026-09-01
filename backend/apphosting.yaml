@@ -1,0 +1,57 @@
+# App Hosting backend #2 — the Express API.
+#
+# Create it with the repo's Root directory set to `backend`:
+#   firebase apphosting:backends:create --project <id>   # root directory: backend
+#
+# This used to be the *only* backend: backend/server.js served both /api and the
+# built Vite SPA from one origin, which is why the old root apphosting.yaml
+# carried the VITE_* build vars too. Next.js owns serving the frontend now, so
+# those moved to web/apphosting.yaml and this file is the API alone.
+#
+# FIREBASE_CREDENTIALS is deliberately absent: App Hosting runs on Application
+# Default Credentials and config/firebase.js falls back to them when no key file
+# exists. Give this backend's service account the Cloud Datastore User role.
+
+runConfig:
+  minInstances: 1
+  maxInstances: 10
+  concurrency: 100
+  cpu: 4
+  memoryMiB: 4096
+
+env:
+  - variable: FIRESTORE_DATABASE_ID
+    secret: FIRESTORE_DATABASE_ID
+    availability:
+      - RUNTIME
+
+  - variable: CORS_ORIGINS
+    secret: CORS_ORIGINS
+    availability:
+      - RUNTIME
+
+  - variable: ADMIN_EMAILS
+    secret: ADMIN_EMAILS
+    availability:
+      - RUNTIME
+
+  # Publishable key (reaches the browser). Swap to the live key before real payments.
+  - variable: PAYMENT_KEY_ID
+    value: "rzp_test_TUmxr2bTulNHjs"
+    availability:
+      - RUNTIME
+
+  - variable: PAYMENT_KEY_SECRET
+    secret: PAYMENT_KEY_SECRET
+    availability:
+      - RUNTIME
+
+  - variable: STORAGE_BUCKET
+    secret: STORAGE_BUCKET
+    availability:
+      - RUNTIME
+
+  - variable: QR_SECRET
+    secret: QR_SECRET
+    availability:
+      - RUNTIME

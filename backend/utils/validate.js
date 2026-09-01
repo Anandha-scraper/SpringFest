@@ -70,11 +70,11 @@ export function requireOneOf(value, allowed, { field } = {}) {
 export const STUDY_YEARS = ["1", "2", "3", "4", "PG"];
 
 /** Departments offered in the registration form. Keep in sync with
- * frontend/src/content/formOptions.js. */
+ * web/src/content/formOptions.js. */
 export const DEPARTMENTS = ["CSE", "ECE", "IT", "MECH", "EEE", "Others"];
 
 /** Event categories offered in the admin event form. Keep in sync with
- * frontend/src/content/formOptions.js.
+ * web/src/content/formOptions.js.
  *
  * Required on create rather than optional: the admin Events page groups every
  * event under one of these headings, so an event stored with an empty
@@ -82,7 +82,7 @@ export const DEPARTMENTS = ["CSE", "ECE", "IT", "MECH", "EEE", "Others"];
 export const EVENT_CATEGORIES = ["Technical", "Non-Technical", "Hackathon", "Workshop"];
 
 /** Tamil Nadu districts offered in the registration form, plus "Other" for
- * anyone outside the state — keep in sync with frontend/src/content/formOptions.js. */
+ * anyone outside the state — keep in sync with web/src/content/formOptions.js. */
 export const TN_CITIES = [
   "Ariyalur", "Chengalpattu", "Chennai", "Coimbatore", "Cuddalore", "Dharmapuri",
   "Dindigul", "Erode", "Kallakurichi", "Kancheepuram", "Kanyakumari", "Karur",
@@ -118,8 +118,8 @@ export function parseParticipantDetails(raw, prefix = "") {
   return { college, department, year, location };
 }
 
-/** An event's scoring scheme: named parameters, each with a max mark. Judges
- * score against these, and the total shown to organisers and judges is always
+/** An event's scoring scheme: named parameters, each with a max mark. Scorers
+ * score against these, and the total shown to organisers and scorers is always
  * the sum of the maxes — it is never stored. Anything that isn't an array
  * (e.g. a legacy free-text value) becomes an empty scheme rather than an
  * error, so an old event just opens with no parameters to re-enter. */
@@ -137,7 +137,7 @@ export function parseMarkingCriteria(raw, { required = false } = {}) {
   }));
 }
 
-/** A judge's score entry, checked against the event's `marking_criteria`.
+/** One scorer's entry, checked against the event's `marking_criteria`.
  * Every criterion must get a value, each an integer in `[0, max]`, and no
  * unknown labels. Returns the normalized rows plus their `total` — the total
  * is derived, never trusted from the client. */

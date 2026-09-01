@@ -13,6 +13,7 @@ export const router = Router();
 router.get("/stats", ...AdminUser, admin.stats);
 router.get("/auth-users", ...AdminUser, admin.authUsers);
 router.get("/participants", ...AdminUser, admin.participants);
+router.get("/attendance", ...AdminUser, admin.attendanceRows);
 router.get("/venues/rollup", ...AdminUser, admin.venuesRollup);
 
 // ── Events ───────────────────────────────────────────────────

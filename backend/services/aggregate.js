@@ -12,7 +12,7 @@
  * registration since the first version).
  */
 
-import { listPeople, normalizeEmail, ROLE_ADMIN, ROLE_JUDGE, ROLE_VOLUNTEER } from "../auth/roles.js";
+import { listPeople, normalizeEmail, ROLE_ADMIN, ROLE_VOLUNTEER } from "../auth/roles.js";
 import { getAuth, getDb } from "../config/firebase.js";
 import { settings } from "../config/index.js";
 import { STATUS_COMPLETED } from "../utils/statuses.js";
@@ -31,7 +31,7 @@ export { STATUS_COMPLETED };
  * separate axis on its own field.
  *
  * Nothing writes `evaluated_at` yet: the judging phase will, along with a
- * score and the judge's identity. Until then every count below reads 0, which
+ * score and the scorer's identity. Until then every count below reads 0, which
  * is the honest answer to "how many have been evaluated" before judging has
  * started. A timestamp rather than a boolean because that is how this codebase
  * records state everywhere else (paid_at, reviewed_at, proof_uploaded_at) and
@@ -83,6 +83,16 @@ export function eventName(events, eventId) {
   return events[eventId]?.name ?? eventId;
 }
 
+/** How this codebase decides two registrations belong to the same person.
+ *
+ * The Firebase uid, falling back to the email for rows written before uid was
+ * stored. Exported because the headline stats and the attendance view must
+ * agree on it: two definitions of "one person" would make "142 registered
+ * users" and a 143-row attendance list both look correct and disagree. */
+export function personKey(r) {
+  return r.uid || r.email || "unknown";
+}
+
 /** One registration as the admin detail panel wants it. */
 function registrationView(r, events) {
   return {
@@ -124,8 +134,7 @@ export async function participantRows(data) {
 
   const byUid = new Map();
   for (const r of registrations) {
-    // Fall back to the email for rows written before uid existed.
-    const key = r.uid || r.email || "unknown";
+    const key = personKey(r);
     if (!byUid.has(key)) byUid.set(key, []);
     byUid.get(key).push(r);
   }
@@ -205,7 +214,6 @@ export async function buildStats(data) {
   data = data || (await loadAll());
   const { registrations, events } = data;
 
-  const personKey = (r) => r.uid || r.email || "unknown";
   const completed = registrations.filter((r) => r.status === STATUS_COMPLETED);
 
   return {
@@ -213,7 +221,7 @@ export async function buildStats(data) {
     signed_users: new Set(registrations.map(personKey)).size,
     // Of those, the ones who paid for at least one event.
     completed_users: new Set(completed.map(personKey)).size,
-    // And of *those*, the ones a judge has actually evaluated. Reads 0 until
+    // And of *those*, the ones a scorer has actually evaluated. Reads 0 until
     // the judging phase writes evaluated_at — see isEvaluated. Kept beside
     // completed_users rather than replacing it: revenue, the CSV and the
     // approvals queue all still mean "paid".
@@ -233,15 +241,16 @@ export async function buildStats(data) {
  *
  * The organisers want a real "how many people signed in" headline, but an
  * attendee is anyone with a Google account on the project, and the project
- * also holds the organisers' own accounts (admins/judges/volunteers) who are
- * staff, not attendees. So this enumerates auth and subtracts staff — a login
- * that isn't admin, judge or volunteer is a participant by definition (see
- * roles.js: no record = participant).
+ * also holds the organisers' own accounts (admins/volunteers) who are staff,
+ * not attendees. So this enumerates auth and subtracts staff — a login that
+ * isn't admin or volunteer is a participant by definition (see roles.js: no
+ * record = participant).
  *
  * Enumeration is `listUsers`, paginated, matching the account's `email`. Staff
  * is the union of seeded `ADMIN_EMAILS` plus every document in the `roles`
- * collection whose role is admin/judge/volunteer. Returns both the participant
- * count and the raw staff count so callers could probe either.
+ * collection whose role is admin/volunteer (or a not-yet-migrated judge).
+ * Returns both the participant count and the raw staff count so callers could
+ * probe either.
  */
 export async function countAuthByRole() {
   const db = getDb();
@@ -250,7 +259,10 @@ export async function countAuthByRole() {
   const rolesSnap = await db.collection("roles").get();
   for (const doc of rolesSnap.docs) {
     const role = doc.data()?.role;
-    if (role === ROLE_ADMIN || role === ROLE_JUDGE || role === ROLE_VOLUNTEER) {
+    // "judge" is still matched: a role document that predates the fold into
+    // volunteer is still an organiser's account, and must not be counted as
+    // an attendee just because the migration script hasn't run yet.
+    if (role === ROLE_ADMIN || role === "judge" || role === ROLE_VOLUNTEER) {
       staffEmails.add(normalizeEmail(doc.id));
     }
   }
@@ -295,9 +307,8 @@ export async function venueRollup(data) {
       registrations: regs.length,
       checked_in: regs.filter((r) => r.checked_in).length,
       completed: regs.filter((r) => r.status === STATUS_COMPLETED).length,
-      judges: people
-        .filter((p) => p.role === ROLE_JUDGE && (p.event_ids || []).some((id) => eventIds.has(id)))
-        .map((p) => p.name || p.email),
+      // One list, not two: the volunteers on this venue are also the people
+      // who score its event now that the judge role is gone.
       volunteers: people
         .filter((p) => p.role === ROLE_VOLUNTEER && p.venue_id === vid)
         .map((p) => p.name || p.email),
@@ -351,9 +362,7 @@ export async function eventRollup(data) {
       // Payment, unchanged — kept so the card can show who actually paid.
       completed: regs.filter((r) => r.status === STATUS_COMPLETED).length,
       evaluated,
-      judges: people
-        .filter((p) => p.role === ROLE_JUDGE && (p.event_ids || []).includes(eid))
-        .map((p) => p.name || p.email),
+      // Whoever staffs the venue staffs the event — check-in and scoring both.
       volunteers: people
         .filter((p) => p.role === ROLE_VOLUNTEER && p.venue_id === event.venue_id)
         .map((p) => p.name || p.email),

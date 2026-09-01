@@ -1,6 +1,9 @@
 node_modules/
 dist/
+.next/
 .env
+# Next reads .env.local / .env.<mode>.local; plain `.env` above misses those.
+.env*.local
 serviceAccountKey.json
 .firebase/
 firebase-debug.log

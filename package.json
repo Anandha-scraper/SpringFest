@@ -6,27 +6,15 @@
     "node": ">=20"
   },
   "comments": [
-    "Firebase App Hosting entry point for the whole repo (root directory = /).",
-    "The Node buildpack runs: npm install -> npm run build -> npm start.",
-    "`build` compiles the Vite SPA into frontend/dist; `start` runs the Express",
-    "server (backend/server.js), which serves both /api and that SPA build.",
-    "dependencies here mirror backend/package.json so they land in the runtime",
-    "image. backend/ and frontend/ keep their own package.json for local dev."
+    "Dev convenience only. The repo deploys as TWO Firebase App Hosting backends,",
+    "each with its own root directory and apphosting.yaml — `web` (Next.js) and",
+    "`backend` (the Express API). Neither reads this file.",
+    "The Vite SPA that used to live in frontend/ is gone; web/ replaced it, and",
+    "keeping both meant every fix had to be written twice."
   ],
   "scripts": {
-    "build": "npm --prefix frontend install && npm --prefix frontend run build",
-    "start": "node backend/server.js",
     "dev:backend": "npm --prefix backend run dev",
-    "dev:frontend": "npm --prefix frontend run dev"
-  },
-  "dependencies": {
-    "compression": "^1.7.5",
-    "cors": "^2.8.5",
-    "dotenv": "^16.4.5",
-    "express": "^5.0.1",
-    "firebase-admin": "^13.0.0",
-    "multer": "^2.3.0",
-    "qrcode": "^1.5.4",
-    "razorpay": "^2.9.4"
+    "dev:web": "npm --prefix web run dev",
+    "build:web": "npm --prefix web run build"
   }
 }

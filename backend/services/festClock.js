@@ -48,6 +48,75 @@ export function eventEnded(event, now = new Date()) {
   return `${event.date}T${event.end_time || "23:59"}` < nowInFestZone(now);
 }
 
+/** How long after an event's `end_time` scores can still be entered.
+ *
+ * Scoring genuinely finishes after the event does — the last team presents,
+ * then the room deliberates — and a hard stop at `end_time` would throw that
+ * work away with no way to get it back. Admins bypass the clock entirely
+ * (see evaluation.service.js), so this is the volunteer's safety margin, not
+ * the fest's only escape hatch. */
+export const EVALUATION_GRACE_MINUTES = 120;
+
+/** An event's [start, end) as fest wall-clock strings, or null when it has no
+ * date. Defaults match eventEnded()/festStartWallClock(): a missing time means
+ * "all day". */
+export function eventWindow(event) {
+  if (!event?.date) return null;
+  return {
+    opensAt: `${event.date}T${event.start_time || "00:00"}`,
+    closesAt: `${event.date}T${event.end_time || "23:59"}`,
+  };
+}
+
+/** Wall-clock string + N minutes, as calendar arithmetic.
+ *
+ * Date.UTC is used purely as a calendar here — never as a timezone. Parsing
+ * the string as local time instead would make the result depend on the
+ * server's own zone and its DST rules; this way "13:00 + 120" is 15:00 on any
+ * machine. */
+function addMinutes(wallClock, minutes) {
+  if (!minutes) return wallClock;
+  const [date, time = "00:00"] = wallClock.split("T");
+  const [y, m, d] = date.split("-").map(Number);
+  const [hh, mm] = time.split(":").map(Number);
+  const shifted = new Date(Date.UTC(y, m - 1, d, hh, mm) + minutes * 60000);
+  const p = (n) => String(n).padStart(2, "0");
+  return (
+    `${shifted.getUTCFullYear()}-${p(shifted.getUTCMonth() + 1)}-${p(shifted.getUTCDate())}` +
+    `T${p(shifted.getUTCHours())}:${p(shifted.getUTCMinutes())}`
+  );
+}
+
+/** Assert that *this specific event* is running right now.
+ *
+ * `assertFestCheckinOpen()` above only answers "has the fest begun" — which is
+ * true all weekend once the earliest event starts. This is the per-event gate:
+ * a volunteer can't check people into an 11:00 event at 09:00, or score one
+ * that finished hours ago.
+ *
+ * `graceMinutes` extends only the closing bound. The message always names the
+ * event's real `end_time`, not the extended one — telling someone scoring
+ * "closed at 15:00" for an event that ended at 13:00 would just be confusing.
+ */
+export function assertEventWindowOpen(
+  event,
+  { graceMinutes = 0, what = "Check-in", now: at = new Date() } = {}
+) {
+  const name = event?.name || "this event";
+  const window = eventWindow(event);
+  if (!window) {
+    throw new ApiError(409, `"${name}" has no date set yet — an organiser needs to schedule it.`);
+  }
+
+  const now = nowInFestZone(at);
+  if (now < window.opensAt) {
+    throw new ApiError(403, `${what} for "${name}" opens at ${humanStart(window.opensAt)}.`);
+  }
+  if (now >= addMinutes(window.closesAt, graceMinutes)) {
+    throw new ApiError(403, `${what} for "${name}" closed at ${humanStart(window.closesAt)}.`);
+  }
+}
+
 export function festStarted(events, now = new Date()) {
   const start = festStartWallClock(events);
   if (!start) return false;
