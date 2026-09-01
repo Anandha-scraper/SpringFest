@@ -10,11 +10,11 @@ are just waiting.
 ```
 [ ] 1. ./deploy/setup-secrets.sh                      one command, all 11 secrets
 [ ] 2. create the API backend      root: backend      firebase apphosting:backends:create
-[ ] 3. ./deploy/setup-secrets.sh --api-origin <url>   paste the URL from step 2
+[ ] 3. ./deploy/setup-secrets.sh --api-origin "https://…"   ⚠ quote it — see below
 [ ] 4. create the web backend      root: web          firebase apphosting:backends:create
 [ ] 5. IAM: Cloud Datastore User   both service accounts
 [ ] 6. custom domain               web backend only, then DNS at your registrar
-[ ] 7. ./deploy/verify.sh <url>    9 automated checks
+[ ] 7. ./deploy/verify.sh "https://…"    9 automated checks
 [ ] 8. sign in and click through   the part no script can do
 ```
 
@@ -90,8 +90,13 @@ handshake is the reason this step can't be scripted.
 After step 2, copy the API backend's URL and run:
 
 ```bash
-./deploy/setup-secrets.sh --api-origin https://springfest-api--….run.app
+./deploy/setup-secrets.sh --api-origin "https://springfest-api--….run.app"
 ```
+
+> **Quote the URL.** An unquoted `<...>` or a bare URL containing characters bash treats
+> specially (it usually doesn't, but a copy-paste artifact might) can be misread as
+> shell redirection — `bash: syntax error near unexpected token`. Nothing breaks when
+> that happens; the command just never ran. Wrap the URL in quotes and it's a non-issue.
 
 Then create the web backend. Once both exist:
 

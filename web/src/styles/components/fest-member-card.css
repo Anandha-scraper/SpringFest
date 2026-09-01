@@ -1,98 +1,52 @@
-/* FestMemberCard — plain-CSS port of the supplied styled-components "John
-   Doe" team card, scoped under .fest-member-card so the generic `.card` /
-   `.btn` names inside can't leak. Keeps the neo-brutalist frame (white bg,
-   2px dark border, offset box-shadow, rounded) and the illustrated CSS-drawn
-   portrait, compacted to sit inside the footer's ~180px row.
-
-   The reference's `.card-photo::before` / `.card-photo::after` are deleted
-   (as the author instructed): the portrait is a single background image. */
+/* FestMemberCard — a single-line "Developed by Kumaran" badge in the footer.
+   Used to be a full card with a portrait photo; the photo is gone, so this
+   is now just a text pill plus the same three social links, in the same
+   neo-brutalist frame (dark border, offset shadow) as the rest of the site
+   (see ComicButton / RegisterButton for the same pattern). */
 
 .fest-member-card {
-  --font-color: #323232;
-  --font-color-sub: #666;
-  --bg-color: #fff;
-  --main-color: #323232;
+  --font-color: #fff;
+  --main-color: #fff;
 
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-
-  width: 132px;
-  min-height: 154px;
-  padding: 12px 14px;
-
-  background: var(--bg-color);
-  border: 2px solid var(--main-color);
-  box-shadow: 4px 4px var(--main-color);
-  border-radius: 8px;
-}
-
-/* ── Portrait ──────────────────────────────────────────────── */
-.fest-member-card .card-photo {
-  width: 92px;
-  height: 92px;
-  border-radius: 30%;
-  background-color: #ccc;
-  background-repeat: no-repeat;
-  background-position: center top;
-  background-size: cover;
-  border: 2px solid var(--main-color);
-  transition: transform 0.3s ease;
-}
-.fest-member-card .card-photo:hover {
-  transform: scale(1.08);
-}
-
-/* ── Title ─────────────────────────────────────────────────── */
-.fest-member-card .card-title {
-  text-align: center;
-  color: var(--font-color);
-  font-size: 13px;
-  font-weight: 700;
-  line-height: 1.2;
-  margin-top: 10px;
-  font-family: var(--font-body);
-}
-.fest-member-card .card-title span {
-  display: block;
-  font-size: 10px;
-  font-weight: 400;
-  color: var(--font-color-sub);
-  margin-top: 2px;
-}
-
-/* ── Socials ───────────────────────────────────────────────── */
-.fest-member-card .card-socials {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  height: 0;
-  margin-top: 0;
-  opacity: 0;
-  overflow: hidden;
-  transition: opacity 0.4s ease, height 0.4s ease, margin-top 0.4s ease;
-}
-.fest-member-card:hover .card-socials {
-  opacity: 1;
-  height: 30px;
-  margin-top: 12px;
-}
-.fest-member-card .card-socials-btn {
   display: inline-flex;
-  width: 22px;
-  height: 22px;
-  border: none;
-  background: transparent;
-  padding: 0;
-  cursor: pointer;
+  align-items: center;
+  gap: 10px;
+
+  padding: 8px 14px;
+
+  background: rgba(255, 255, 255, 0.06);
+  border: 2px solid var(--main-color);
+  box-shadow: 3px 3px var(--main-color);
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.fest-member-card__label {
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--font-color);
+}
+
+.fest-member-card__socials {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.fest-member-card__social-btn {
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
   color: var(--main-color);
-  transition: transform 0.15s ease;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+  opacity: 0.85;
 }
-.fest-member-card .card-socials-btn:hover {
-  transform: translateY(-4px);
+.fest-member-card__social-btn:hover {
+  transform: translateY(-2px);
+  opacity: 1;
 }
-.fest-member-card .card-socials-btn svg {
+.fest-member-card__social-btn svg {
   width: 100%;
   height: 100%;
   fill: var(--main-color);
