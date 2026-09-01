@@ -9,7 +9,10 @@ import { formatEventTime } from "@/utils/format.js";
 const SCANNER_ID = "volunteer-qr-scanner";
 const RESCAN_GUARD_MS = 2000;
 
-/** One event row for the scanned person, with an event check-in/out toggle. */
+/** One event row for the scanned person, with a one-way check-in control.
+ * Once `reg.checked_in` is true there is nothing left to click — the backend
+ * rejects a check-out outright (services/checkin.service.js), so the row
+ * shows a plain mark instead of a button that would only ever fail. */
 function EventRow({ reg, onToggle, busy }) {
   const blocked = reg.status !== "completed" || !reg.can_event_check_in;
   const why =
@@ -37,23 +40,21 @@ function EventRow({ reg, onToggle, busy }) {
           <span className="muted checkin-row__team">Another venue's event</span>
         )}
       </div>
-      <button
-        type="button"
-        className={`btn btn-sm ${reg.checked_in ? "btn-ghost" : ""}`}
-        disabled={busy || blocked}
-        onClick={() => onToggle(reg, !reg.checked_in)}
-        title={why}
-      >
-        {reg.checked_in ? (
-          <>
-            <CheckCircle2 size={15} aria-hidden="true" /> Checked in
-          </>
-        ) : (
-          <>
-            <Circle size={15} aria-hidden="true" /> Check in
-          </>
-        )}
-      </button>
+      {reg.checked_in ? (
+        <span className="checkin-mark">
+          <CheckCircle2 size={15} aria-hidden="true" /> Checked in
+        </span>
+      ) : (
+        <button
+          type="button"
+          className="btn btn-sm"
+          disabled={busy || blocked}
+          onClick={() => onToggle(reg, true)}
+          title={why}
+        >
+          <Circle size={15} aria-hidden="true" /> Check in
+        </button>
+      )}
     </li>
   );
 }

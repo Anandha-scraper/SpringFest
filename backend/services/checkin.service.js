@@ -11,7 +11,9 @@
  *
  *   2. Event check-in — only the volunteer covering that event's venue (or an
  *      admin) checks a participant in *for that event*. Per member, per event,
- *      via `member_checkins[]` on the registration doc, check-out supported.
+ *      via `member_checkins[]` on the registration doc. **One-way**: there is
+ *      no check-out. Once a member is marked in, that entry is final — a
+ *      mis-scan has no undo through the app, only a direct Firestore edit.
  *      Gated on *that event's own day* (00:00–23:59, fest zone), not the
  *      fest's day, and not the event's exact start/end times either — a team
  *      arriving before the posted start or needing checking in after it isn't
@@ -25,7 +27,7 @@ import { verifyPersonToken } from "../auth/qrToken.js";
 import { getAuth, getDb } from "../config/firebase.js";
 import { ApiError } from "../utils/ApiError.js";
 import { STATUS_COMPLETED } from "../utils/statuses.js";
-import { requireBool, requireInt, requireString } from "../utils/validate.js";
+import { requireInt, requireString } from "../utils/validate.js";
 import * as aggregate from "./aggregate.js";
 import { assertEventDayOpen, assertFestCheckinOpen } from "./festClock.js";
 import { ticketHolders } from "./qr.js";
@@ -165,19 +167,22 @@ export async function festCheckIn({ actor, body }) {
   };
 }
 
-/** Check a specific member of a specific registration in or out — for one
- * event. Restricted to the volunteer covering that event's venue (admins
+/** Check a specific member of a specific registration in — for one event.
+ * Restricted to the volunteer covering that event's venue (admins
  * unrestricted). A "no ticket, just their id" desk fallback is this call with
  * `member_index: 0` (the lead).
  *
- * Checking *in* also has to happen on the event's own day, which is a
- * stricter gate than "the fest has begun" — see the day check below. Checking
- * *out* is deliberately never time-gated: an event ending must not strand
- * people marked present with no way to close them out. */
+ * One-way: `body.checked_in: false` is rejected outright rather than acting
+ * on it. There is no undo through the app once someone is marked in.
+ *
+ * Has to happen on the event's own day, which is a stricter gate than "the
+ * fest has begun" — see the day check below. */
 export async function toggle({ actor, body }) {
   const registrationId = requireString(body.registration_id, { field: "registration_id" });
   const memberIndex = requireInt(body.member_index, { field: "member_index", min: 0 });
-  const checkedIn = requireBool(body.checked_in, true);
+  if (body.checked_in === false) {
+    throw new ApiError(400, "Check-in is one-way — there is no check-out.");
+  }
 
   // Returns every event, which the per-event day check below reuses rather
   // than reading the collection a second time.
@@ -186,7 +191,7 @@ export async function toggle({ actor, body }) {
   const db = getDb();
   const ref = db.collection("registrations").doc(registrationId);
 
-  if (checkedIn && !actor.is_admin) {
+  if (!actor.is_admin) {
     // One plain read to learn which event this registration is for. The
     // transaction below re-reads it authoritatively; this copy only decides
     // which clock to check. Admins bypass, exactly as they bypass the venue
@@ -230,34 +235,25 @@ export async function toggle({ actor, body }) {
 
     let entry;
     let alreadyDone = false;
-    if (checkedIn) {
-      if (existingIdx >= 0 && isCheckedIn(checkins[existingIdx])) {
-        alreadyDone = true;
-        entry = checkins[existingIdx];
-      } else if (existingIdx >= 0) {
-        // Checking back in after a check-out: clear the out fields rather than
-        // adding a second entry, so there's one continuous record per member.
-        entry = { ...checkins[existingIdx], checked_out_at: null, checked_out_by: null };
-        checkins[existingIdx] = entry;
-      } else {
-        entry = {
-          member_index: memberIndex,
-          name: holder.name,
-          at: now,
-          by: actor.email,
-          checked_out_at: null,
-          checked_out_by: null,
-        };
-        checkins.push(entry);
-      }
+    if (existingIdx >= 0 && isCheckedIn(checkins[existingIdx])) {
+      alreadyDone = true;
+      entry = checkins[existingIdx];
+    } else if (existingIdx >= 0) {
+      // A member checked out under the old two-way system, before this
+      // shipped — checking them in again clears that history rather than
+      // adding a second entry, so there's still one continuous record.
+      entry = { ...checkins[existingIdx], checked_out_at: null, checked_out_by: null };
+      checkins[existingIdx] = entry;
     } else {
-      if (existingIdx < 0 || !isCheckedIn(checkins[existingIdx])) {
-        alreadyDone = true;
-        entry = checkins[existingIdx] || null;
-      } else {
-        entry = { ...checkins[existingIdx], checked_out_at: now, checked_out_by: actor.email };
-        checkins[existingIdx] = entry;
-      }
+      entry = {
+        member_index: memberIndex,
+        name: holder.name,
+        at: now,
+        by: actor.email,
+        checked_out_at: null,
+        checked_out_by: null,
+      };
+      checkins.push(entry);
     }
 
     if (!alreadyDone) {
@@ -267,6 +263,9 @@ export async function toggle({ actor, body }) {
           member_checkins: checkins,
           // "At least one member currently has no checked_out_at" — the flag
           // every existing aggregate, stat card and CSV column already reads.
+          // A fresh entry never sets checked_out_at, so this is effectively
+          // "at least one member is checked in" now — same field, same
+          // meaning, just no longer reversible from this side.
           checked_in: checkins.some(isCheckedIn),
         },
         { merge: true }

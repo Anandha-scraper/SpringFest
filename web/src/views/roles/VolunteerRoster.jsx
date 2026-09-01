@@ -32,10 +32,12 @@ export default function VolunteerRoster() {
   // checking people in — at the next desk, or on the volunteer's own phone.
   useLiveResource("registrations", load);
 
-  const toggle = (regId, memberIndex, checkedIn) => {
+  // Check-in only — one-way. There is no toggle back to unchecked; the
+  // backend rejects `checked_in: false` outright (services/checkin.service.js).
+  const checkIn = (regId, memberIndex) => {
     const key = `${regId}.${memberIndex}`;
     setBusyKey(key);
-    toggleCheckIn(regId, memberIndex, checkedIn)
+    toggleCheckIn(regId, memberIndex, true)
       .then(() => {
         setRoster((r) => ({
           ...r,
@@ -44,7 +46,7 @@ export default function VolunteerRoster() {
               ? {
                   ...p,
                   holders: p.holders.map((h) =>
-                    h.member_index === memberIndex ? { ...h, checked_in: checkedIn } : h
+                    h.member_index === memberIndex ? { ...h, checked_in: true } : h
                   ),
                 }
               : p
@@ -77,14 +79,10 @@ export default function VolunteerRoster() {
       {roster.participants.length === 0 ? (
         <p className="empty-state">No confirmed teams for your event yet.</p>
       ) : (
-        <ul className="checkin-row-list" style={{ display: "grid", gap: ".75rem" }}>
+        <ul className="checkin-row-list">
           {roster.participants.map((p) => (
-            <li
-              key={p.registration_id}
-              className="assignment-chip"
-              style={{ flexDirection: "column", alignItems: "stretch" }}
-            >
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: ".5rem" }}>
+            <li key={p.registration_id} className="roster-team">
+              <div className="roster-team__head">
                 <strong>{p.team_name || p.lead_name}</strong>
                 {p.has_submission && (
                   <button
@@ -96,33 +94,31 @@ export default function VolunteerRoster() {
                   </button>
                 )}
               </div>
-              <ul style={{ listStyle: "none", padding: 0, margin: ".25rem 0 0", display: "grid", gap: ".35rem" }}>
+              <ul className="roster-holders">
                 {p.holders.map((h) => (
-                  <li key={h.member_index} style={{ display: "flex", justifyContent: "space-between", gap: ".5rem" }}>
-                    <span>
+                  <li key={h.member_index} className="roster-holder">
+                    <span className="roster-holder__name">
                       {h.name}
                       {h.allocation_code && (
-                        <span className="checkin-row__code" style={{ marginLeft: 6 }}>
-                          {h.allocation_code}
-                        </span>
+                        <span className="checkin-row__code">{h.allocation_code}</span>
                       )}
                     </span>
-                    <button
-                      type="button"
-                      className={`btn btn-sm ${h.checked_in ? "btn-ghost" : ""}`}
-                      disabled={busyKey === `${p.registration_id}.${h.member_index}`}
-                      onClick={() => toggle(p.registration_id, h.member_index, !h.checked_in)}
-                    >
-                      {h.checked_in ? (
-                        <>
-                          <CheckCircle2 size={14} /> In
-                        </>
-                      ) : (
-                        <>
-                          <Circle size={14} /> Check in
-                        </>
-                      )}
-                    </button>
+                    {h.checked_in ? (
+                      // One-way: once in, this is a fact, not a control — no
+                      // button, nothing left to click.
+                      <span className="roster-holder__mark">
+                        <CheckCircle2 size={14} aria-hidden="true" /> Checked in
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        className="btn btn-sm"
+                        disabled={busyKey === `${p.registration_id}.${h.member_index}`}
+                        onClick={() => checkIn(p.registration_id, h.member_index)}
+                      >
+                        <Circle size={14} aria-hidden="true" /> Check in
+                      </button>
+                    )}
                   </li>
                 ))}
               </ul>
