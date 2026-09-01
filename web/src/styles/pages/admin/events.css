@@ -35,17 +35,6 @@
   .event-form-schedule { grid-template-columns: 1fr; }
 }
 
-/* Mark allocation (left) beside instructions (right); stacks below laptop. */
-.event-form-split {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-  align-items: start;
-}
-@media (max-width: 899px) {
-  .event-form-split { grid-template-columns: 1fr; }
-}
-
 .event-form .field textarea.input { resize: vertical; min-height: 5.5rem; }
 .field-label {
   display: flex;
@@ -54,32 +43,6 @@
   font-size: 0.8rem;
   font-weight: 600;
   color: var(--ink-soft);
-}
-
-/* ── Mark-allocation criteria editor ──────────────────────────
-   One row per scoring parameter: name, max mark, remove. The total
-   below is the live sum of the marks. */
-.criteria-editor { display: flex; flex-direction: column; gap: 0.5rem; }
-.criteria-row {
-  display: grid;
-  grid-template-columns: 1fr minmax(4rem, 18%) auto;
-  gap: 0.5rem;
-  align-items: center;
-}
-.criteria-foot {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-}
-.criteria-total { font-size: 0.9rem; color: var(--ink-soft); }
-.criteria-total strong { font-size: 1rem; color: var(--ink); }
-
-@media (max-width: 560px) {
-  /* Parameter name on its own line, marks + delete beneath it. */
-  .criteria-row { grid-template-columns: 1fr auto; }
-  .criteria-row > input:first-child { grid-column: 1 / -1; }
 }
 
 /* Category listings — exactly two per row on a laptop:

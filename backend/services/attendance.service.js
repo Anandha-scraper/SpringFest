@@ -65,10 +65,6 @@ function entryFor(row, events, memberIndex) {
     // This person's own attendance for this event.
     checked_in: Boolean(mine?.checked_in),
     ever_checked_in: Boolean(mine?.ever_checked_in),
-    // Evaluation is per registration (a team is scored as one), never per
-    // member — so it reads the same for every teammate on the row.
-    evaluated: Boolean(row.evaluated_at),
-    evaluation_count: (row.evaluations || []).length,
     // Only teams expand; a solo entry's single holder is the row itself.
     holders: isTeam ? holders : [],
   };
@@ -157,7 +153,6 @@ export async function attendanceRows(data) {
       fest_checked_in: fest.byUid.has(person.uid) || fest.byEmail.has(lower(person.email)),
       events_count: entries.length,
       attended_count: entries.filter((e) => e.ever_checked_in).length,
-      evaluated_count: entries.filter((e) => e.evaluated).length,
       entries,
     };
   });

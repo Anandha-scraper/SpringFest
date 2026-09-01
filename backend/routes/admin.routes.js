@@ -23,7 +23,6 @@ router.get("/venues/rollup", ...AdminUser, admin.venuesRollup);
 router.get("/events/rollup", ...AdminUser, admin.eventsRollup);
 router.get("/events/:eventId", ...AdminUser, admin.rawEvent);
 router.get("/events/:eventId/participants", ...AdminUser, admin.eventParticipants);
-router.get("/events/:eventId/results", ...AdminUser, admin.eventResults);
 
 // ── Registrations ────────────────────────────────────────────
 // Likewise, the literal `.csv` path stays above `/registrations/:id`.

@@ -7,7 +7,6 @@ import { getVolunteerSummary } from "@/api/client.js";
 import { useApi } from "@/hooks/useApi.js";
 import { formatEventTime } from "@/utils/format.js";
 import Loader from "@/components/common/Loader.jsx";
-import JudgingQueueView from "@/components/roles/JudgingQueueView.jsx";
 
 export default function VolunteerHome() {
   const fetcher = useCallback(getVolunteerSummary, []);
@@ -49,13 +48,8 @@ export default function VolunteerHome() {
       <p className="muted">
         <strong>{data.registrations}</strong> registered ·{" "}
         <strong>{data.completed}</strong> confirmed ·{" "}
-        <strong>{data.event_checked_in}</strong> checked in ·{" "}
-        <strong>{data.evaluated}</strong> evaluated
+        <strong>{data.event_checked_in}</strong> checked in
       </p>
-
-      <div className="notice" style={{ marginTop: "1rem" }}>
-        <JudgingQueueView current={data.now_evaluating} upcoming={data.up_next} />
-      </div>
 
       <p className="muted" style={{ marginTop: "1rem" }}>
         Head to <Link href="/volunteer/check-in">Check-in</Link> to scan participants, or{" "}

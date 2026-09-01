@@ -23,23 +23,6 @@ import { nowInFestZone } from "./festClock.js";
 // from here keeps them to one import; utils/statuses.js is the single source.
 export { STATUS_COMPLETED };
 
-/** Judged, as opposed to paid.
- *
- * `status === "completed"` means the *money* cleared, and it must keep
- * meaning exactly that everywhere it is already used — revenue, the CSV, the
- * approvals queue, the venue rollup, the check-in guard. Evaluation is a
- * separate axis on its own field.
- *
- * Nothing writes `evaluated_at` yet: the judging phase will, along with a
- * score and the scorer's identity. Until then every count below reads 0, which
- * is the honest answer to "how many have been evaluated" before judging has
- * started. A timestamp rather than a boolean because that is how this codebase
- * records state everywhere else (paid_at, reviewed_at, proof_uploaded_at) and
- * it answers "when" for free. */
-function isEvaluated(r) {
-  return Boolean(r.evaluated_at);
-}
-
 // Short TTL: just long enough to collapse the near-simultaneous calls one
 // page load makes (the admin dashboard's own parallel fetches) into a single
 // real scan. Every write path that touches registrations/events/venues/roles
@@ -199,7 +182,6 @@ export function perEventCounts(data) {
       name: event.name || eid,
       count: regs.length,
       completed: done.length,
-      evaluated: regs.filter(isEvaluated).length,
       revenue: done.reduce((sum, r) => sum + (r.fee || 0), 0),
     };
   });
@@ -221,11 +203,6 @@ export async function buildStats(data) {
     signed_users: new Set(registrations.map(personKey)).size,
     // Of those, the ones who paid for at least one event.
     completed_users: new Set(completed.map(personKey)).size,
-    // And of *those*, the ones a scorer has actually evaluated. Reads 0 until
-    // the judging phase writes evaluated_at — see isEvaluated. Kept beside
-    // completed_users rather than replacing it: revenue, the CSV and the
-    // approvals queue all still mean "paid".
-    evaluated_users: new Set(registrations.filter(isEvaluated).map(personKey)).size,
     revenue: completed.reduce((sum, r) => sum + (r.fee || 0), 0),
     checked_in: registrations.filter((r) => r.checked_in).length,
     // People who cleared the door (fest entry), a separate axis from event
@@ -328,24 +305,19 @@ function eventStarted(event, now = new Date()) {
   return `${event.date}T${event.start_time || "00:00"}` <= nowInFestZone(now);
 }
 
-/** Per event: headcount, attendance and evaluation progress, plus who is
- * staffing it — the Manage Roles progress view.
+/** Per event: headcount and attendance, plus who is staffing it — the Manage
+ * Roles progress view.
  *
  * A sibling of venueRollup() rather than an extension of perEventCounts(),
  * because that one is shared with the participant-facing GET /me/schedule and
  * should stay lean; venue joins and start-time maths have no business in a
- * participant's payload.
- *
- * `progress` is explicitly null before the event starts. Null and 0 are
- * different facts to an organiser — "hasn't begun" versus "begun and nothing
- * judged yet" — and the UI shouldn't have to re-derive which it's looking at. */
+ * participant's payload. */
 export async function eventRollup(data) {
   data = data || (await loadAll());
   const { registrations, events, venues, people } = data;
 
   const rows = Object.entries(events).map(([eid, event]) => {
     const regs = registrations.filter((r) => r.event_id === eid);
-    const evaluated = regs.filter(isEvaluated).length;
     const started = eventStarted(event);
 
     return {
@@ -361,13 +333,11 @@ export async function eventRollup(data) {
       checked_in: regs.filter((r) => r.checked_in).length,
       // Payment, unchanged — kept so the card can show who actually paid.
       completed: regs.filter((r) => r.status === STATUS_COMPLETED).length,
-      evaluated,
-      // Whoever staffs the venue staffs the event — check-in and scoring both.
+      // Whoever staffs the venue staffs the event.
       volunteers: people
         .filter((p) => p.role === ROLE_VOLUNTEER && p.venue_id === event.venue_id)
         .map((p) => p.name || p.email),
       started,
-      progress: started && regs.length ? evaluated / regs.length : null,
     };
   });
 

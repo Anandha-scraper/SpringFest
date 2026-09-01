@@ -12,12 +12,14 @@
  *   2. Event check-in — only the volunteer covering that event's venue (or an
  *      admin) checks a participant in *for that event*. Per member, per event,
  *      via `member_checkins[]` on the registration doc, check-out supported.
- *      Gated on *that event's own* [start, end) window, not just the fest's.
- *      Being event-checked-in is what makes a team visible for scoring.
+ *      Gated on *that event's own day* (00:00–23:59, fest zone), not the
+ *      fest's day, and not the event's exact start/end times either — a team
+ *      arriving before the posted start or needing checking in after it isn't
+ *      check-in's business to refuse.
  *
  * Admins satisfy the volunteer guard, skip the venue restriction, and skip the
  * clock — which is what lets the whole flow be tested from the admin account,
- * and what makes a mistyped event time fixable while the fest is running.
+ * and what makes a mistyped event date fixable while the fest is running.
  */
 import { verifyPersonToken } from "../auth/qrToken.js";
 import { getAuth, getDb } from "../config/firebase.js";
@@ -25,7 +27,7 @@ import { ApiError } from "../utils/ApiError.js";
 import { STATUS_COMPLETED } from "../utils/statuses.js";
 import { requireBool, requireInt, requireString } from "../utils/validate.js";
 import * as aggregate from "./aggregate.js";
-import { assertEventWindowOpen, assertFestCheckinOpen } from "./festClock.js";
+import { assertEventDayOpen, assertFestCheckinOpen } from "./festClock.js";
 import { ticketHolders } from "./qr.js";
 import { loadPersonRegistrations } from "./registrationLookup.js";
 import { resolveVolunteerEventId } from "./submissionAccess.js";
@@ -34,9 +36,9 @@ function isCheckedIn(entry) {
   return !!entry && !entry.checked_out_at;
 }
 
-/** Has anyone on this registration ever been event-checked-in? The gate the
- * scoring dashboards use — a team stays visible even after it checks out, so
- * scores entered against it never disappear from view. */
+/** Has anyone on this registration ever been event-checked-in? Distinct from
+ * "checked in right now" — someone who checked out still counts, so a team
+ * that has left doesn't drop out of an attendance count that already saw it. */
 export function everEventCheckedIn(row) {
   return Array.isArray(row?.member_checkins) && row.member_checkins.length > 0;
 }
@@ -44,13 +46,13 @@ export function everEventCheckedIn(row) {
 /** Every ticket holder on a registration, with their own check-in state.
  *
  * `ticketHolders()` (services/qr.js) fixes the order — index 0 is the lead —
- * and `member_checkins[]` is joined onto it by that same index. Three screens
- * render this (the volunteer roster, the scoring list, the admin attendance
- * view) and they were each rebuilding the join; keeping it here is what stops
- * them drifting apart on what "checked in" means.
+ * and `member_checkins[]` is joined onto it by that same index. Multiple
+ * screens render this (the volunteer roster, the admin attendance view) and
+ * they were each rebuilding the join; keeping it here is what stops them
+ * drifting apart on what "checked in" means.
  *
  * `checked_in` is the live state (checked in and not back out); `ever_checked_in`
- * is the sticky one that keeps a team visible to scoring after it leaves. */
+ * is the sticky one that keeps someone's attendance on record after they leave. */
 export function holderCheckins(row) {
   const entries = Array.isArray(row?.member_checkins) ? row.member_checkins : [];
   const codes = Array.isArray(row?.allocation_codes) ? row.allocation_codes : [];
@@ -168,16 +170,16 @@ export async function festCheckIn({ actor, body }) {
  * unrestricted). A "no ticket, just their id" desk fallback is this call with
  * `member_index: 0` (the lead).
  *
- * Checking *in* also has to happen while the event is actually running, which
- * is a stricter gate than "the fest has begun" — see the window check below.
- * Checking *out* is deliberately never time-gated: an event ending must not
- * strand people marked present with no way to close them out. */
+ * Checking *in* also has to happen on the event's own day, which is a
+ * stricter gate than "the fest has begun" — see the day check below. Checking
+ * *out* is deliberately never time-gated: an event ending must not strand
+ * people marked present with no way to close them out. */
 export async function toggle({ actor, body }) {
   const registrationId = requireString(body.registration_id, { field: "registration_id" });
   const memberIndex = requireInt(body.member_index, { field: "member_index", min: 0 });
   const checkedIn = requireBool(body.checked_in, true);
 
-  // Returns every event, which the per-event window check below reuses rather
+  // Returns every event, which the per-event day check below reuses rather
   // than reading the collection a second time.
   const events = await assertFestCheckinOpen();
 
@@ -188,12 +190,12 @@ export async function toggle({ actor, body }) {
     // One plain read to learn which event this registration is for. The
     // transaction below re-reads it authoritatively; this copy only decides
     // which clock to check. Admins bypass, exactly as they bypass the venue
-    // guard — it's what makes a mistyped end_time recoverable on the day.
+    // guard — it's what makes a mistyped event date recoverable on the day.
     const preview = await ref.get();
     if (!preview.exists) throw new ApiError(404, "Registration not found");
     const event = events.find((e) => e.id === (preview.data()?.event_id || ""));
-    // A registration whose event was deleted has no window to enforce.
-    if (event) assertEventWindowOpen(event, { what: "Check-in" });
+    // A registration whose event was deleted has no day to enforce.
+    if (event) assertEventDayOpen(event, { what: "Check-in" });
   }
 
   let volunteerEventId = "";
@@ -307,12 +309,6 @@ export async function volunteerSummary({ user }) {
   const regs = data.registrations.filter((r) => r.event_id === eventId);
   const completed = regs.filter((r) => r.status === STATUS_COMPLETED);
 
-  const nameFor = (registrationId) => {
-    const r = data.registrations.find((x) => x.id === registrationId);
-    if (!r) return null;
-    return { registration_id: r.id, team_name: r.team_name || "", name: r.name || "" };
-  };
-
   return {
     venue_id: event.venue_id || "",
     venue_name: data.venues[event.venue_id || ""]?.name || "",
@@ -326,9 +322,6 @@ export async function volunteerSummary({ user }) {
     registrations: regs.length,
     completed: completed.length,
     event_checked_in: completed.filter(everEventCheckedIn).length,
-    evaluated: regs.filter((r) => r.evaluated_at).length,
-    now_evaluating: event.judging_current ? nameFor(event.judging_current) : null,
-    up_next: (event.judging_order || []).map(nameFor).filter(Boolean),
   };
 }
 
@@ -346,8 +339,9 @@ export async function volunteerRoster({ user }) {
       registration_id: row.id,
       team_name: row.team_name || "",
       lead_name: row.name || "",
-      // Lets the roster dim an already-scored team without hiding it.
-      evaluated: Boolean(row.evaluated_at),
+      // Lets the roster show a "view submission" action only for teams that
+      // actually uploaded one.
+      has_submission: Boolean(row.submission_path),
       holders: holderCheckins(row),
     }))
     .sort((a, b) => (a.team_name || a.lead_name).localeCompare(b.team_name || b.lead_name));

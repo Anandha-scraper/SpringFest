@@ -37,15 +37,10 @@ export default function AdminDashboard() {
           <StatCard label="Signed-in Users" value={authUsers?.participants ?? stats.signed_users} />
           {/* People, not rows: someone who enters four events is one signed user. */}
           <StatCard label="Registered Users" value={stats.signed_users} />
-          {/* Evaluated — not "paid". Reads 0 until scoring starts writing
-              evaluated_at, so it says so rather than looking like a broken
-              number mid-fest. */}
-          <StatCard
-            label="Completed"
-            value={stats.evaluated_users}
-            tone="ok"
-            note={stats.evaluated_users ? "" : "Judging hasn't started yet"}
-          />
+          {/* People who cleared the fest-entry door — live all fest, not just
+              on registration day. A separate axis from event check-in and
+              from payment; see aggregate.buildStats(). */}
+          <StatCard label="Checked In" value={stats.fest_checked_in} tone="ok" />
           <StatCard label="Revenue Collected" value={stats.revenue} prefix="₹" tone="accent" />
         </div>
 

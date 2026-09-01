@@ -82,10 +82,6 @@ export async function eventParticipants(req, res) {
   res.json(await adminReports.eventParticipants(req.params.eventId));
 }
 
-export async function eventResults(req, res) {
-  res.json(await adminReports.eventResults(req.params.eventId));
-}
-
 export async function registrationsCsv(req, res) {
   const body = await adminReports.registrationsCsv({
     eventId: req.query.event_id,

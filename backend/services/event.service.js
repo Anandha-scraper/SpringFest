@@ -16,7 +16,6 @@ import {
   EVENT_CATEGORIES,
   optionalInt,
   optionalString,
-  parseMarkingCriteria,
   requireBool,
   requireInt,
   requireOneOf,
@@ -103,7 +102,7 @@ function toEvent(id, data, venues, locked = false) {
     team_min: data.team_min ?? 1,
     team_max: data.team_max ?? 1,
     allow_submissions: Boolean(data.allow_submissions),
-    // What participants must bring / prepare. Public, unlike marking_criteria.
+    // What participants must bring / prepare.
     instructions: data.instructions || "",
     // `!== false`, NOT Boolean(): every event created before this field
     // existed has no value for it, and those must read as open. Boolean()
@@ -112,11 +111,6 @@ function toEvent(id, data, venues, locked = false) {
     locked,
   };
 }
-
-// NOTE: `marking_criteria` is deliberately absent from toEvent(). GET /events
-// and GET /events/:id are unauthenticated, and this function is the only
-// shaper they use — an allow-list, so the field stays private simply by not
-// being named here. Admins read it from GET /api/admin/events/:eventId.
 
 function parseEventCreate(body) {
   return {
@@ -133,10 +127,6 @@ function parseEventCreate(body) {
     team_max: optionalInt(body.team_max, 1, { field: "team_max", min: 1 }),
     allow_submissions: requireBool(body.allow_submissions, false),
     instructions: optionalString(body.instructions),
-    // A list of { label, max } — the event's scoring scheme. Staff only;
-    // never leaves the server through a public route. At least one is required
-    // on create so every event is judgeable the moment it exists.
-    marking_criteria: parseMarkingCriteria(body.marking_criteria, { required: true }),
     // Not in LOCKED_FIELDS: closing an event is only ever useful *after*
     // people have registered for it.
     registration_open: requireBool(body.registration_open, true),
@@ -167,15 +157,12 @@ function parseEventPatch(body) {
     changes.team_max = requireInt(body.team_max, { field: "team_max", min: 1 });
   }
   // None of these are in LOCKED_FIELDS — organisers can change file uploads,
-  // the participant-facing instructions, the marking criteria and
-  // whether the event is still accepting entries at any point in the fest.
+  // the participant-facing instructions, and whether the event is still
+  // accepting entries at any point in the fest.
   if (body.allow_submissions !== undefined) {
     changes.allow_submissions = requireBool(body.allow_submissions);
   }
   if (body.instructions !== undefined) changes.instructions = optionalString(body.instructions);
-  if (body.marking_criteria !== undefined) {
-    changes.marking_criteria = parseMarkingCriteria(body.marking_criteria);
-  }
   if (body.registration_open !== undefined) {
     changes.registration_open = requireBool(body.registration_open);
   }

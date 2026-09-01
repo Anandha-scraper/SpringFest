@@ -301,46 +301,6 @@ export async function volunteerSubmissionObjectUrl(registrationId) {
   return URL.createObjectURL(await res.blob());
 }
 
-// ── Scoring (was /judge/*, folded into the volunteer role) ───
-/** The events this volunteer staffs, with marking criteria and progress. */
-export const getVolunteerEvents = () => req("/volunteer/events", {}, true);
-
-/** Checked-in teams for one event, with each team's submission and scores. */
-export const getVolunteerParticipants = (eventId) =>
-  req(`/volunteer/events/${encodeURIComponent(eventId)}/participants`, {}, true);
-
-/** Save (or overwrite) this volunteer's score for one team. */
-export const saveEvaluation = (eventId, { registrationId, scores, note }) =>
-  req(
-    `/volunteer/events/${encodeURIComponent(eventId)}/evaluations`,
-    { method: "POST", body: JSON.stringify({ registration_id: registrationId, scores, note }) },
-    true
-  );
-
-export const deleteEvaluation = (eventId, registrationId) =>
-  req(
-    `/volunteer/events/${encodeURIComponent(eventId)}/evaluations/${encodeURIComponent(registrationId)}`,
-    { method: "DELETE" },
-    true
-  );
-
-export const getVolunteerQueue = (eventId) =>
-  req(`/volunteer/events/${encodeURIComponent(eventId)}/queue`, {}, true);
-
-// NOTE: there is no client helper for PUT /volunteer/events/:id/queue. The
-// judging queue can be *read* (getVolunteerQueue, rendered by
-// JudgingQueueView) but nothing in the UI ever sets it — the endpoint exists
-// and works, it just has no screen yet. Kept on the server side deliberately;
-// see CLAUDE.md.
-
-// The scoring screen opens submissions through volunteerSubmissionObjectUrl
-// above — there used to be a judge-flavoured twin of it pointing at
-// /judge/registrations/…, and both now resolve to the same endpoint.
-
-/** Per-event judging results — every team's per-scorer totals + remarks. Admin. */
-export const getEventResults = (eventId) =>
-  req(`/admin/events/${encodeURIComponent(eventId)}/results`, {}, true);
-
 /** Fetch an authenticated binary endpoint and save it to disk.
  *
  * Bypasses req() because the response isn't JSON — the auth header is still

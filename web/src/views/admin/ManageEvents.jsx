@@ -3,14 +3,13 @@
 import { useCallback, useMemo, useState } from "react";
 import "@/styles/pages/admin/events.css";
 import Link from "next/link";
-import { Lock, Plus, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import Loader from "@/components/common/Loader.jsx";
 import FormActions from "@/components/admin/FormActions.jsx";
 import { useToast } from "@/components/ui/toast.jsx";
 import {
   addVenue,
   createEvent,
-  getAdminEvent,
   getEvents,
   getVenues,
   removeEvent,
@@ -52,9 +51,6 @@ const blankForm = () => ({
   fee: "",
   description: "",
   instructions: "",
-  // [{ label, max }] — the event's scoring scheme. The total shown to the
-  // organiser is derived (sum of max), never part of the form or the payload.
-  marking_criteria: [],
   is_team_event: false,
   team_min: 2,
   team_max: 4,
@@ -91,19 +87,6 @@ export default function ManageEvents() {
 
   const change = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
-  // Marking-criteria rows — their own handlers since they're a list, not a
-  // single named input.
-  const addCriterion = () =>
-    setForm((f) => ({ ...f, marking_criteria: [...f.marking_criteria, { label: "", max: "" }] }));
-  const updateCriterion = (i, field, value) =>
-    setForm((f) => ({
-      ...f,
-      marking_criteria: f.marking_criteria.map((c, j) => (j === i ? { ...c, [field]: value } : c)),
-    }));
-  const removeCriterion = (i) =>
-    setForm((f) => ({ ...f, marking_criteria: f.marking_criteria.filter((_, j) => j !== i) }));
-  const markingTotal = form.marking_criteria.reduce((s, c) => s + (Number(c.max) || 0), 0);
-
   const reset = () => {
     setForm(blankForm());
     setEditing(null);
@@ -117,15 +100,7 @@ export default function ManageEvents() {
       team_min: Number(form.team_min) || 1,
       team_max: Number(form.team_max) || 1,
       is_team_event: !!form.is_team_event,
-      // Drop half-filled rows and coerce marks to numbers before sending.
-      marking_criteria: form.marking_criteria
-        .map((c) => ({ label: c.label.trim(), max: Number(c.max) || 0 }))
-        .filter((c) => c.label && c.max > 0),
     };
-    if (!editing && payload.marking_criteria.length === 0) {
-      toast.bad("Add at least one marking criterion — every event needs a scoring scheme.");
-      return;
-    }
     try {
       if (editing) {
         // Send only what's editable, so a locked field never triggers a 403
@@ -137,7 +112,6 @@ export default function ManageEvents() {
               end_time: payload.end_time,
               description: payload.description,
               instructions: payload.instructions,
-              marking_criteria: payload.marking_criteria,
               allow_submissions: payload.allow_submissions,
             }
           : payload;
@@ -154,10 +128,7 @@ export default function ManageEvents() {
     }
   };
 
-  /** The list from GET /events carries no marking_criteria — it's staff-only
-   *  and the public route deliberately never returns it — so editing fetches
-   *  the raw doc from the admin route to fill that field in. */
-  const edit = async (ev) => {
+  const edit = (ev) => {
     setEditing(ev);
     setForm({
       name: ev.name,
@@ -169,24 +140,11 @@ export default function ManageEvents() {
       fee: String(ev.fee ?? ""),
       description: ev.description || "",
       instructions: ev.instructions || "",
-      marking_criteria: [],
       is_team_event: !!ev.is_team_event,
       team_min: ev.team_min ?? 2,
       team_max: ev.team_max ?? 4,
       allow_submissions: !!ev.allow_submissions,
     });
-    try {
-      const full = await getAdminEvent(ev.id);
-      // A legacy free-text value isn't an array — it loads as an empty scheme.
-      setForm((prev) => ({
-        ...prev,
-        marking_criteria: Array.isArray(full.marking_criteria)
-          ? full.marking_criteria.map((c) => ({ label: c.label ?? "", max: c.max ?? "" }))
-          : [],
-      }));
-    } catch (err) {
-      toast.bad(`Couldn't load the marking criteria: ${err.message}`);
-    }
   };
 
   const submitVenue = async (e) => {
@@ -357,60 +315,6 @@ export default function ManageEvents() {
             />
           </div>
 
-          {/* Mark allocation on the left, participant instructions on the
-              right — they pair naturally and neither needs full width. */}
-          <div className="event-form-split">
-          {/* The event's scoring scheme: named parameters, each with a max
-              mark, and a live total. Scored against these later. */}
-          <div className="field">
-            <span className="field-label">
-              <Lock size={12} aria-hidden="true" /> Mark allocation criteria
-            </span>
-            {!editing && form.marking_criteria.filter((c) => c.label.trim() && Number(c.max) > 0).length === 0 && (
-              <p className="muted" style={{ marginTop: 0 }}>
-                At least one parameter is required — every team is scored against these.
-              </p>
-            )}
-            <div className="criteria-editor">
-              {form.marking_criteria.map((c, i) => (
-                <div className="criteria-row" key={i}>
-                  <input
-                    className="input"
-                    placeholder="Parameter (e.g. Presentation)"
-                    value={c.label}
-                    onChange={(e) => updateCriterion(i, "label", e.target.value)}
-                  />
-                  <input
-                    className="input"
-                    type="number"
-                    min="1"
-                    placeholder="Marks"
-                    value={c.max}
-                    onChange={(e) => updateCriterion(i, "max", e.target.value)}
-                  />
-                  <button
-                    type="button"
-                    className="icon-btn"
-                    aria-label={`Remove ${c.label || "parameter"}`}
-                    onClick={() => removeCriterion(i)}
-                  >
-                    <Trash2 size={15} aria-hidden="true" />
-                  </button>
-                </div>
-              ))}
-              <div className="criteria-foot">
-                <button type="button" className="btn btn-ghost btn-sm" onClick={addCriterion}>
-                  <Plus size={14} aria-hidden="true" /> Add parameter
-                </button>
-                {form.marking_criteria.length > 0 && (
-                  <span className="criteria-total">
-                    Total <strong>{markingTotal}</strong>
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-
           <label className="field">
             <span className="field-label">Instructions for participants</span>
             <textarea
@@ -423,7 +327,6 @@ export default function ManageEvents() {
             />
             <span className="cell-sub">Shown on the event page to everyone.</span>
           </label>
-          </div>
 
           <label className="check-row">
             <input

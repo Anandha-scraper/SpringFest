@@ -2,13 +2,12 @@
 
 import { useCallback, useEffect, useState } from "react";
 import "@/styles/pages/admin/roles.css";
-import { CheckCircle2, Circle } from "lucide-react";
-import { getVolunteerRoster, getVolunteerSummary, toggleCheckIn } from "@/api/client.js";
+import { CheckCircle2, Circle, FileText } from "lucide-react";
+import { getVolunteerRoster, getVolunteerSummary, toggleCheckIn, volunteerSubmissionObjectUrl } from "@/api/client.js";
 import { useToast } from "@/components/ui/toast.jsx";
 import Loader from "@/components/common/Loader.jsx";
 import { useDeferredLoading } from "@/hooks/useDeferredLoading.js";
 import { useLiveResource } from "@/live/LiveUpdates.jsx";
-import JudgingQueueView from "@/components/roles/JudgingQueueView.jsx";
 
 export default function VolunteerRoster() {
   const toast = useToast();
@@ -56,6 +55,15 @@ export default function VolunteerRoster() {
       .finally(() => setBusyKey(""));
   };
 
+  const openSubmission = async (registrationId) => {
+    try {
+      const url = await volunteerSubmissionObjectUrl(registrationId);
+      window.open(url, "_blank", "noopener");
+    } catch (err) {
+      toast.bad(err.message);
+    }
+  };
+
   if (error) return <p className="error">{error}</p>;
   if (loading || !roster || !summary) return <Loader />;
 
@@ -66,12 +74,6 @@ export default function VolunteerRoster() {
         {summary.event && <span className="muted">{summary.event.name}</span>}
       </div>
 
-      {summary.event && (
-        <div className="notice" style={{ marginBottom: "1rem" }}>
-          <JudgingQueueView current={summary.now_evaluating} upcoming={summary.up_next} />
-        </div>
-      )}
-
       {roster.participants.length === 0 ? (
         <p className="empty-state">No confirmed teams for your event yet.</p>
       ) : (
@@ -79,12 +81,21 @@ export default function VolunteerRoster() {
           {roster.participants.map((p) => (
             <li
               key={p.registration_id}
-              /* Already scored reads as dimmed but stays fully interactive —
-                 check-in must keep working after a team has been judged. */
-              className={`assignment-chip${p.evaluated ? " is-evaluated" : ""}`}
+              className="assignment-chip"
               style={{ flexDirection: "column", alignItems: "stretch" }}
             >
-              <strong>{p.team_name || p.lead_name}</strong>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: ".5rem" }}>
+                <strong>{p.team_name || p.lead_name}</strong>
+                {p.has_submission && (
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => openSubmission(p.registration_id)}
+                  >
+                    <FileText size={14} aria-hidden="true" /> View submission
+                  </button>
+                )}
+              </div>
               <ul style={{ listStyle: "none", padding: 0, margin: ".25rem 0 0", display: "grid", gap: ".35rem" }}>
                 {p.holders.map((h) => (
                   <li key={h.member_index} style={{ display: "flex", justifyContent: "space-between", gap: ".5rem" }}>

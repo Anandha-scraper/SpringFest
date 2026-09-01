@@ -82,6 +82,5 @@ function adminOnly(req, res, next) {
 // one and the others admit admins too.
 export const CurrentUser = [currentUser];
 export const AdminUser = [currentUser, adminOnly];
-// Volunteers run their venue end to end — check-in and scoring both. There is
-// no separate judge chain any more; see services/evaluation.service.js.
+// Volunteers run their venue end to end. There is no separate judge chain.
 export const VolunteerUser = [currentUser, requireRoles("volunteer")];
