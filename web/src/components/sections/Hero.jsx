@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, lazy, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import HeroCard from "@/components/sections/HeroCard.jsx";
 import LogoLoop from "@/components/animation/LogoLoop.jsx";
@@ -8,11 +8,6 @@ import SignInModal from "@/components/common/SignInModal.jsx";
 import { useAuth } from "@/auth/AuthContext.jsx";
 import { fest } from "@/content/fest.js";
 import { homeForRole } from "@/content/roles.js";
-
-// ogl (WebGL) only loads once this chunk resolves. The CSS blobs rendered
-// alongside it below are the "WebGL unavailable" fallback and are always
-// painted regardless, so there's no visible gap while this streams in.
-const Aurora = lazy(() => import("@/components/animation/Aurora.jsx"));
 
 const PARTNER_LOGOS = fest.partners.map((name) => ({
   node: <span className="loop-wordmark">{name}</span>,
@@ -34,8 +29,11 @@ export default function Hero() {
 
   return (
     <section className="hero">
-      {/* CSS blobs — always painted, so the hero still reads
-          correctly if WebGL is unavailable. */}
+      {/* The hero backdrop: four big blurred colour blobs under a cream veil.
+          These used to be the fallback behind a WebGL layer; that layer is
+          gone, so this is the backdrop now. They go static below 899px —
+          blur + animated scale is the most expensive thing a phone GPU here
+          can be asked to do. See landing.css. */}
       <div className="hero-blobs" aria-hidden="true">
         <span className="blob blob-pink" />
         <span className="blob blob-peach" />
@@ -43,11 +41,6 @@ export default function Hero() {
         <span className="blob blob-lilac" />
       </div>
 
-      <div className="hero-aurora" aria-hidden="true">
-        <Suspense fallback={null}>
-          <Aurora colorStops={["#f5a55c", "#f87b1b", "#cbd99b"]} blend={0.35} amplitude={0.8} speed={0.4} />
-        </Suspense>
-      </div>
       <div className="hero-veil" aria-hidden="true" />
 
       <div className="hero-logoloop">

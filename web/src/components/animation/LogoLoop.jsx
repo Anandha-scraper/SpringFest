@@ -58,7 +58,53 @@ const useImageLoader = (seqRef, onLoad, dependencies) => {
   }, [onLoad, seqRef, dependencies]);
 };
 
-const useAnimationLoop = (trackRef, targetVelocity, seqWidth, seqHeight, isHovered, hoverSpeed, isVertical) => {
+/** True only while the strip is on screen, the tab is foregrounded, and the
+ * viewer hasn't asked for reduced motion.
+ *
+ * Without this the marquee holds a 60fps rAF loop open for the life of the
+ * page — it is the longest-running animation on the landing page, and it kept
+ * running scrolled far past and in a background tab. Returning `false` here
+ * makes useAnimationLoop's effect tear its loop down and rebuild it on the way
+ * back, which is why the resume is seamless: that cleanup already resets the
+ * frame timestamp, so no delta accumulates while it's parked. */
+const useIsAnimating = containerRef => {
+  const [active, setActive] = useState(true);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return undefined;
+
+    const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)');
+    if (reduceMotion?.matches) {
+      setActive(false);
+      return undefined;
+    }
+
+    let onScreen = true;
+    const sync = () => setActive(onScreen && !document.hidden);
+
+    // A little margin so it is already moving by the time it scrolls in,
+    // rather than visibly starting from a standstill.
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        onScreen = entry.isIntersecting;
+        sync();
+      },
+      { rootMargin: '128px' }
+    );
+    io.observe(el);
+    document.addEventListener('visibilitychange', sync);
+
+    return () => {
+      io.disconnect();
+      document.removeEventListener('visibilitychange', sync);
+    };
+  }, [containerRef]);
+
+  return active;
+};
+
+const useAnimationLoop = (trackRef, targetVelocity, seqWidth, seqHeight, isHovered, hoverSpeed, isVertical, isActive) => {
   const rafRef = useRef(null);
   const lastTimestampRef = useRef(null);
   const offsetRef = useRef(0);
@@ -77,6 +123,10 @@ const useAnimationLoop = (trackRef, targetVelocity, seqWidth, seqHeight, isHover
         : `translate3d(${-offsetRef.current}px, 0, 0)`;
       track.style.transform = transformValue;
     }
+
+    // Parked: the strip keeps whatever offset it had (set just above, so it
+    // stays where it stopped) and no frame is ever scheduled.
+    if (!isActive) return undefined;
 
     const animate = timestamp => {
       if (lastTimestampRef.current === null) {
@@ -114,7 +164,7 @@ const useAnimationLoop = (trackRef, targetVelocity, seqWidth, seqHeight, isHover
       }
       lastTimestampRef.current = null;
     };
-  }, [targetVelocity, seqWidth, seqHeight, isHovered, hoverSpeed, isVertical, trackRef]);
+  }, [targetVelocity, seqWidth, seqHeight, isHovered, hoverSpeed, isVertical, trackRef, isActive]);
 };
 
 export const LogoLoop = memo(
@@ -194,7 +244,8 @@ export const LogoLoop = memo(
 
     useImageLoader(seqRef, updateDimensions, [logos, gap, logoHeight, isVertical]);
 
-    useAnimationLoop(trackRef, targetVelocity, seqWidth, seqHeight, isHovered, effectiveHoverSpeed, isVertical);
+    const isAnimating = useIsAnimating(containerRef);
+    useAnimationLoop(trackRef, targetVelocity, seqWidth, seqHeight, isHovered, effectiveHoverSpeed, isVertical, isAnimating);
 
     const cssVariables = useMemo(
       () => ({
