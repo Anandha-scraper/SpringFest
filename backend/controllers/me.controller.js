@@ -17,9 +17,9 @@ export async function registrations(req, res) {
 }
 
 export async function submission(req, res) {
-  const { buffer, filename } = await me.submissionFile(req.user, req.params.registrationId);
+  const { buffer, filename, contentType } = await me.submissionFile(req.user, req.params.registrationId);
   res.set("Content-Disposition", `attachment; filename="${filename}"`);
-  res.set("Content-Type", "application/octet-stream");
+  res.set("Content-Type", contentType);
   res.send(buffer);
 }
 

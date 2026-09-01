@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import "@/styles/pages/admin/roles.css";
 import { CheckCircle2, Circle, FileText } from "lucide-react";
-import { getVolunteerRoster, getVolunteerSummary, toggleCheckIn, volunteerSubmissionObjectUrl } from "@/api/client.js";
+import { downloadVolunteerSubmission, getVolunteerRoster, getVolunteerSummary, toggleCheckIn } from "@/api/client.js";
 import { useToast } from "@/components/ui/toast.jsx";
 import Loader from "@/components/common/Loader.jsx";
 import { useDeferredLoading } from "@/hooks/useDeferredLoading.js";
@@ -59,8 +59,7 @@ export default function VolunteerRoster() {
 
   const openSubmission = async (registrationId) => {
     try {
-      const url = await volunteerSubmissionObjectUrl(registrationId);
-      window.open(url, "_blank", "noopener");
+      await downloadVolunteerSubmission(registrationId);
     } catch (err) {
       toast.bad(err.message);
     }
@@ -90,7 +89,7 @@ export default function VolunteerRoster() {
                     className="btn btn-ghost btn-sm"
                     onClick={() => openSubmission(p.registration_id)}
                   >
-                    <FileText size={14} aria-hidden="true" /> View submission
+                    <FileText size={14} aria-hidden="true" /> Download submission
                   </button>
                 )}
               </div>

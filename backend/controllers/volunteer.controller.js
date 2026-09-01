@@ -28,11 +28,11 @@ export async function roster(req, res) {
 }
 
 export async function submission(req, res) {
-  const { buffer, filename } = await staffSubmissionFile({
+  const { buffer, filename, contentType } = await staffSubmissionFile({
     user: req.user,
     registrationId: req.params.registrationId,
   });
   res.set("Content-Disposition", `attachment; filename="${filename}"`);
-  res.set("Content-Type", "application/octet-stream");
+  res.set("Content-Type", contentType);
   res.send(buffer);
 }

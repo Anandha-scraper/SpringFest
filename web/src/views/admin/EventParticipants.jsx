@@ -9,8 +9,8 @@ import StatCard from "@/components/admin/StatCard.jsx";
 import StatusPill from "@/components/admin/StatusPill.jsx";
 import {
   downloadRegistrationsCsv,
+  downloadVolunteerSubmission,
   getEventParticipants,
-  volunteerSubmissionObjectUrl,
 } from "@/api/client.js";
 import { useApi } from "@/hooks/useApi.js";
 import { useToast } from "@/components/ui/toast.jsx";
@@ -25,8 +25,7 @@ export default function EventParticipants() {
 
   const openSubmission = async (registrationId) => {
     try {
-      const url = await volunteerSubmissionObjectUrl(registrationId);
-      window.open(url, "_blank", "noopener");
+      await downloadVolunteerSubmission(registrationId);
     } catch (err) {
       toast.bad(err.message);
     }
@@ -119,7 +118,7 @@ export default function EventParticipants() {
                           className="btn btn-ghost btn-sm"
                           onClick={() => openSubmission(r.id)}
                         >
-                          <FileText size={14} aria-hidden="true" /> View
+                          <FileText size={14} aria-hidden="true" /> Download
                         </button>
                       ) : (
                         <span className="cell-sub">—</span>

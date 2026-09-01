@@ -291,20 +291,54 @@ export const getVolunteerSummary = () => req("/volunteer/summary", {}, true);
 /** The confirmed teams for the volunteer's event, with per-member check-in state. */
 export const getVolunteerRoster = () => req("/volunteer/roster", {}, true);
 
-/** Authenticated blob URL for a team's submission, staff view. */
-export async function volunteerSubmissionObjectUrl(registrationId) {
-  const res = await fetch(
-    `${BASE}/volunteer/registrations/${encodeURIComponent(registrationId)}/submission`,
-    { headers: await authHeader() }
-  );
-  if (!res.ok) throw new Error(`Could not load the file: ${res.status}`);
-  return URL.createObjectURL(await res.blob());
+/** Pull the filename out of a `Content-Disposition: attachment; filename="…"`
+ * header. Used when the server decides the name (a submission's is its
+ * allocation code, decided from data the client doesn't have), as opposed to
+ * `downloadFile()` below, where the caller already knows it upfront. */
+function filenameFromDisposition(res, fallback) {
+  const header = res.headers.get("content-disposition") || "";
+  const match = header.match(/filename="([^"]+)"/);
+  return match ? match[1] : fallback;
 }
+
+/** Fetch an authenticated binary endpoint and save it to disk via a real
+ * `<a download>`, never `window.open(blobUrl)`. A blob: URL opened in a new
+ * tab carries no filename at all — `Content-Disposition`'s filename only
+ * applies to a server-navigated download — so a submission opened that way
+ * used to save with a random name and no extension, unopenable in the app it
+ * came from. This is the one correct pattern; every submission download
+ * (staff or participant) goes through it. */
+async function downloadAuthedFile(path, fallbackName) {
+  const res = await fetch(`${BASE}${path}`, { headers: await authHeader() });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || `Could not load the file: ${res.status}`);
+  }
+
+  const filename = filenameFromDisposition(res, fallbackName);
+  const url = URL.createObjectURL(await res.blob());
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+/** A team's submission, staff view (admin or the venue's volunteer). */
+export const downloadVolunteerSubmission = (registrationId) =>
+  downloadAuthedFile(
+    `/volunteer/registrations/${encodeURIComponent(registrationId)}/submission`,
+    `${registrationId}.bin`
+  );
 
 /** Fetch an authenticated binary endpoint and save it to disk.
  *
  * Bypasses req() because the response isn't JSON — the auth header is still
- * needed, since neither the CSV export nor a QR ticket is public. */
+ * needed, since neither the CSV export nor a QR ticket is public. Unlike
+ * `downloadAuthedFile()` above, the caller already knows the filename (a CSV
+ * export or a QR ticket names itself), so there's nothing to parse. */
 async function downloadFile(path, filename) {
   const res = await fetch(`${BASE}${path}`, { headers: await authHeader() });
   if (!res.ok) {
