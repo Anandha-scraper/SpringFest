@@ -77,3 +77,40 @@
 /* Shared Save / Cancel row — full width, sits at the end of the stack. */
 .event-form-time-sep { color: var(--ink-faint); flex-shrink: 0; }
 
+
+/* Access-code control on the edit form — generate/rotate, revoke, and the
+   just-minted code (shown once; there is no route that hands back a
+   persisted one, by design — see the component). */
+.access-code-control {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.85rem 1rem;
+  margin-top: 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+}
+.access-code-control__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.access-code-control__actions { display: flex; gap: 0.5rem; }
+.access-code-control__value {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.access-code-control__value code {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 0.3rem 0.6rem;
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  border: 1px solid var(--border);
+}

@@ -1,0 +1,15 @@
+/* The code-gated venue view. No navbar, no role sidebar — this visitor has
+   no account — so it needs its own minimal page shell rather than borrowing
+   RoleLayout's or Layout's. */
+.venue-view {
+  min-height: 100vh;
+  min-height: 100svh;
+  padding: clamp(1.25rem, 4vw, 3rem) clamp(1rem, 4vw, 2rem);
+  display: flex;
+  justify-content: center;
+}
+
+.venue-view__inner {
+  width: 100%;
+  max-width: 46rem;
+}

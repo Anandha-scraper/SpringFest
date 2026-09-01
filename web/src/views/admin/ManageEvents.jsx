@@ -3,7 +3,7 @@
 import { useCallback, useMemo, useState } from "react";
 import "@/styles/pages/admin/events.css";
 import Link from "next/link";
-import { Trash2 } from "lucide-react";
+import { Check, Copy, Trash2 } from "lucide-react";
 import Loader from "@/components/common/Loader.jsx";
 import FormActions from "@/components/admin/FormActions.jsx";
 import { useToast } from "@/components/ui/toast.jsx";
@@ -14,6 +14,8 @@ import {
   getVenues,
   removeEvent,
   removeVenue,
+  revokeEventAccessCode,
+  rotateEventAccessCode,
   updateEvent,
 } from "@/api/client.js";
 import { useApi } from "@/hooks/useApi.js";
@@ -70,6 +72,16 @@ export default function ManageEvents() {
   const [venueName, setVenueName] = useState("");
   const [pending, setPending] = useState(null); // a staged destructive action
 
+  // The access code is shown exactly once, right after generating or
+  // rotating it — there is no route that hands back a persisted one (it's
+  // never on the public/admin event shape, same allow-list trick that keeps
+  // `marking_criteria` private), so this holds only what this session just
+  // minted. Scoped to the event id it belongs to, so switching to edit a
+  // different event never shows a stale code for the wrong one.
+  const [accessCode, setAccessCode] = useState(null); // { eventId, code }
+  const [codeCopied, setCodeCopied] = useState(false);
+  const [codeBusy, setCodeBusy] = useState(false);
+
   // A venue backs at most one event, so only free venues are offered — plus
   // the one this event already holds, when editing.
   const availableVenues = useMemo(
@@ -90,6 +102,7 @@ export default function ManageEvents() {
   const reset = () => {
     setForm(blankForm());
     setEditing(null);
+    setAccessCode(null);
   };
 
   const submit = async (e) => {
@@ -130,6 +143,7 @@ export default function ManageEvents() {
 
   const edit = (ev) => {
     setEditing(ev);
+    setAccessCode(null);
     setForm({
       name: ev.name,
       category: ev.category || CATEGORIES[0],
@@ -157,6 +171,46 @@ export default function ManageEvents() {
       toast.ok("Venue added.");
     } catch (err) {
       toast.bad(err.message);
+    }
+  };
+
+  const generateCode = async () => {
+    if (!editing) return;
+    setCodeBusy(true);
+    try {
+      const { access_code } = await rotateEventAccessCode(editing.id);
+      setAccessCode({ eventId: editing.id, code: access_code });
+      setCodeCopied(false);
+    } catch (err) {
+      toast.bad(err.message);
+    } finally {
+      setCodeBusy(false);
+    }
+  };
+
+  const revokeCode = async () => {
+    if (!editing) return;
+    setCodeBusy(true);
+    try {
+      await revokeEventAccessCode(editing.id);
+      setAccessCode(null);
+      toast.ok("Access code revoked.");
+    } catch (err) {
+      toast.bad(err.message);
+    } finally {
+      setCodeBusy(false);
+    }
+  };
+
+  const copyCode = async () => {
+    if (!accessCode) return;
+    try {
+      await navigator.clipboard.writeText(accessCode.code);
+      setCodeCopied(true);
+      setTimeout(() => setCodeCopied(false), 1800);
+    } catch {
+      // Same posture as PaymentTarget's UPI copy — blocked on some mobile
+      // browsers/insecure origins; the code is already on screen either way.
     }
   };
 
@@ -242,6 +296,54 @@ export default function ManageEvents() {
             People have already registered for this event, so its name, fee, date and category are
             fixed. You can still change the venue, timing and description.
           </p>
+        )}
+
+        {editing && (
+          <div className="access-code-control">
+            <div className="access-code-control__row">
+              <span className="field-label">Venue staff access code</span>
+              <div className="access-code-control__actions">
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  disabled={codeBusy}
+                  onClick={generateCode}
+                >
+                  {accessCode?.eventId === editing.id ? "Rotate code" : "Generate code"}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  disabled={codeBusy}
+                  onClick={revokeCode}
+                >
+                  Revoke
+                </button>
+              </div>
+            </div>
+            {accessCode?.eventId === editing.id ? (
+              <div className="access-code-control__value">
+                <code>{accessCode.code}</code>
+                <button type="button" className="btn btn-ghost btn-sm" onClick={copyCode}>
+                  {codeCopied ? (
+                    <>
+                      <Check size={14} aria-hidden="true" /> Copied
+                    </>
+                  ) : (
+                    <>
+                      <Copy size={14} aria-hidden="true" /> Copy
+                    </>
+                  )}
+                </button>
+              </div>
+            ) : (
+              <p className="cell-sub">
+                Shown once, right after generating — reopening this form later won&rsquo;t show the
+                current code again. Rotate to hand out a new one; revoke to shut the old one off
+                without replacing it.
+              </p>
+            )}
+          </div>
         )}
 
         <form className="event-form" onSubmit={submit}>

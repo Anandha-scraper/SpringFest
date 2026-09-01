@@ -8,6 +8,7 @@ import { router as meRouter } from "./me.routes.js";
 import { router as registrationsRouter } from "./registrations.routes.js";
 import { router as sessionRouter } from "./session.routes.js";
 import { router as streamRouter } from "./stream.routes.js";
+import { router as venueRouter } from "./venue.routes.js";
 import { router as volunteerRouter } from "./volunteer.routes.js";
 
 export const router = Router();
@@ -30,3 +31,8 @@ router.use("/me", meRouter);
 // into volunteer, so those endpoints are now part of /volunteer.
 router.use("/volunteer", volunteerRouter);
 router.use("/admin", adminRouter);
+
+// The footer access code, no sign-in required. See venue.routes.js and
+// services/venueAccess.service.js for why this one route group has no auth
+// chain anywhere in it.
+router.use("/venue", venueRouter);

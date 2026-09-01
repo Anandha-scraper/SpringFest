@@ -26,6 +26,37 @@ async function req(path, options = {}, authRequired = false) {
 export const getEvents = () => req("/events");
 export const getEvent = (id) => req(`/events/${id}`);
 
+// ── Venue access code (public — no sign-in, the code is the credential) ──
+/** Resolve a footer-entered code to its team roster. POST, code in the body,
+ *  never a URL — see backend/routes/venue.routes.js for why. */
+export const venueAccess = (code) =>
+  req("/venue/access", { method: "POST", body: JSON.stringify({ code }) });
+
+/** Same POST-with-body shape as venueAccess, but for a file: no JSON, no
+ *  auth header (there's no account here to attach one from), filename read
+ *  off the response the same way downloadAuthedFile() does for staff/
+ *  participant downloads. */
+export async function downloadVenueSubmission(code, registrationId) {
+  const res = await fetch(`${BASE}/venue/submission`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ code, registration_id: registrationId }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || `Could not load the file: ${res.status}`);
+  }
+  const filename = filenameFromDisposition(res, `${registrationId}.bin`);
+  const url = URL.createObjectURL(await res.blob());
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
 // ── Session ─────────────────────────────────────────────────
 /** Exchange the just-minted Firebase ID token for the __session cookie the
  *  server can read on its own. Called once, right after the Google popup —
@@ -135,8 +166,8 @@ export const getVenueRollup = () => req("/admin/venues/rollup", {}, true);
 /** Per-event attendance and evaluation progress — the Manage Roles view. */
 export const getEventRollup = () => req("/admin/events/rollup", {}, true);
 
-/** The raw event doc, including the staff-only marking criteria that the
- *  public /events routes deliberately never return. */
+/** The raw event doc — including `access_code`, which the public /events
+ *  routes deliberately never return (see event.service.js's toEvent()). */
 export const getAdminEvent = (eventId) =>
   req(`/admin/events/${encodeURIComponent(eventId)}`, {}, true);
 
@@ -174,6 +205,14 @@ export const updateEvent = (id, data) =>
 
 export const removeEvent = (id) =>
   req(`/events/${encodeURIComponent(id)}`, { method: "DELETE" }, true);
+
+/** Generate a code, or replace whatever one already existed — one call
+ *  covers both "Generate" and "Rotate" in the UI. Returns { access_code }. */
+export const rotateEventAccessCode = (eventId) =>
+  req(`/admin/events/${encodeURIComponent(eventId)}/access-code`, { method: "POST" }, true);
+
+export const revokeEventAccessCode = (eventId) =>
+  req(`/admin/events/${encodeURIComponent(eventId)}/access-code`, { method: "DELETE" }, true);
 
 // People / roles
 export const getPeople = (role) =>

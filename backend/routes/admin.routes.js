@@ -23,6 +23,11 @@ router.get("/venues/rollup", ...AdminUser, admin.venuesRollup);
 router.get("/events/rollup", ...AdminUser, admin.eventsRollup);
 router.get("/events/:eventId", ...AdminUser, admin.rawEvent);
 router.get("/events/:eventId/participants", ...AdminUser, admin.eventParticipants);
+// Generate/rotate (POST) and revoke (DELETE) the venue access code — see
+// services/venueAccess.service.js. rawEvent above already returns whatever
+// access_code currently exists; these two are the only writes to it.
+router.post("/events/:eventId/access-code", ...AdminUser, admin.rotateAccessCode);
+router.delete("/events/:eventId/access-code", ...AdminUser, admin.revokeAccessCode);
 
 // ── Registrations ────────────────────────────────────────────
 // Likewise, the literal `.csv` path stays above `/registrations/:id`.
