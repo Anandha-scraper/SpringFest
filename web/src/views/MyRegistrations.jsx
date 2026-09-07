@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import "@/styles/pages/admin/shared.css";
 import "@/styles/pages/my-registrations.css";
 import Link from "next/link";
-import { Download, QrCode, UserPlus } from "lucide-react";
+import { Download, MessageCircle, QrCode, UserPlus } from "lucide-react";
 import {
   downloadPersonalQr,
   getEvents,
@@ -102,7 +102,7 @@ const PAYMENT_CTA = {
 };
 
 export default function MyRegistrations() {
-  const { registrationOpen } = useAuth();
+  const { registrationOpen, whatsappGroupUrl } = useAuth();
   const [items, setItems] = useState(null);
   const [events, setEvents] = useState([]);
   const [error, setError] = useState("");
@@ -155,6 +155,19 @@ export default function MyRegistrations() {
         </div>
       ) : (
         <section className="myreg-layout">
+          {/* The persistent copy of the link they were offered on the success
+              screen — that one is gone in five seconds, and this is where
+              people come back looking for it. */}
+          {whatsappGroupUrl && (
+            <a
+              className="btn btn-ghost myreg-group"
+              href={whatsappGroupUrl}
+              target="_blank"
+              rel="noreferrer noopener"
+            >
+              <MessageCircle size={16} aria-hidden="true" /> Join the WhatsApp group
+            </a>
+          )}
           {hasConfirmed ? (
             <PersonalQr codes={myCodes} />
           ) : (

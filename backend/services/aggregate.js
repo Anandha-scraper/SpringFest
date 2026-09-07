@@ -17,6 +17,7 @@ import { getAuth, getDb } from "../config/firebase.js";
 import { settings } from "../config/index.js";
 import { STATUS_COMPLETED } from "../utils/statuses.js";
 import { buildUidByEmail, keyResolver, normalizeEmail, personKeyFor } from "../utils/identity.js";
+import { originOf } from "../utils/origin.js";
 import { ticketHolders } from "./qr.js";
 import { cached, invalidate } from "./cache.js";
 import { nowInFestZone } from "./festClock.js";
@@ -97,6 +98,9 @@ function registrationView(r, events) {
     event_id: r.event_id || "",
     event_name: eventName(events, r.event_id || ""),
     status: r.status || "",
+    // Self-serve or taken at the desk. Resolved, never read raw — see
+    // utils/origin.js on why the field is absent on older rows.
+    origin: originOf(r),
     fee: r.fee || 0,
     checked_in: Boolean(r.checked_in),
     member_checkins: r.member_checkins || [],
@@ -192,8 +196,10 @@ export async function participantRows(data, status = STATUS_COMPLETED) {
 
     rows.push({
       person_key: key,
-      // The uid only exists if this person leads something. A pure teammate's
-      // is "" — which is why nothing may key a React list on it.
+      // The uid only exists if this person leads something AND has signed in:
+      // a row entered by an organiser carries none until its owner appears
+      // (accountLink.service.js). A pure teammate's is "" too — which is why
+      // nothing may key a React list on it.
       uid: leadSeats[0]?.holder.uid || "",
       name: pick("name"),
       email: normalizeEmail(pick("email")),

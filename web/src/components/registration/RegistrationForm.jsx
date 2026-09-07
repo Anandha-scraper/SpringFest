@@ -22,6 +22,11 @@ const digitsOnly = (v) => v.replace(/\D/g, "").slice(0, 10);
  *
  * `initialValues` prefills the form when resuming a saved draft (same shape
  * `onSubmit` produces: lead fields + team_name + members[]).
+ *
+ * `previousDetails` is this person's most recent registration, used to save
+ * them retyping their college/department/year/city on a second or third
+ * event. It only ever fills fields that are still empty, and EventDetail
+ * passes null while resuming, so a saved draft always wins.
  */
 export default function RegistrationForm({
   onSubmit,
@@ -30,6 +35,7 @@ export default function RegistrationForm({
   fee = 0,
   event = {},
   initialValues = null,
+  previousDetails = null,
 }) {
   const { user } = useAuth();
   const [form, setForm] = useState(() => ({ ...blankLead(), ...initialValues }));
@@ -53,6 +59,23 @@ export default function RegistrationForm({
       email: f.email || user.email || "",
     }));
   }, [user]);
+
+  // Carry over the details that don't change between events. Same rule as the
+  // Google prefill above — empty fields only, so it can never overwrite
+  // something typed, and re-running it after an edit is harmless. Phone is
+  // included; name and email are already handled above.
+  useEffect(() => {
+    if (!previousDetails) return;
+    setForm((f) => ({
+      ...f,
+      phone: f.phone || previousDetails.phone || "",
+      college: f.college || previousDetails.college || "",
+      department: f.department || previousDetails.department || "",
+      year: f.year || previousDetails.year || "",
+      location: f.location || previousDetails.location || "",
+      location_other: f.location_other || previousDetails.location_other || "",
+    }));
+  }, [previousDetails]);
 
   // Open with the minimum viable team, so the smallest legal entry is one
   // click — but only when there's no draft already supplying members.

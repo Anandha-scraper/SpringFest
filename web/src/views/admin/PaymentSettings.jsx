@@ -43,6 +43,16 @@ const MODES = [
   },
 ];
 
+// Mirrors MAX_INSTRUCTIONS in backend/services/settings.js — the server is
+// the authority and rejects a longer list; this just stops the UI offering a
+// box that would be refused on save.
+const MAX_POINTS = 12;
+
+// Each notice is a heading plus a line of detail — the shape the landing
+// page's cards render. Either field may be left empty.
+const blankPoint = () => ({ title: "", text: "" });
+const isBlank = (p) => !p.title.trim() && !p.text.trim();
+
 const QR_TYPES = ["image/png", "image/jpeg", "image/webp"];
 const QR_MAX_BYTES = 5 * 1024 * 1024;
 
@@ -80,6 +90,27 @@ export default function PaymentSettings() {
   const [settings, events] = data || [];
 
   const [upiId, setUpiId] = useState("");
+  const [whatsappUrl, setWhatsappUrl] = useState("");
+  // Always carries one trailing empty row, which is what makes "add a point"
+  // need no button. Mirrors the server's own cap.
+  const [points, setPoints] = useState([blankPoint()]);
+  // What actually gets saved: the trailing empty row, and any the admin
+  // cleared in the middle, are never sent. A row with only one of the two
+  // fields filled is kept — a bare heading and a bare line are both real
+  // cards, and the server agrees.
+  const filledPoints = points
+    .map((p) => ({ title: p.title.trim(), text: p.text.trim() }))
+    .filter((p) => p.title || p.text);
+
+  /** Edit one field, and keep exactly one empty row at the end so adding a
+   *  point never needs an "add" button — until the cap, where the trailing
+   *  row would be one the server refuses. */
+  const setPoint = (index, field, value) => {
+    const next = points.map((p, j) => (j === index ? { ...p, [field]: value } : p));
+    const filled = next.filter((p) => !isBlank(p)).length;
+    if (!isBlank(next[next.length - 1]) && filled < MAX_POINTS) next.push(blankPoint());
+    setPoints(next);
+  };
   const [qrFile, setQrFile] = useState(null);
   const [qrPreview, setQrPreview] = useState("");
   const [pendingMode, setPendingMode] = useState(null);
@@ -98,6 +129,30 @@ export default function PaymentSettings() {
   // on a background reload.
   useEffect(() => {
     if (settings) setUpiId((prev) => prev || settings.payment_upi_id || "");
+  }, [settings]);
+
+  // Same non-clobbering seed for the group link.
+  useEffect(() => {
+    if (settings) setWhatsappUrl((prev) => prev || settings.whatsapp_group_url || "");
+  }, [settings]);
+
+  // ...and for the instructions. `seeded` rather than a length check: an
+  // organiser who deletes every point back to one empty box must not have the
+  // saved list poured back in by the next background reload.
+  const seeded = useRef(false);
+  useEffect(() => {
+    if (!settings || seeded.current) return;
+    seeded.current = true;
+    setPoints([
+      // Tolerates the pre-cards shape (a plain string per point) the same way
+      // the server's parser does, so an older saved list still loads.
+      ...(settings.event_instructions || []).map((p) =>
+        typeof p === "string"
+          ? { title: "", text: p }
+          : { title: p?.title || "", text: p?.text || "" }
+      ),
+      blankPoint(),
+    ]);
   }, [settings]);
 
   // Same non-clobbering seed for the per-category caps. Held as strings so the
@@ -329,6 +384,104 @@ export default function PaymentSettings() {
               ))}
             </ul>
             <FormActions editing={false} saveLabel="Save limits" disabled={busy} />
+          </form>
+        </section>
+
+        <section className="admin-panel">
+          <div className="panel-head">
+            <h2>Event instructions</h2>
+            <span className="muted">{filledPoints.length} of {MAX_POINTS}</span>
+          </div>
+          <p className="muted">
+            Shown under the EVENTS heading on the home page, to everyone — including
+            visitors who haven&apos;t signed in. Use it for what applies across the fest:
+            what to bring, who can enter, when sign-ups close. Leave every box empty to
+            hide the whole panel.
+          </p>
+          <form
+            className="form"
+            onSubmit={(e) => {
+              e.preventDefault();
+              // Blanks are dropped server-side too; trimming here keeps the
+              // inputs and what gets saved visibly the same thing.
+              save({ event_instructions: filledPoints }, "Instructions saved.");
+            }}
+          >
+            <ol className="instruction-list">
+              {points.map((point, i) => (
+                <li key={i}>
+                  <span className="instruction-num">{String(i + 1).padStart(2, "0")}</span>
+                  <div className="instruction-fields">
+                    <input
+                      className="instruction-title"
+                      aria-label={`Heading ${i + 1}`}
+                      placeholder="Heading"
+                      maxLength={80}
+                      disabled={busy}
+                      value={point.title}
+                      onChange={(e) => setPoint(i, "title", e.target.value)}
+                    />
+                    <input
+                      aria-label={`Detail ${i + 1}`}
+                      placeholder={
+                        i === points.length - 1 ? "Add another point…" : "What it means"
+                      }
+                      maxLength={240}
+                      disabled={busy}
+                      value={point.text}
+                      onChange={(e) => setPoint(i, "text", e.target.value)}
+                    />
+                  </div>
+                  <button
+                    className="btn btn-sm btn-ghost"
+                    type="button"
+                    aria-label={`Remove point ${i + 1}`}
+                    disabled={busy || (isBlank(point) && points.length === 1)}
+                    onClick={() => {
+                      const next = points.filter((_, j) => j !== i);
+                      setPoints(next.length ? next : [blankPoint()]);
+                    }}
+                  >
+                    <Trash2 size={14} aria-hidden="true" />
+                  </button>
+                </li>
+              ))}
+            </ol>
+            <FormActions editing={false} saveLabel="Save instructions" disabled={busy} />
+          </form>
+        </section>
+
+        {/* Not behind the payment lock either, and for the same reason: the
+            lock covers the UPI id and the QR. A group link is exactly the kind
+            of thing organisers fix at the last minute. */}
+        <section className="admin-panel">
+          <div className="panel-head">
+            <h2>WhatsApp group</h2>
+          </div>
+          <p className="muted">
+            Shown to every participant the moment they finish registering, and again on
+            their registrations page. Must be an https link to chat.whatsapp.com or wa.me.
+            Leave it empty to show nothing.
+          </p>
+          <form
+            className="form"
+            onSubmit={(e) => {
+              e.preventDefault();
+              save({ whatsapp_group_url: whatsappUrl.trim() }, "Group link saved.");
+            }}
+          >
+            <div className="field">
+              <label htmlFor="whatsapp-url">Invite link</label>
+              <input
+                id="whatsapp-url"
+                type="url"
+                placeholder="https://chat.whatsapp.com/…"
+                disabled={busy}
+                value={whatsappUrl}
+                onChange={(e) => setWhatsappUrl(e.target.value)}
+              />
+            </div>
+            <FormActions editing={false} saveLabel="Save link" disabled={busy} />
           </form>
         </section>
 

@@ -3,12 +3,17 @@
  *
  *   SF <category letter> <event letter> <participant number>
  *   └┬┘ └──────┬───────┘ └─────┬──────┘ └───────┬─────────┘
- *   const     N/T/H/W      A = 1st event    1,2,3… = Nth person
- *                          created under        (lead + team members
- *                          that category         each get their own,
+ *  SF online  N/T/H/W      A = 1st event    1,2,3… = Nth person
+ *  SP spot                 created under        (lead + team members
+ *  (utils/origin.js)       that category         each get their own,
  *                          by created_at         in a contiguous block)
  *
- * e.g. SFTA1, SFTA2 (people 1 & 2 of the first Technical event), SFNB3.
+ * e.g. SFTA1, SFTA2 (people 1 & 2 of the first Technical event), SFNB3,
+ * SPTA3 (person 3 of that same first Technical event, registered at the desk).
+ *
+ * The prefix records how someone got in; it does NOT partition the numbering.
+ * Both prefixes bump the one `counters/{eventId}` document below, so a code is
+ * still unique on its number alone and the desk can read either aloud.
  *
  * One code per *ticket holder*, stored index-aligned with `ticketHolders(row)`
  * (services/qr.js) so `allocation_codes[member_index]` is always "this person's
@@ -23,6 +28,7 @@
  */
 import { getDb } from "../config/firebase.js";
 import { ApiError } from "../utils/ApiError.js";
+import { prefixFor } from "../utils/origin.js";
 import { STATUS_COMPLETED } from "../utils/statuses.js";
 import * as aggregate from "./aggregate.js";
 import { ticketHolders } from "./qr.js";
@@ -115,7 +121,10 @@ export async function mintAllocationCodes(registrationId) {
       letter = toLetter(alreadyLettered);
     }
 
-    const prefix = `SF${categoryLetter(eventData.category)}${letter}`;
+    // SF for a self-serve registration, SP for one taken at the desk. Both
+    // draw from the same counter below, so the two prefixes interleave in one
+    // sequence rather than each starting from 1.
+    const prefix = `${prefixFor(row)}${categoryLetter(eventData.category)}${letter}`;
     let n = counterSnap.exists ? Number(counterSnap.data().participants || 0) : 0;
     const now = new Date().toISOString();
     for (const i of missing) {

@@ -52,6 +52,12 @@ export async function currentUser(req, res, next) {
   req.user = {
     uid: decoded.uid,
     email,
+    // Only ever read by accountLink.service.js, which refuses to hand an
+    // unclaimed registration to an address the provider hasn't verified.
+    // Google sign-in is always verified, so this is `true` in practice today;
+    // it is here so adding a password provider can't silently turn address
+    // ownership into a claim.
+    email_verified: decoded.email_verified !== false,
     name: decoded.name || "",
     picture: decoded.picture || "",
     role,

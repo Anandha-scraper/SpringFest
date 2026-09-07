@@ -24,6 +24,10 @@ async function req(path, options = {}, authRequired = false) {
 
 // ── Public ───────────────────────────────────────────────────
 export const getEvents = () => req("/events");
+/** The few settings a signed-out visitor may read — the landing page's
+ *  instructions, and whether sign-ups are open. Public by design; the server
+ *  allow-lists what it returns. */
+export const getPublicSettings = () => req("/public-settings");
 export const getEvent = (id) => req(`/events/${id}`);
 
 // ── Venue access code (public — no sign-in, the code is the credential) ──
@@ -294,6 +298,38 @@ export async function paymentQrObjectUrl() {
 
 // Screenshot payments waiting on an admin.
 export const getApprovals = () => req("/admin/approvals", {}, true);
+
+// Saved-but-never-paid forms. Disjoint from the approvals queue above — a
+// document has one status and the two lists filter on different ones.
+export const getDrafts = () => req("/admin/drafts", {}, true);
+
+// Desk registration: created already paid, marked SPOT, code minted at once.
+export const createSpotRegistration = (data) =>
+  req("/admin/spot-registrations", { method: "POST", body: JSON.stringify(data) }, true);
+
+/** The .xlsx template, built server-side from the events that exist now. */
+export const downloadImportTemplate = () =>
+  downloadFile("/admin/import/template", "spring-fest-import-template.xlsx");
+
+/** Upload a filled-in template. `dryRun` validates and writes nothing.
+ *
+ * Bypasses req() like every other multipart call: setting Content-Type here
+ * would omit the boundary the browser adds for us. */
+export async function importRegistrations(file, { dryRun = false, origin = "" } = {}) {
+  const body = new FormData();
+  body.append("file", file);
+  if (origin) body.append("origin", origin);
+  const res = await fetch(`${BASE}/admin/import/registrations?dry_run=${dryRun}`, {
+    method: "POST",
+    headers: await authHeader(),
+    body,
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || `Import failed: ${res.status}`);
+  }
+  return res.json();
+}
 
 /** An object URL for a payment screenshot, for display. Callers must revoke
  *  it. Fetched rather than linked because the endpoint is authenticated. */

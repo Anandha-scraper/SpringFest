@@ -9,7 +9,7 @@
  *
  * Three gates stand in front of creating one: the fest-wide `registration_open`,
  * the event's own flag (`assertEventOpen`), and the per-category cap from
- * settings/app (`assertCategoryCapacity`). None of them applies to finishing a
+ * settings/app (`assertCategoryCapacityFor`). None of them applies to finishing a
  * payment already in flight — verifyPayment, submitProof and resumeTopUp are
  * deliberately outside all three.
  */
@@ -45,6 +45,10 @@ import {
   ownerIdsToCheck,
 } from "./registrationClaims.service.js";
 import { ticketHolders } from "./qr.js";
+import { normalizeEmail } from "../utils/identity.js";
+import { ORIGIN_ONLINE } from "../utils/origin.js";
+import { claimUnclaimedRows } from "./accountLink.service.js";
+import { matchMemberIndex } from "./registrationLookup.js";
 import { MINT_ON_GATEWAY_VERIFY, mintQuietly } from "./allocation.service.js";
 import { createOrder, fetchPaymentMethod, verifySignature } from "./payment.js";
 import {
@@ -61,15 +65,40 @@ import { uploadBuffer } from "./storage.js";
  * Guards the admin's per-person view — without it the same account could
  * appear under one event several times — and doubles as the resume path for
  * an abandoned checkout, which used to create a second document every time.
+ *
+ * Two queries, not one: a row written by the Excel import or the desk has no
+ * uid yet and is found by `unclaimed_email` instead (accountLink.service.js).
+ * Without that second query someone imported into an event would be told
+ * nothing exists, try to create a second document, and hit the email claim
+ * with a confusing "one email per event" 409 instead of "you're already
+ * registered". Resuming such a row also *is* the link: the write below stamps
+ * the uid onto it.
  */
-async function existingRegistration(db, uid, eventId) {
-  const snap = await db
-    .collection("registrations")
-    .where("uid", "==", uid)
-    .where("event_id", "==", eventId)
-    .get();
-  for (const doc of snap.docs) {
-    if (LIVE_STATUSES.includes(doc.data()?.status)) return doc;
+async function existingRegistration(db, { uid, email }, eventId) {
+  const key = normalizeEmail(email);
+  const queries = [];
+  if (uid) {
+    queries.push(
+      db.collection("registrations").where("uid", "==", uid).where("event_id", "==", eventId).get()
+    );
+  }
+  if (key) {
+    queries.push(
+      db
+        .collection("registrations")
+        .where("unclaimed_email", "==", key)
+        .where("event_id", "==", eventId)
+        .get()
+    );
+  }
+
+  const seen = new Set();
+  for (const snap of await Promise.all(queries)) {
+    for (const doc of snap.docs) {
+      if (seen.has(doc.id)) continue;
+      seen.add(doc.id);
+      if (LIVE_STATUSES.includes(doc.data()?.status)) return doc;
+    }
   }
   return null;
 }
@@ -91,14 +120,25 @@ async function existingRegistration(db, uid, eventId) {
  * promoted to real registrations without the cap ever being consulted.
  * `rejected` counts for the same reason — it is non-terminal and resubmits
  * against the same row.
+ *
+ * Takes `{ uid, email }` rather than a bare uid because the admin paths (the
+ * Excel import and the desk form) are registering somebody who may have no
+ * account at all. With a uid this is the indexed query it always was; with
+ * only an address it falls back to a full scan — the same cost class as
+ * aggregate.js's own scans, and only ever on those low-volume admin paths.
  */
-async function assertCategoryCapacity(db, uid, event) {
+export async function assertCategoryCapacityFor(db, { uid, email }, event) {
   const category = event.category || "";
   const limit = categoryLimit(await getAppSettings(), category);
   if (!limit || !category) return;
 
+  const key = normalizeEmail(email);
+  if (!uid && !key) return;
+
   const [regsSnap, eventsSnap] = await Promise.all([
-    db.collection("registrations").where("uid", "==", uid).get(),
+    uid
+      ? db.collection("registrations").where("uid", "==", uid).get()
+      : db.collection("registrations").get(),
     // Read live rather than through aggregate.loadAll(): createOrResume
     // already reads its own event doc directly, and a registration must not
     // be allowed or refused on the strength of a 20s-stale cache.
@@ -106,10 +146,19 @@ async function assertCategoryCapacity(db, uid, event) {
   ]);
   const events = Object.fromEntries(eventsSnap.docs.map((d) => [d.id, d.data() ?? {}]));
 
+  // The uid query already narrowed to this person; the email scan did not, so
+  // it has to match the lead seat itself. Both the typed address and the
+  // unclaimed marker count — the same person either way.
+  const isTheirs = (row) =>
+    uid
+      ? true
+      : normalizeEmail(row.email) === key || normalizeEmail(row.unclaimed_email) === key;
+
   const held = [];
   for (const doc of regsSnap.docs) {
     const row = doc.data() ?? {};
     if (!LIVE_STATUSES.includes(row.status)) continue;
+    if (!isTheirs(row)) continue;
     const other = events[row.event_id || ""];
     if (!other || (other.category || "") !== category) continue;
     held.push(other.name || row.event_id);
@@ -124,6 +173,33 @@ async function assertCategoryCapacity(db, uid, event) {
     `You can register for at most ${limit} ${category} event${limit === 1 ? "" : "s"}, ` +
       `and you already have ${held.map((n) => `"${n}"`).join(", ")}.`
   );
+}
+
+/** Team rules come from the event, never the client: whether a team is even
+ * allowed, and how many people it may hold.
+ *
+ * Its own function so the desk form and the Excel import enforce exactly the
+ * rule the public form does. This one is never bypassed by an admin path —
+ * unlike `registration_open`, a team of nine in a three-person event is
+ * broken data rather than a policy an organiser might want to override. */
+export function assertTeamShape(eventData, payload) {
+  const members = payload.members || [];
+  if (eventData.is_team_event) {
+    const size = 1 + members.length;
+    const teamMin = eventData.team_min ?? 1;
+    const teamMax = eventData.team_max ?? 1;
+    if (!(payload.team_name || "").trim()) {
+      throw new ApiError(400, "This is a team event — give your team a name");
+    }
+    if (size < teamMin || size > teamMax) {
+      throw new ApiError(
+        400,
+        `Teams for this event must have ${teamMin}–${teamMax} members (you have ${size})`
+      );
+    }
+  } else if (members.length || payload.team_name) {
+    throw new ApiError(400, "This event is for individuals, not teams");
+  }
 }
 
 /** The per-event half of the registration gate.
@@ -146,7 +222,7 @@ function assertEventOpen(eventData) {
   }
 }
 
-function parseRegistrationCreate(body) {
+export function parseRegistrationCreate(body) {
   const members = Array.isArray(body.members) ? body.members.map(parseTeamMember) : [];
   const payload = {
     event_id: requireString(body.event_id, { field: "event_id" }),
@@ -166,13 +242,24 @@ function parseRegistrationCreate(body) {
 }
 
 /** The caller's own registration, or a 403/404. Every route below this point
- * is scoped to one document the signed-in user owns. */
-async function ownedRegistration(db, registrationId, uid, denial = "Not your registration") {
+ * is scoped to one document the signed-in user owns.
+ *
+ * "Owns" means seat 0 — the lead — and that question has exactly one answer,
+ * `matchMemberIndex`, rather than a uid comparison of its own. That matters
+ * for a row created by the import or the desk: it has no uid until its owner
+ * signs in, and a bare `row.uid !== uid` would lock them out of resuming,
+ * uploading a submission, or adding a teammate to their own registration.
+ * Teammates still get a 403 here, which is intended — every route below is
+ * lead-only. (Feedback is the deliberate exception and calls
+ * `matchMemberIndex` itself; see feedback.service.js.) */
+async function ownedRegistration(db, registrationId, user, denial = "Not your registration") {
   const regRef = db.collection("registrations").doc(registrationId);
   const reg = await regRef.get();
   if (!reg.exists) throw new ApiError(404, "Registration not found");
   const row = reg.data() ?? {};
-  if (row.uid !== uid) throw new ApiError(403, denial);
+  if (matchMemberIndex(row, { uid: user.uid, email: user.email }) !== 0) {
+    throw new ApiError(403, denial);
+  }
   return { regRef, row };
 }
 
@@ -273,6 +360,14 @@ export async function createOrResume({ user, body }) {
     throw new ApiError(403, "Registration is closed");
   }
 
+  // Before anything reads by uid: if this person was entered by an organiser
+  // (Excel import or the desk) and is only now signing in, attach those rows
+  // to their account first. Both checks below — "do you already have one for
+  // this event" and the per-category cap — are uid-keyed, and running them
+  // against an unlinked row would let someone register twice and slip past
+  // their allowance. Normally this is one empty indexed query.
+  await claimUnclaimedRows(user);
+
   const payload = parseRegistrationCreate(body);
   const db = getDb();
   const eventDoc = await db.collection("events").doc(payload.event_id).get();
@@ -284,23 +379,7 @@ export async function createOrResume({ user, body }) {
   // and the team is charged for everyone it's registering, lead included.
   const fee = (eventData.fee || 0) * (1 + members.length);
 
-  // Team rules come from the event, never the client.
-  if (eventData.is_team_event) {
-    const size = 1 + members.length;
-    const teamMin = eventData.team_min ?? 1;
-    const teamMax = eventData.team_max ?? 1;
-    if (!payload.team_name.trim()) {
-      throw new ApiError(400, "This is a team event — give your team a name");
-    }
-    if (size < teamMin || size > teamMax) {
-      throw new ApiError(
-        400,
-        `Teams for this event must have ${teamMin}–${teamMax} members (you have ${size})`
-      );
-    }
-  } else if (members.length || payload.team_name) {
-    throw new ApiError(400, "This event is for individuals, not teams");
-  }
+  assertTeamShape(eventData, payload);
 
   // How this registration will be paid for is decided here, once, and
   // recorded on the row. The admin can flip the mode mid-fest (gateway down
@@ -313,7 +392,7 @@ export async function createOrResume({ user, body }) {
   const isFree = fee <= 0;
 
   let regRef;
-  const existing = await existingRegistration(db, user.uid, payload.event_id);
+  const existing = await existingRegistration(db, user, payload.event_id);
   if (existing) {
     const row = existing.data() ?? {};
     if (row.status === STATUS_COMPLETED) {
@@ -350,7 +429,7 @@ export async function createOrResume({ user, body }) {
     // rather than passing an "except this one" id is what keeps that
     // impossible. It also sits after every cheap rejection above, so the
     // extra reads only happen on a request that would otherwise succeed.
-    await assertCategoryCapacity(db, user.uid, eventData);
+    await assertCategoryCapacityFor(db, user, eventData);
     regRef = db.collection("registrations").doc();
   }
 
@@ -370,6 +449,11 @@ export async function createOrResume({ user, body }) {
     team_size: 1 + members.length,
     uid: user.uid,
     user_email: user.email,
+    // Stamped rather than left to originOf()'s default, so a row written here
+    // says out loud that it came through the public form. The writes below are
+    // whole-document sets, which is also what clears `unclaimed_email` if this
+    // is an organiser-entered row being finished by its owner.
+    origin: ORIGIN_ONLINE,
     checked_in: false,
     created_at: new Date().toISOString(),
   };
@@ -449,7 +533,7 @@ export async function submitProof({ user, registrationId, transactionId, file, e
   if (!file) throw new ApiError(400, "screenshot: a payment screenshot is required");
 
   const db = getDb();
-  const { regRef, row } = await ownedRegistration(db, id, user.uid);
+  const { regRef, row } = await ownedRegistration(db, id, user);
   if (row.payment_mode !== MODE_SCREENSHOT) {
     throw new ApiError(400, "This registration is being paid through the payment gateway");
   }
@@ -491,7 +575,7 @@ export async function submitFile({ user, registrationId, file, extension }) {
   const { regRef, row } = await ownedRegistration(
     db,
     id,
-    user.uid,
+    user,
     "Only the team lead can upload the submission"
   );
   if (row.status === STATUS_DRAFT) {
@@ -528,7 +612,7 @@ export async function addMember({ user, registrationId, body }) {
   const { regRef, row } = await ownedRegistration(
     db,
     id,
-    user.uid,
+    user,
     "Only the team lead can add a teammate"
   );
 
@@ -543,7 +627,7 @@ export async function addMember({ user, registrationId, body }) {
   assertEventOpen(eventData);
   if (!eventData.is_team_event) throw new ApiError(400, "This isn't a team event");
   // No per-category cap check here, on purpose: the cap counts only what a
-  // person leads (see assertCategoryCapacity), and this adds a teammate.
+  // person leads (see assertCategoryCapacityFor), and this adds a teammate.
 
   const members = Array.isArray(row.members) ? row.members : [];
   const newSize = 2 + members.length;
@@ -615,7 +699,7 @@ export async function addMember({ user, registrationId, body }) {
 export async function resumeTopUp({ user, registrationId }) {
   const id = requireString(registrationId, { field: "registration_id" });
   const db = getDb();
-  const { regRef, row } = await ownedRegistration(db, id, user.uid);
+  const { regRef, row } = await ownedRegistration(db, id, user);
 
   const amountDue = row.amount_due || 0;
   const resumable = amountDue > 0 && [STATUS_PENDING, STATUS_REJECTED].includes(row.status);
@@ -656,7 +740,7 @@ export async function verifyPayment({ user, body }) {
   const razorpaySignature = requireString(body.razorpay_signature, { field: "razorpay_signature" });
 
   const db = getDb();
-  const { regRef, row } = await ownedRegistration(db, registrationId, user.uid);
+  const { regRef, row } = await ownedRegistration(db, registrationId, user);
   // The order the client reports must be the one we created for this row.
   if (row.order_id && row.order_id !== razorpayOrderId) {
     throw new ApiError(400, "Order does not match this registration");

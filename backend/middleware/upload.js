@@ -9,6 +9,8 @@
  * turns multer's own MulterError into the same `{ detail }` shape as everything
  * else, so an oversized screenshot reads as the user's problem, not a 500.
  */
+import path from "node:path";
+
 import multer from "multer";
 
 import { ApiError } from "../utils/ApiError.js";
@@ -23,16 +25,31 @@ export const SUBMISSION_TYPES = {
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
 };
 
+/** The admin's filled-in bulk-import workbook. */
+export const SPREADSHEET_TYPES = {
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "xlsx",
+};
+
 export const IMAGE_MAX_BYTES = 5 * 1024 * 1024;
 export const SUBMISSION_MAX_BYTES = 25 * 1024 * 1024;
+export const SPREADSHEET_MAX_BYTES = 5 * 1024 * 1024;
 
-function singleFile({ field, types, maxBytes, rejection }) {
+/** `allowExtension` is an escape hatch for one real-world problem: several
+ * browsers and operating systems report a .xlsx as `application/octet-stream`
+ * rather than its true type, so a mime-only filter rejects a perfectly good
+ * file with no way for the admin to fix it. Only octet-stream is forgiven,
+ * and only when the filename's extension matches — a wrongly-typed PDF is
+ * still refused. The three parsers below that don't pass it are unchanged. */
+function singleFile({ field, types, maxBytes, rejection, allowExtension = "" }) {
   return multer({
     storage: multer.memoryStorage(),
     limits: { fileSize: maxBytes, files: 1 },
     fileFilter: (req, file, cb) => {
-      if (!types[file.mimetype]) return cb(new ApiError(400, rejection));
-      cb(null, true);
+      if (types[file.mimetype]) return cb(null, true);
+      const generic = file.mimetype === "application/octet-stream";
+      const ext = path.extname(file.originalname || "").toLowerCase();
+      if (allowExtension && generic && ext === allowExtension) return cb(null, true);
+      cb(new ApiError(400, rejection));
     },
   }).single(field);
 }
@@ -59,4 +76,13 @@ export const submissionUpload = singleFile({
   types: SUBMISSION_TYPES,
   maxBytes: SUBMISSION_MAX_BYTES,
   rejection: "Submission must be a PDF, PPT/PPTX or DOC/DOCX file",
+});
+
+/** Admin's filled-in bulk-import workbook — `file` field. */
+export const spreadsheetUpload = singleFile({
+  field: "file",
+  types: SPREADSHEET_TYPES,
+  maxBytes: SPREADSHEET_MAX_BYTES,
+  rejection: "Import file must be an .xlsx workbook",
+  allowExtension: ".xlsx",
 });

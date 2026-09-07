@@ -15,6 +15,7 @@ import { openCheckout } from "@/api/payment.js";
 import { useAuth } from "@/auth/AuthContext.jsx";
 import { formatEventTime } from "@/utils/format.js";
 import RegistrationForm from "@/components/registration/RegistrationForm.jsx";
+import CategoryLimitNotice from "@/components/registration/CategoryLimitNotice.jsx";
 import PaymentProofForm from "@/components/registration/PaymentProofForm.jsx";
 import RegistrationResultDialog from "@/components/registration/RegistrationResultDialog.jsx";
 import Loader from "@/components/common/Loader.jsx";
@@ -222,6 +223,12 @@ export default function EventDetail() {
   );
   const capReached = limit > 0 && heldInCategory.length >= limit;
 
+  // What this person typed the last time they registered, so a second or third
+  // event doesn't mean retyping their college, department, year and city.
+  // Newest first already (myRegistrations sorts that way), and never applied
+  // over a resume — a saved draft's own values must win.
+  const previousDetails = resume ? null : (myRegs || [])[0] || null;
+
   return (
     <div className="container event-register">
       <div className="detail-card">
@@ -275,10 +282,20 @@ export default function EventDetail() {
               fee={event.fee}
               event={event}
               initialValues={resume ? draftInitialValues(resume) : null}
+              previousDetails={previousDetails}
             />
           </>
         )}
       </div>
+
+      {/* Says the rule before the form rather than after it. Advisory only —
+          the server enforces the cap and its 409 names what they already
+          hold. */}
+      <CategoryLimitNotice
+        category={event.category}
+        limit={limit}
+        used={heldInCategory.length}
+      />
 
       <aside className="event-summary">
         {event.category && <span className="tag">{event.category}</span>}

@@ -1,0 +1,114 @@
+/* Organiser instructions, under the EVENTS heading on the landing page.
+ *
+ * Each point is its own torn-paper card, laid out two-up on a laptop. The
+ * paper metaphor is borrowed from the .doodlepro posters that render directly
+ * below this in the same section (components/event-poster.css) — but
+ * deliberately quieter: no rotation, no hard offset shadow, no dashed inner
+ * border. Those posters are the thing you are meant to look at; this is what
+ * you read on the way past.
+ */
+
+.event-notice {
+  max-width: var(--page-w);
+  margin: 0 0 clamp(24px, 4vh, 40px);
+}
+
+.event-notice__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  color: var(--ink);
+}
+
+.event-notice__head svg {
+  color: var(--accent);
+  flex: none;
+}
+
+.event-notice__head h3 {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* One column by default, two side by side once there is room. An explicit
+   breakpoint rather than auto-fit: inside the 1140px --page-w, auto-fit would
+   find space for three columns, and the design is two. Grid's default
+   `align-items: stretch` makes both cards in a row match height, so a long
+   point beside a short one still reads as deliberate. */
+.event-notice__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+
+@media (min-width: 720px) {
+  .event-notice__grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.notice-card {
+  position: relative;
+  /* Clears the 16px scalloped strip, plus breathing room. */
+  padding: 14px 18px 14px 30px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  overflow: hidden;
+}
+
+/* The scalloped edge.
+ *
+ * One wave cycle as a tiling alpha mask over a token-coloured bar, rather than
+ * the fixed-height SVG path this was drawn from. Three things that buys:
+ * the wave tiles undistorted at any card height (the path was hard-coded to
+ * ten cycles of a 96px card, and a taller card would stretch or clip it), the
+ * colour comes from --accent instead of being baked into markup, and where
+ * `mask` is unsupported it degrades to a plain accent bar — which is what this
+ * notice looked like before the cards, so the failure mode is the previous
+ * design rather than a broken one.
+ *
+ * A part-cut wave at the bottom edge is fine; it reads as torn. */
+.notice-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 16px;
+  background: var(--accent);
+  -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 19.2'><path d='M8 0Q4 4.8 8 9.6T8 19.2L0 19.2L0 0Z' fill='%23000'/></svg>")
+    0 0 / 16px 19.2px repeat-y;
+  mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 19.2'><path d='M8 0Q4 4.8 8 9.6T8 19.2L0 19.2L0 0Z' fill='%23000'/></svg>")
+    0 0 / 16px 19.2px repeat-y;
+}
+
+.notice-card__title {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 1.02rem;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--ink);
+}
+
+/* Only spaced off the heading when there is a heading — a card with just a
+   line of text must not carry a phantom gap at the top. */
+.notice-card__title + .notice-card__text {
+  margin-top: 5px;
+}
+
+.notice-card__text {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  /* Long unbroken strings (a URL, a run-on word) must wrap rather than push
+     the card wider than its grid column. `overflow-wrap` breaks only what
+     doesn't fit, unlike `word-break: break-all` which would hyphenate
+     ordinary prose mid-word. */
+  overflow-wrap: anywhere;
+}

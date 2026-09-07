@@ -8,6 +8,9 @@
  */
 import { getDb } from "../config/firebase.js";
 import { ApiError } from "../utils/ApiError.js";
+import { normalizeEmail } from "../utils/identity.js";
+import { originOf } from "../utils/origin.js";
+import { STATUS_DRAFT } from "../utils/statuses.js";
 import {
   assertUniqueHolders,
   optionalString,
@@ -24,7 +27,7 @@ import { averageRating } from "./feedback.service.js";
 
 export const CSV_COLUMNS = [
   "id", "name", "email", "phone", "college", "department", "year", "location",
-  "event_id", "event_name", "status", "checked_in", "fee", "team_name", "team_size",
+  "event_id", "event_name", "status", "origin", "checked_in", "fee", "team_name", "team_size",
   "allocation_codes",
   "feedback",
   "payment_mode", "transaction_id", "order_id", "payment_id", "payment_method",
@@ -41,13 +44,74 @@ function applyFilters(rows, eventId, status) {
 async function filteredRegistrations(eventId, status) {
   const data = await aggregate.loadAll();
   const rows = applyFilters(data.registrations, eventId, status);
-  for (const r of rows) r.event_name = aggregate.eventName(data.events, r.event_id || "");
+  for (const r of rows) {
+    r.event_name = aggregate.eventName(data.events, r.event_id || "");
+    // Resolved rather than read raw: rows predating the feature have no
+    // `origin` field at all and must read as "online" here and in the CSV.
+    r.origin = originOf(r);
+  }
   rows.sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""));
   return rows;
 }
 
 export function listRegistrations({ eventId, status }) {
   return filteredRegistrations(eventId, status);
+}
+
+/** Saved-but-never-submitted registrations — a chase list.
+ *
+ * A `draft` is a form somebody filled in and stopped: no fee, no order, no
+ * proof. Nothing else in the admin surfaces them (the registrations table
+ * shows approved rows, the approvals queue shows `awaiting_approval`), so
+ * until now these people were invisible and nobody could follow up.
+ *
+ * Disjoint from the approvals queue by construction rather than by agreement:
+ * a document has one status, and the two lists filter on different ones.
+ *
+ * Oldest first — the opposite of the registrations feed — because the useful
+ * question here is who has been sitting unfinished the longest.
+ *
+ * Its own trimmed shape rather than the raw doc: this screen needs a name and
+ * a way to contact someone, and a draft has no payment story worth shipping
+ * to the browser. */
+export async function listDrafts() {
+  const data = await aggregate.loadAll();
+  const rows = data.registrations.filter((r) => r.status === STATUS_DRAFT);
+  rows.sort((a, b) => (a.created_at || "").localeCompare(b.created_at || ""));
+
+  return rows.map((r) => {
+    const event = data.events[r.event_id || ""] || {};
+    return {
+      registration_id: r.id,
+      name: r.name || "",
+      email: r.email || "",
+      phone: r.phone || "",
+      college: r.college || "",
+      department: r.department || "",
+      year: r.year || "",
+      location: r.location || "",
+      event_id: r.event_id || "",
+      event_name: event.name || r.event_id || "",
+      category: event.category || "",
+      team_name: r.team_name || "",
+      team_size: r.team_size ?? 1,
+      members: r.members || [],
+      fee: (event.fee || 0) * (r.team_size ?? 1),
+      origin: originOf(r),
+      created_at: r.created_at || "",
+    };
+  });
+}
+
+/** Every event, for the import template's reference sheet and its `event_id`
+ * dropdown. Read live rather than through the cache: a template is handed to
+ * someone who will fill it in offline, so it must reflect the events that
+ * exist at the moment they download it. */
+export async function listEventsForTemplate() {
+  const snap = await getDb().collection("events").get();
+  return snap.docs
+    .map((d) => ({ id: d.id, ...(d.data() ?? {}) }))
+    .sort((a, b) => (a.name || "").localeCompare(b.name || ""));
 }
 
 /** One raw event doc, for prefilling the admin edit form. */
@@ -85,7 +149,16 @@ export async function editRegistration(registrationId, body) {
   if (body.name !== undefined) {
     changes.name = requireString(body.name, { field: "name", minLength: 2 });
   }
-  if (body.email !== undefined) changes.email = requireEmail(body.email);
+  if (body.email !== undefined) {
+    changes.email = requireEmail(body.email);
+    // An unclaimed row (imported, or taken at the desk) is addressed by
+    // `unclaimed_email` and by nothing else, so correcting the lead's address
+    // has to move that marker in the same write. Leaving it behind would be a
+    // real hole, not just a stale field: the registration would become
+    // unreachable by the person who actually owns it while staying claimable
+    // by whoever holds the mistyped address.
+    if (!row.uid) changes.unclaimed_email = normalizeEmail(changes.email);
+  }
   if (body.phone !== undefined) changes.phone = requirePhone(body.phone);
   if (body.team_name !== undefined) changes.team_name = optionalString(body.team_name);
   if (

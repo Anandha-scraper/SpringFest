@@ -36,6 +36,7 @@ import * as aggregate from "./aggregate.js";
 import { eventDayState } from "./festClock.js";
 import { ticketHolders } from "./qr.js";
 import { buildUidByEmail, keyResolver, normalizeEmail } from "../utils/identity.js";
+import { originOf } from "../utils/origin.js";
 import { STATUS_COMPLETED } from "../utils/statuses.js";
 
 const lower = normalizeEmail;
@@ -73,6 +74,7 @@ function entryFor(row, events, memberIndex) {
     date: event.date || "",
     start_time: event.start_time || "",
     status: row.status || "",
+    origin: originOf(row),
     team_name: row.team_name || "",
     is_team: isTeam,
     member_index: memberIndex,

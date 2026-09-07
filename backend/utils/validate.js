@@ -20,6 +20,36 @@ export function optionalString(value, fallback = "") {
   return typeof value === "string" ? value : fallback;
 }
 
+/** An https URL, optionally restricted to a set of hosts. `""` clears it.
+ *
+ * The host allow-list is not decoration. A link set here is handed to every
+ * participant who registers, and nothing downstream checks where it goes — a
+ * transposed character routes the whole fest into a stranger's group. Same
+ * posture as `payment_upi_id`: the strings that leave this app pointing at
+ * somewhere else get checked hardest. Pass no `hosts` to accept any https URL.
+ */
+export function requireUrl(value, { field = "url", hosts = null } = {}) {
+  const trimmed = typeof value === "string" ? value.trim() : "";
+  if (!trimmed) return "";
+
+  let url;
+  try {
+    url = new URL(trimmed);
+  } catch {
+    throw new ApiError(400, `${field}: value is not a valid link`);
+  }
+  if (url.protocol !== "https:") {
+    throw new ApiError(400, `${field}: link must start with https://`);
+  }
+  if (hosts) {
+    const host = url.hostname.toLowerCase().replace(/^www\./, "");
+    if (!hosts.includes(host)) {
+      throw new ApiError(400, `${field}: link must point at ${hosts.join(", ")}`);
+    }
+  }
+  return trimmed;
+}
+
 export function requireEmail(value, { field = "email" } = {}) {
   const trimmed = typeof value === "string" ? value.trim() : "";
   if (!EMAIL_RE.test(trimmed)) {

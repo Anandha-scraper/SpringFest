@@ -24,6 +24,8 @@ import {
   Ticket,
   CreditCard,
   BadgeCheck,
+  FileClock,
+  UserRoundPlus,
 } from "lucide-react";
 
 export const ROLES = {
@@ -53,6 +55,11 @@ export const ROLE_NAV = {
     { label: "Registrations", to: "/admin/registrations", icon: ClipboardList },
     { label: "Payment", to: "/admin/payment", icon: CreditCard },
     { label: "Approvals", to: "/admin/approvals", icon: BadgeCheck },
+    // Saved-but-unpaid forms. Sits beside Approvals because the two are the
+    // pair of "not finished yet" queues, and they never overlap — a
+    // registration has one status.
+    { label: "Drafts", to: "/admin/drafts", icon: FileClock },
+    { label: "Spot & Import", to: "/admin/spot", icon: UserRoundPlus },
     { label: "Attendance", to: "/admin/attendance", icon: UserCheck },
     { label: "Events", to: "/admin/events", end: true, icon: CalendarDays },
     { label: "Add Roles", to: "/admin/roles", icon: UserPlus },
