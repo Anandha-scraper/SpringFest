@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import SplitFlapText from "@/components/animation/SplitFlapText.jsx";
 import TrackCard from "@/components/common/TrackCard.jsx";
 import EventPoster from "@/components/sections/EventPoster.jsx";
+import EventNotice from "@/components/sections/EventNotice.jsx";
 import BracketButton from "@/components/common/BracketButton.jsx";
 import Loader from "@/components/common/Loader.jsx";
 import SignInModal from "@/components/common/SignInModal.jsx";
@@ -79,6 +80,10 @@ export default function EventsPreview() {
             label="Tap on category to see events"
           />
         </div>
+
+        {/* Renders nothing unless an organiser has written points, so the
+            section looks untouched on a fest that doesn't use it. */}
+        <EventNotice />
 
         <div className="events-lineup">
           {shownTracks.map((track) => (

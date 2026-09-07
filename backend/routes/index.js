@@ -2,6 +2,7 @@
  * URL layout of the whole API is readable in a single file. */
 import { Router } from "express";
 
+import { publicSettings } from "../services/settings.js";
 import { router as adminRouter } from "./admin.routes.js";
 import { router as eventsRouter } from "./events.routes.js";
 import { router as meRouter } from "./me.routes.js";
@@ -15,6 +16,12 @@ export const router = Router();
 
 // Health check. Kept under /api so `/` is free for the SPA.
 router.get("/health", (req, res) => res.json({ status: "ok" }));
+
+// The handful of settings a signed-out visitor may read — the landing page's
+// instructions, and whether the fest is taking sign-ups. Public because the
+// person reading them has not signed in yet and is deciding whether to.
+// A strict allow-list; see services/settings.publicSettings.
+router.get("/public-settings", async (req, res) => res.json(await publicSettings()));
 
 // Sign-in/sign-out: swaps a Firebase ID token for the __session cookie that
 // makes server-side rendering possible. See auth/session.js.

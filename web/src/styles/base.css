@@ -274,3 +274,24 @@ img { max-width: 100%; display: block; }
   outline: none;
   box-shadow: none;
 }
+
+/* The short allocation code (SFTA1 / SPTA2) as a badge. Lived in
+   pages/my-registrations.css until the admin spot-registration and import
+   screens needed the same thing; one definition so the two can't drift. */
+.alloc-code {
+  display: inline-block;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-radius: var(--r-sm);
+  padding: 0.15rem 0.5rem;
+  font-size: 0.9rem;
+}
+.alloc-code--sm {
+  margin-left: 0.5rem;
+  font-size: 0.72rem;
+  padding: 0.05rem 0.35rem;
+  vertical-align: middle;
+}

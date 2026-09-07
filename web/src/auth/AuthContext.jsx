@@ -35,6 +35,7 @@ export function AuthProvider({ children }) {
     // slow /api/me never briefly tells someone they're at a limit.
     category_limits: {},
     registration_open: true,
+    whatsapp_group_url: "",
   });
 
   // Returns the role as well as storing it: the sign-in flows need the value
@@ -55,6 +56,7 @@ export function AuthProvider({ children }) {
         has_payment_qr: Boolean(me?.has_payment_qr),
         category_limits: me?.category_limits || {},
         registration_open: me?.registration_open !== false,
+        whatsapp_group_url: me?.whatsapp_group_url || "",
       });
       setRoleError("");
       return resolved;
@@ -98,6 +100,7 @@ export function AuthProvider({ children }) {
     paymentUpiId: payment.payment_upi_id,
     hasPaymentQr: payment.has_payment_qr,
     categoryLimits: payment.category_limits,
+    whatsappGroupUrl: payment.whatsapp_group_url,
     registrationOpen: payment.registration_open,
     loading,
     isFirebaseConfigured,

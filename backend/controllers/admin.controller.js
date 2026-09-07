@@ -12,6 +12,9 @@ import { STATUS_COMPLETED, STATUS_REJECTED } from "../utils/statuses.js";
 import * as approvals from "../services/approval.service.js";
 import * as attendance from "../services/attendance.service.js";
 import * as people from "../services/people.service.js";
+import * as spot from "../services/spotRegistration.service.js";
+import { buildTemplateWorkbook } from "../services/importTemplate.service.js";
+import { importRegistrations as runImport } from "../services/registrationImport.service.js";
 import {
   applySettingsPatch,
   clearPaymentQr,
@@ -98,6 +101,43 @@ export async function rotateAccessCode(req, res) {
 export async function revokeAccessCode(req, res) {
   await venueAccess.revokeAccessCode(req.params.eventId);
   res.status(204).end();
+}
+
+/** Saved-but-unpaid registrations, so an organiser can chase them. Disjoint
+ * from the approvals queue — see adminReports.listDrafts. */
+export async function drafts(req, res) {
+  res.json(await adminReports.listDrafts());
+}
+
+// ── Desk & bulk entry ────────────────────────────────────────
+
+export async function createSpotRegistration(req, res) {
+  res.json(
+    await spot.createSpotRegistration({ actorEmail: req.user.email, body: req.body || {} })
+  );
+}
+
+/** The .xlsx an admin fills in. Built per request from the live events, so the
+ * dropdowns can never point at an event that no longer exists. */
+export async function importTemplate(req, res) {
+  const events = await adminReports.listEventsForTemplate();
+  const buffer = await buildTemplateWorkbook(events);
+  res.set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+  res.set("Content-Disposition", 'attachment; filename="spring-fest-import-template.xlsx"');
+  res.send(buffer);
+}
+
+export async function importRegistrations(req, res) {
+  res.json(
+    await runImport({
+      file: req.file,
+      actorEmail: req.user.email,
+      // Anything but an explicit "true" is a real import; a typo'd query
+      // string must not silently turn a commit into a no-op.
+      dryRun: req.query.dry_run === "true",
+      origin: req.body?.origin,
+    })
+  );
 }
 
 export async function registrationsCsv(req, res) {

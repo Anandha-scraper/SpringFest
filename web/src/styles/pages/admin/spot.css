@@ -1,0 +1,113 @@
+/* Desk registration and spreadsheet import.
+ *
+ * Both are admin data-entry surfaces rather than dashboards, so the layout
+ * work here is mostly about making a long form fast to fill in under queue
+ * pressure: fields side by side where they fit, each person visibly boxed so
+ * the desk never types a teammate's phone into the lead's row.
+ */
+
+.spot-form {
+  max-width: 900px;
+}
+
+/* Two columns where there is room, one on a phone — an organiser at the desk
+   may well be on a tablet. */
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.field-hint {
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+}
+
+.panel-note {
+  margin: -4px 0 18px;
+  max-width: 70ch;
+  font-size: 0.88rem;
+}
+
+/* One person's block. The border is doing real work: it is what stops a
+   teammate's details being typed into the lead's fields. */
+.spot-person {
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 16px;
+  background: var(--surface-2, transparent);
+}
+
+.spot-person-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.spot-person-head h4 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.spot-result {
+  border-left: 3px solid var(--accent);
+}
+
+.spot-codes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0;
+}
+
+/* ── Spreadsheet import ─────────────────────────────────────── */
+
+.import-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+/* The file input itself is replaced by its <label>, styled as a button, so
+   the control matches the others. Kept in the layout (not display:none) so it
+   stays focusable and screen readers still announce it. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.import-report {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.import-report-head {
+  margin: 16px 0 8px;
+  font-size: 0.9rem;
+}
+
+.import-errors {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.88rem;
+}
+
+.import-errors .mono {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-weight: 600;
+  margin-right: 6px;
+}

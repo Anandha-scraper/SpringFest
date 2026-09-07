@@ -7,8 +7,10 @@
  */
 import { getDb } from "../config/firebase.js";
 import { ApiError } from "../utils/ApiError.js";
+import { originOf } from "../utils/origin.js";
 import { STATUS_COMPLETED } from "../utils/statuses.js";
 import * as aggregate from "./aggregate.js";
+import { claimUnclaimedRows } from "./accountLink.service.js";
 import { personalQrPng } from "./qr.js";
 import { loadPersonRegistrations, matchMemberIndex } from "./registrationLookup.js";
 import { getAppSettings } from "./settings.js";
@@ -29,6 +31,14 @@ import { submissionFilename } from "./submissionAccess.js";
  * both here rather than their own endpoint keeps that to zero extra round
  * trips, and it's cached server-side so it costs nothing per request. */
 export async function profile(user) {
+  // Hit on every page load, which makes it the natural place to attach any
+  // registration an organiser entered for this address before its owner had
+  // an account (services/accountLink.service.js). Normally one indexed query
+  // that matches nothing; once a person's rows are claimed it can never match
+  // again. Deliberately not in middleware/auth.js — that would run it on
+  // volunteer scans, SSE frames and every admin read as well.
+  await claimUnclaimedRows(user);
+
   const s = await getAppSettings();
   return {
     ...user,
@@ -45,6 +55,9 @@ export async function profile(user) {
     // your limit for this category" before someone fills the form in, rather
     // than letting them submit into a 409.
     category_limits: s.category_limits || {},
+    // Shown on the success screen and on My Registrations. Public by nature —
+    // the whole point is to hand it to every participant.
+    whatsapp_group_url: s.whatsapp_group_url || "",
   };
 }
 
@@ -84,6 +97,11 @@ export async function myRegistrations(user) {
   for (const r of rows) {
     const event = events[r.event_id] || {};
     r.event_name = event.name || r.event_id;
+    // The event's category, so the browser can count how much of a per-category
+    // allowance this person has used without fetching every event to look it
+    // up. The doc is already in hand here, so it costs nothing.
+    r.event_category = event.category || "";
+    r.origin = originOf(r);
     r.feedback_state = eventDayState(event);
     r.feedback_closes_at = event.date ? `${event.date}T23:59` : "";
 

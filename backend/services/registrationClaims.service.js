@@ -35,10 +35,14 @@
  * longer lists that holder. Reading the claim to decide is exactly as atomic:
  * the Admin SDK locks every document a transaction reads.
  *
- * **The complete set of writers** is three functions, and any future code that
+ * **The complete set of writers** is five functions, and any future code that
  * writes `email`, `phone` or `members[]` outside them silently bypasses all of
  * this: `registration.service.createOrResume`, `registration.service.addMember`,
- * and `adminReports.editRegistration`.
+ * `adminReports.editRegistration`, `spotRegistration.createSpotRegistration`,
+ * and `registrationImport.importRegistrations`. The last two are admin paths
+ * that skip the registration *gates* (a closed fest, a closed event) but go
+ * through this transaction unchanged — an organiser may decide who is allowed
+ * in late, never that one seat can be sold twice.
  */
 import { ApiError } from "../utils/ApiError.js";
 import { normalizeEmail, normalizePhone } from "../utils/identity.js";

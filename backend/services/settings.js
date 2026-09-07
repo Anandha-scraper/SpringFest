@@ -23,6 +23,7 @@ import {
   requireBool,
   requireInt,
   requireOneOf,
+  requireUrl,
 } from "../utils/validate.js";
 import { cached, invalidate } from "./cache.js";
 import { eventEnded } from "./festClock.js";
@@ -32,6 +33,10 @@ const COLLECTION = "settings";
 const DOC_ID = "app";
 const CACHE_KEY = "settings:app";
 const TTL_SECONDS = 30;
+
+/** Hosts a whatsapp_group_url may point at — an invite link (chat.whatsapp.com),
+ * a short link (wa.me), or the long form. `requireUrl` strips a leading www. */
+export const WHATSAPP_HOSTS = ["chat.whatsapp.com", "wa.me", "whatsapp.com"];
 
 export const MODE_GATEWAY = "gateway";
 export const MODE_SCREENSHOT = "screenshot";
@@ -70,9 +75,38 @@ const DEFAULTS = {
   // moment it deploys. Caps stay off until an organiser sets them, the same
   // posture as payment_upi_id.
   category_limits: {},
+  // The fest's WhatsApp group, shown to a participant the moment they finish
+  // registering and again on My Registrations. One link for the whole fest
+  // rather than one per event: people join once, and a per-event link would
+  // mean an organiser maintaining a dozen of them.
+  whatsapp_group_url: "",
+  // Notices shown under the EVENTS heading on the landing page — "bring your
+  // college ID", "teams of 2-3 only", whatever this fest needs everyone to
+  // read before they register. Each is `{ title, text }` and renders as its
+  // own card. Empty by default, and an empty list renders nothing at all
+  // rather than an empty box.
+  event_instructions: [],
   updated_at: "",
   updated_by: "",
 };
+
+/** The settings a signed-out visitor may read.
+ *
+ * A strict allow-list, in the same spirit as `event.service.toEvent()`: the
+ * settings doc holds the UPI id, the QR's bucket path and the payment lock,
+ * and this endpoint is reachable with no credential at all. Adding a field
+ * here publishes it, so add by name and never by spreading.
+ *
+ * It exists because the landing page's instructions have to be readable by
+ * someone who has not signed in — that is precisely who is deciding whether
+ * to register. */
+export async function publicSettings() {
+  const s = await getAppSettings();
+  return {
+    event_instructions: s.event_instructions || [],
+    registration_open: s.registration_open !== false,
+  };
+}
 
 /** Whether screenshot-mode payment is fully set up: a UPI id, a QR, and both
  * locked so they can't be edited into something wrong. One of this or the
@@ -148,6 +182,69 @@ function parseCategoryLimits(raw, current) {
   return merged;
 }
 
+/** The notices shown under the EVENTS heading on the landing page.
+ *
+ * An ARRAY of `{ title, text }`, not a blob of text: the landing page renders
+ * each entry as its own card with a heading and a body, and a textarea would
+ * let one organiser's line breaks decide the layout. Order is meaningful and
+ * preserved as given.
+ *
+ * A bare string is still accepted and read as `{ title: "", text }`. Points
+ * were strings before the cards existed; the field is empty on every live
+ * deployment so there is nothing to migrate, but a shape that used to be
+ * written should not throw if it ever turns up.
+ *
+ * Written back whole every time — same reasoning as parseCategoryLimits above,
+ * except that here it is what makes deleting a point possible at all, since
+ * Firestore's {merge:true} would otherwise keep a longer previous array's
+ * tail. An entry blank on BOTH fields is dropped rather than rejected: the
+ * admin UI always carries one empty row at the bottom for the next point, and
+ * submitting that is not a mistake worth an error. One blank field is kept —
+ * a bare heading, or a line with no heading, are both legitimate cards.
+ */
+const MAX_INSTRUCTIONS = 12;
+const MAX_INSTRUCTION_LENGTH = 240;
+const MAX_INSTRUCTION_TITLE = 80;
+
+function parseEventInstructions(raw) {
+  if (!Array.isArray(raw)) {
+    throw new ApiError(400, "event_instructions: input should be a list of points");
+  }
+
+  const points = raw
+    .map((entry) => {
+      if (typeof entry === "string") return { title: "", text: entry.trim() };
+      if (!entry || typeof entry !== "object") return { title: "", text: "" };
+      return {
+        title: typeof entry.title === "string" ? entry.title.trim() : "",
+        text: typeof entry.text === "string" ? entry.text.trim() : "",
+      };
+    })
+    .filter((p) => p.title || p.text);
+
+  if (points.length > MAX_INSTRUCTIONS) {
+    throw new ApiError(
+      400,
+      `event_instructions: at most ${MAX_INSTRUCTIONS} points — a list nobody reads is worse than none`
+    );
+  }
+  for (const p of points) {
+    if (p.title.length > MAX_INSTRUCTION_TITLE) {
+      throw new ApiError(
+        400,
+        `event_instructions: each heading must be ${MAX_INSTRUCTION_TITLE} characters or fewer`
+      );
+    }
+    if (p.text.length > MAX_INSTRUCTION_LENGTH) {
+      throw new ApiError(
+        400,
+        `event_instructions: each point must be ${MAX_INSTRUCTION_LENGTH} characters or fewer`
+      );
+    }
+  }
+  return points;
+}
+
 /** Admin edit of the settings singleton.
  *
  * Deliberately no lock on existing registrations: switching modes is the whole
@@ -171,6 +268,18 @@ export async function applySettingsPatch(body, actorEmail) {
   }
   if (body.category_limits !== undefined) {
     patch.category_limits = parseCategoryLimits(body.category_limits, current);
+  }
+  // Not behind assertUnlocked: the payment lock covers the UPI id and the QR
+  // and nothing else (see DEFAULTS above), and a group link is the kind of
+  // thing organisers fix at the last minute.
+  if (body.event_instructions !== undefined) {
+    patch.event_instructions = parseEventInstructions(body.event_instructions);
+  }
+  if (body.whatsapp_group_url !== undefined) {
+    patch.whatsapp_group_url = requireUrl(body.whatsapp_group_url, {
+      field: "whatsapp_group_url",
+      hosts: WHATSAPP_HOSTS,
+    });
   }
   if (!Object.keys(patch).length) throw new ApiError(400, "Nothing to update");
 

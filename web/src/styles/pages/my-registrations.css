@@ -21,23 +21,8 @@
 /* ── QR + codes (left) ─────────────────────────────────────── */
 /* The allocation-code chip — shared by the "Your codes" line, the event
    boxes and the team roster. Mirrors the .reg-id chip in event-detail.css. */
-.alloc-code {
-  display: inline-block;
-  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  color: var(--accent);
-  background: var(--accent-soft);
-  border-radius: var(--r-sm);
-  padding: 0.15rem 0.5rem;
-  font-size: 0.9rem;
-}
-.alloc-code--sm {
-  margin-left: 0.5rem;
-  font-size: 0.72rem;
-  padding: 0.05rem 0.35rem;
-  vertical-align: middle;
-}
+/* `.alloc-code` and `.alloc-code--sm` moved to styles/base.css: the admin
+   spot/import screens show the same badge, and two copies would drift. */
 
 .myreg-codes {
   display: flex;

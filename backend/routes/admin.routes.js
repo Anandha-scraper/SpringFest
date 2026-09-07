@@ -2,7 +2,7 @@ import { Router } from "express";
 
 import * as admin from "../controllers/admin.controller.js";
 import { AdminUser } from "../middleware/auth.js";
-import { paymentQrUpload } from "../middleware/upload.js";
+import { paymentQrUpload, spreadsheetUpload } from "../middleware/upload.js";
 
 export const router = Router();
 
@@ -35,6 +35,24 @@ router.get("/registrations.csv", ...AdminUser, admin.registrationsCsv);
 router.get("/registrations", ...AdminUser, admin.listRegistrations);
 router.get("/registrations/:registrationId", ...AdminUser, admin.rawRegistration);
 router.patch("/registrations/:registrationId", ...AdminUser, admin.editRegistration);
+
+// ── Drafts ───────────────────────────────────────────────────
+// Saved-but-unpaid forms, so somebody can chase them. Top level rather than
+// `/registrations/drafts`, which would need to be declared above
+// `/registrations/:registrationId` to avoid being read as an id.
+router.get("/drafts", ...AdminUser, admin.drafts);
+
+// ── Desk & bulk entry ────────────────────────────────────────
+// Both skip the registration gates (a closed fest, a closed event) but not
+// the uniqueness claims — see the service headers.
+router.post("/spot-registrations", ...AdminUser, admin.createSpotRegistration);
+router.get("/import/template", ...AdminUser, admin.importTemplate);
+router.post(
+  "/import/registrations",
+  ...AdminUser,
+  spreadsheetUpload,
+  admin.importRegistrations
+);
 
 // ── Payment settings ─────────────────────────────────────────
 router.get("/settings", ...AdminUser, admin.settings);
