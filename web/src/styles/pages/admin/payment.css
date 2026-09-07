@@ -1,25 +1,47 @@
 /* Admin Payment settings and the screenshot-approval queue. */
 
 /* ── Payment settings ──────────────────────────────────────────
-   Laptop: the two runtime switches (method + registration window)
-   stack down the left, and "where participants pay" fills the
-   right. One column below laptop width. */
-.pay-grid {
+   Two rows rather than one tall column, so a 1440px laptop isn't
+   two-thirds empty.
+
+   Row 1 is three equal panels — set up once, rarely revisited.
+   Row 2 splits: the two short panels (limits, window) stack in the
+   narrow column while the instructions editor takes the wide one,
+   because it holds up to twelve two-field rows and is by far the
+   tallest thing on the page.
+
+   Breakpoints are the admin area's existing ones (1280/899), not
+   new numbers. */
+.pay-row {
   display: grid;
-  grid-template-columns: minmax(0, 27rem) minmax(0, 1fr);
   gap: 1.625rem;
+  /* Panels in a row are independent; without this a short one would
+     stretch to the tallest and leave a large empty box. */
   align-items: start;
   margin-bottom: 1.625rem;
 }
-.pay-grid-controls {
+/* The row owns the spacing between panels, so the panel's own
+   bottom margin would double it. */
+.pay-row .admin-panel { margin-bottom: 0; }
+
+.pay-row--three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.pay-row--split { grid-template-columns: minmax(0, 27rem) minmax(0, 1fr); }
+
+.pay-col {
   display: flex;
   flex-direction: column;
   gap: 1.625rem;
 }
-.pay-grid .admin-panel { margin-bottom: 0; }
+
+/* Three across stops being readable before the split row does — the
+   split row's narrow column is already sized for its content. */
+@media (max-width: 1279px) {
+  .pay-row--three { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 
 @media (max-width: 899px) {
-  .pay-grid { grid-template-columns: minmax(0, 1fr); }
+  .pay-row--three,
+  .pay-row--split { grid-template-columns: minmax(0, 1fr); }
 }
 
 .event-toggles { margin-top: 1.25rem; border-top: 1px solid var(--border); padding-top: 1rem; }

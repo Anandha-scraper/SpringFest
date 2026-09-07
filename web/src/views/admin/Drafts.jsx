@@ -51,12 +51,6 @@ export default function Drafts() {
           <h2>Saved but not paid</h2>
           <span className="muted">{rows.length} unfinished</span>
         </div>
-
-        <p className="muted panel-note">
-          Forms somebody filled in and stopped. Nothing has been charged and no seat is
-          confirmed — these are people to follow up with. Oldest first.
-        </p>
-
         {!rows.length ? (
           <p className="empty-state">
             No unfinished forms. A draft appears here when someone saves a registration

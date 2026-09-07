@@ -5,6 +5,7 @@ import "@/styles/components/sign-in-modal.css";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/auth/AuthContext.jsx";
 import { homeForRole } from "@/content/roles.js";
+import Loader from "@/components/common/Loader.jsx";
 
 /**
  * Sign-in card shown when "Register Now" is clicked. Google is the only
@@ -32,19 +33,28 @@ export default function SignInModal({ open, onClose, onSignedIn, redirectOnSignI
 
   if (!open) return null;
 
-  const signIn = async () => {
+  const signIn = async ({ chooseAccount = false } = {}) => {
     setError("");
     setBusy(true);
     try {
-      await loginWithGoogle();
+      await loginWithGoogle({ chooseAccount });
       // The role lives on the server, so this is a round-trip. Keep the busy
       // state up across it rather than flashing the page in between.
+      // `refreshRole` de-dupes, so this joins the request the auth listener
+      // has already started rather than issuing a second identical one.
       const role = await refreshRole();
-      onClose();
       onSignedIn?.(role);
       // In-place guards (ProtectedRoute) re-render on the same URL once signed
       // in; the landing-page triggers want to move you to your dashboard.
-      if (redirectOnSignIn) router.push(homeForRole(role));
+      //
+      // The modal stays mounted across the navigation and is closed by the
+      // unmount. Closing first repainted the whole landing page underneath
+      // before the route transition had even started.
+      if (redirectOnSignIn) {
+        router.push(homeForRole(role));
+        return;
+      }
+      onClose();
     } catch (err) {
       if (err.code === "auth/popup-closed-by-user") setError("Sign-in was cancelled.");
       else if (err.code === "auth/popup-blocked")
@@ -78,7 +88,7 @@ export default function SignInModal({ open, onClose, onSignedIn, redirectOnSignI
         <button
           className="oauthButton"
           type="button"
-          onClick={signIn}
+          onClick={() => signIn()}
           disabled={busy || !isFirebaseConfigured}
         >
           <svg className="icon" viewBox="0 0 24 24">
@@ -90,6 +100,28 @@ export default function SignInModal({ open, onClose, onSignedIn, redirectOnSignI
           </svg>
           {busy ? "Signing in…" : "Continue with Google"}
         </button>
+
+        {/* Google is no longer told to always show its account chooser, which
+            is what made every returning sign-in wait on a human click. This is
+            the way back to it when a device really is shared. */}
+        <button
+          className="signin-switch"
+          type="button"
+          onClick={() => signIn({ chooseAccount: true })}
+          disabled={busy || !isFirebaseConfigured}
+        >
+          Use a different account
+        </button>
+
+        {/* Four round trips sit behind that button — the popup, the role
+            lookup, the cookie and the route transition. A changed button label
+            was the only sign any of it was happening. */}
+        {busy && (
+          <div className="signin-busy" role="status" aria-live="polite">
+            <Loader compact />
+            <span>Signing you in…</span>
+          </div>
+        )}
 
         <span className="formNote">
           We only read your name, email and profile photo.

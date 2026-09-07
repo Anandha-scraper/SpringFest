@@ -10,7 +10,6 @@ import { ApiError } from "../utils/ApiError.js";
 import { originOf } from "../utils/origin.js";
 import { STATUS_COMPLETED } from "../utils/statuses.js";
 import * as aggregate from "./aggregate.js";
-import { claimUnclaimedRows } from "./accountLink.service.js";
 import { personalQrPng } from "./qr.js";
 import { loadPersonRegistrations, matchMemberIndex } from "./registrationLookup.js";
 import { getAppSettings } from "./settings.js";
@@ -31,14 +30,11 @@ import { submissionFilename } from "./submissionAccess.js";
  * both here rather than their own endpoint keeps that to zero extra round
  * trips, and it's cached server-side so it costs nothing per request. */
 export async function profile(user) {
-  // Hit on every page load, which makes it the natural place to attach any
-  // registration an organiser entered for this address before its owner had
-  // an account (services/accountLink.service.js). Normally one indexed query
-  // that matches nothing; once a person's rows are claimed it can never match
-  // again. Deliberately not in middleware/auth.js — that would run it on
-  // volunteer scans, SSE frames and every admin read as well.
-  await claimUnclaimedRows(user);
-
+  // No account-linking here. This endpoint is hit on every page load, and the
+  // claim query was a Firestore round trip on all of them to answer something
+  // that only changes at sign-in — where it now runs, in
+  // controllers/session.controller.js. `getAppSettings()` below is a 30s cache
+  // hit, so removing that query takes the usual cost of this route to nil.
   const s = await getAppSettings();
   return {
     ...user,
