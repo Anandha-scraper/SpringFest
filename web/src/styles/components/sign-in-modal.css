@@ -152,3 +152,30 @@
     animation: none;
   }
 }
+
+/* "Use a different account" — the way back to Google's account chooser now
+   that it isn't forced on every sign-in. Deliberately quiet: it's the
+   exception, wanted on a shared fest laptop and nowhere else. */
+.signin-switch {
+  background: none;
+  border: 0;
+  padding: 0.25rem;
+  font: inherit;
+  font-size: 0.82rem;
+  color: var(--ink-faint);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.signin-switch:hover:not(:disabled) { color: var(--ink-soft); }
+.signin-switch:disabled { opacity: 0.5; cursor: default; }
+
+/* Real feedback across the four round trips behind the button. */
+.signin-busy {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}

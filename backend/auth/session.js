@@ -92,7 +92,16 @@ export async function createSession(idToken) {
   const cookie = await getAuth().createSessionCookie(idToken, {
     expiresIn: SESSION_MAX_AGE_MS,
   });
-  return { cookie, header: serialize(cookie, SESSION_MAX_AGE_MS), uid: decoded.uid };
+  // The address rides along so the caller can attach any registration an
+  // organiser entered for this person before they had an account — it comes
+  // from the verified token, never from the request body.
+  return {
+    cookie,
+    header: serialize(cookie, SESSION_MAX_AGE_MS),
+    uid: decoded.uid,
+    email: decoded.email || "",
+    emailVerified: decoded.email_verified !== false,
+  };
 }
 
 /** Verify an incoming cookie. `checkRevoked` costs a lookup but is the only

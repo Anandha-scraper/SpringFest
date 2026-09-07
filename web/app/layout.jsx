@@ -33,6 +33,16 @@ export default function RootLayout({ children }) {
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+        {/* The sign-in popup's first request used to pay a cold TLS handshake
+            to both of these. Warming them costs nothing on a page nobody
+            signs in from, and takes a round trip off the one where they do.
+            The auth domain is a build-time public value like the rest of the
+            NEXT_PUBLIC_FIREBASE_* config. */}
+        {process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN && (
+          <link rel="preconnect" href={`https://${process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN}`} />
+        )}
+        <link rel="preconnect" href="https://identitytoolkit.googleapis.com" />
+        <link rel="preconnect" href="https://securetoken.googleapis.com" />
         <link
           href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Press+Start+2P&display=swap"
           rel="stylesheet"

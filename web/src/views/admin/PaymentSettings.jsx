@@ -33,13 +33,11 @@ const MODES = [
     value: "gateway",
     label: "Payment gateway",
     icon: CreditCard,
-    blurb: "Participants pay by card, UPI or netbanking through Razorpay. Confirmed automatically the moment the payment clears.",
   },
   {
     value: "screenshot",
     label: "Screenshot-based",
     icon: Camera,
-    blurb: "Participants pay you directly, then upload a transaction ID and a screenshot. You confirm each one from Approvals.",
   },
 ];
 
@@ -53,10 +51,44 @@ const MAX_POINTS = 12;
 const blankPoint = () => ({ title: "", text: "" });
 const isBlank = (p) => !p.title.trim() && !p.text.trim();
 
+/** Saved instructions → editor rows, always with one empty row at the end.
+ *  Tolerates the pre-cards shape (a plain string per point) the same way the
+ *  server's parser does, so an older saved list still loads. Shared by the
+ *  first seed and by Cancel, which has to restore exactly what was saved. */
+const pointsFromSettings = (s) => [
+  ...(s?.event_instructions || []).map((p) =>
+    typeof p === "string" ? { title: "", text: p } : { title: p?.title || "", text: p?.text || "" }
+  ),
+  blankPoint(),
+];
+
+/** Saved caps → editor values. Held as strings so an input can be emptied
+ *  mid-edit without snapping back to 0. */
+const limitsFromSettings = (s) =>
+  Object.fromEntries(EVENT_CATEGORIES.map((c) => [c, String(s?.category_limits?.[c] ?? 0)]));
+
 const QR_TYPES = ["image/png", "image/jpeg", "image/webp"];
 const QR_MAX_BYTES = 5 * 1024 * 1024;
 
 const load = () => Promise.all([getAppSettings(), getEvents()]);
+
+/** "Edit" for a panel that is read-only until you ask for it.
+ *
+ * Purely a client-side guard against a stray click — unlike the payment
+ * lock beside it, nothing here is enforced by the server, and it is
+ * deliberately not: `registration_open` has to stay something an organiser
+ * can flip in seconds when a venue fills up, without unlocking anything
+ * first. Renders nothing while the panel is already being edited; Cancel
+ * lives in FormActions, next to Save, where a form's controls belong.
+ */
+function EditToggle({ editing, onEdit, disabled }) {
+  if (editing) return null;
+  return (
+    <button className="btn btn-ghost btn-sm" type="button" disabled={disabled} onClick={onEdit}>
+      <LockOpen size={14} aria-hidden="true" /> Edit
+    </button>
+  );
+}
 
 /** The saved QR, fetched as a blob because the route is authenticated.
  *  Re-fetched whenever `version` changes, so a fresh upload replaces it. */
@@ -120,6 +152,13 @@ export default function PaymentSettings() {
   const [limits, setLimits] = useState({});
   const fileInput = useRef(null);
 
+  // Which of the three row-2 panels is currently unlocked for editing.
+  // Client-side only; see EditToggle.
+  const [editing, setEditing] = useState({});
+  const isEditing = (key) => Boolean(editing[key]);
+  const startEdit = (key) => setEditing((prev) => ({ ...prev, [key]: true }));
+  const stopEdit = (key) => setEditing((prev) => ({ ...prev, [key]: false }));
+
   const mode = settings?.payment_mode || "gateway";
   const registrationOpen = settings?.registration_open !== false;
   const locked = Boolean(settings?.payment_locked);
@@ -143,30 +182,24 @@ export default function PaymentSettings() {
   useEffect(() => {
     if (!settings || seeded.current) return;
     seeded.current = true;
-    setPoints([
-      // Tolerates the pre-cards shape (a plain string per point) the same way
-      // the server's parser does, so an older saved list still loads.
-      ...(settings.event_instructions || []).map((p) =>
-        typeof p === "string"
-          ? { title: "", text: p }
-          : { title: p?.title || "", text: p?.text || "" }
-      ),
-      blankPoint(),
-    ]);
+    setPoints(pointsFromSettings(settings));
   }, [settings]);
 
-  // Same non-clobbering seed for the per-category caps. Held as strings so the
-  // input can be emptied mid-edit without snapping back to 0.
+  // Same non-clobbering seed for the per-category caps.
   useEffect(() => {
     if (!settings) return;
-    setLimits((prev) =>
-      Object.keys(prev).length
-        ? prev
-        : Object.fromEntries(
-            EVENT_CATEGORIES.map((c) => [c, String(settings.category_limits?.[c] ?? 0)]),
-          ),
-    );
+    setLimits((prev) => (Object.keys(prev).length ? prev : limitsFromSettings(settings)));
   }, [settings]);
+
+  /** Abandon an edit: put back exactly what is saved and re-lock the panel.
+   *  Re-seeds explicitly rather than leaning on the effects above — `seeded`
+   *  deliberately fires once, and the limits effect only fills an empty map,
+   *  so neither would restore a value the admin has since typed over. */
+  const cancelEdit = (key) => {
+    if (key === "instructions") setPoints(pointsFromSettings(settings));
+    if (key === "limits") setLimits(limitsFromSettings(settings));
+    stopEdit(key);
+  };
 
   // Object URLs leak until revoked — tie the lifetime to the chosen file.
   useEffect(() => {
@@ -186,14 +219,19 @@ export default function PaymentSettings() {
     (e) => (e.fee || 0) > 0 && e.registration_open !== false,
   );
 
+  /** Returns whether the write landed. Callers that lock a panel again on
+   *  success need to know — re-locking after a rejected save would hide the
+   *  values the admin still has to fix. */
   const save = async (patch, message) => {
     setBusy(true);
     try {
       await updateAppSettings(patch);
       await reload();
       toast.ok(message);
+      return true;
     } catch (err) {
       toast.bad(err.message);
+      return false;
     } finally {
       setBusy(false);
     }
@@ -298,11 +336,9 @@ export default function PaymentSettings() {
 
   return (
     <div className="admin">
-      {/* Left: the two switches an organiser flips together when the gateway
-          goes down mid-fest. Right: what participants actually see when they
-          pay. Stacks to one column below laptop width. */}
-      <div className="pay-grid">
-        <div className="pay-grid-controls">
+      {/* Row 1 — how money is taken, and how people are reached afterwards.
+          The three panels an organiser sets up once and rarely revisits. */}
+      <div className="pay-row pay-row--three">
         <section className="admin-panel">
           <div className="panel-head">
             <h2>Current method</h2>
@@ -330,230 +366,13 @@ export default function PaymentSettings() {
                     <strong>{m.label}</strong>
                     {active && <span className="status-pill status-pill--admin">In use</span>}
                   </span>
-                  <span className="muted">{m.blurb}</span>
                 </button>
               );
             })}
           </div>
         </section>
 
-        {/* Deliberately NOT gated by `locked` as every other control here is:
-            that lock covers the UPI id and the QR, where a wrong value sends
-            real money somewhere wrong. A cap is a policy an organiser may
-            legitimately want to change mid-fest. */}
         <section className="admin-panel">
-          <div className="panel-head">
-            <h2>Registration limits</h2>
-          </div>
-          <p className="muted">
-            The most events one participant may register for in each category. Only
-            registrations they create themselves count — a seat on someone else&apos;s team
-            doesn&apos;t. Set 0 for no limit.
-          </p>
-          <form
-            className="category-limits"
-            onSubmit={(e) => {
-              e.preventDefault();
-              save(
-                {
-                  category_limits: Object.fromEntries(
-                    EVENT_CATEGORIES.map((c) => [c, Number(limits[c]) || 0]),
-                  ),
-                },
-                "Per-category limits saved.",
-              );
-            }}
-          >
-            <ul className="category-limit-list">
-              {EVENT_CATEGORIES.map((c) => (
-                <li key={c}>
-                  <label htmlFor={`limit-${c}`}>{c}</label>
-                  <input
-                    id={`limit-${c}`}
-                    className="input input-sm"
-                    type="number"
-                    min="0"
-                    disabled={busy}
-                    value={limits[c] ?? ""}
-                    onChange={(e) => setLimits({ ...limits, [c]: e.target.value })}
-                  />
-                  <span className="cell-sub">
-                    {Number(limits[c]) > 0 ? "per participant" : "no limit"}
-                  </span>
-                </li>
-              ))}
-            </ul>
-            <FormActions editing={false} saveLabel="Save limits" disabled={busy} />
-          </form>
-        </section>
-
-        <section className="admin-panel">
-          <div className="panel-head">
-            <h2>Event instructions</h2>
-            <span className="muted">{filledPoints.length} of {MAX_POINTS}</span>
-          </div>
-          <p className="muted">
-            Shown under the EVENTS heading on the home page, to everyone — including
-            visitors who haven&apos;t signed in. Use it for what applies across the fest:
-            what to bring, who can enter, when sign-ups close. Leave every box empty to
-            hide the whole panel.
-          </p>
-          <form
-            className="form"
-            onSubmit={(e) => {
-              e.preventDefault();
-              // Blanks are dropped server-side too; trimming here keeps the
-              // inputs and what gets saved visibly the same thing.
-              save({ event_instructions: filledPoints }, "Instructions saved.");
-            }}
-          >
-            <ol className="instruction-list">
-              {points.map((point, i) => (
-                <li key={i}>
-                  <span className="instruction-num">{String(i + 1).padStart(2, "0")}</span>
-                  <div className="instruction-fields">
-                    <input
-                      className="instruction-title"
-                      aria-label={`Heading ${i + 1}`}
-                      placeholder="Heading"
-                      maxLength={80}
-                      disabled={busy}
-                      value={point.title}
-                      onChange={(e) => setPoint(i, "title", e.target.value)}
-                    />
-                    <input
-                      aria-label={`Detail ${i + 1}`}
-                      placeholder={
-                        i === points.length - 1 ? "Add another point…" : "What it means"
-                      }
-                      maxLength={240}
-                      disabled={busy}
-                      value={point.text}
-                      onChange={(e) => setPoint(i, "text", e.target.value)}
-                    />
-                  </div>
-                  <button
-                    className="btn btn-sm btn-ghost"
-                    type="button"
-                    aria-label={`Remove point ${i + 1}`}
-                    disabled={busy || (isBlank(point) && points.length === 1)}
-                    onClick={() => {
-                      const next = points.filter((_, j) => j !== i);
-                      setPoints(next.length ? next : [blankPoint()]);
-                    }}
-                  >
-                    <Trash2 size={14} aria-hidden="true" />
-                  </button>
-                </li>
-              ))}
-            </ol>
-            <FormActions editing={false} saveLabel="Save instructions" disabled={busy} />
-          </form>
-        </section>
-
-        {/* Not behind the payment lock either, and for the same reason: the
-            lock covers the UPI id and the QR. A group link is exactly the kind
-            of thing organisers fix at the last minute. */}
-        <section className="admin-panel">
-          <div className="panel-head">
-            <h2>WhatsApp group</h2>
-          </div>
-          <p className="muted">
-            Shown to every participant the moment they finish registering, and again on
-            their registrations page. Must be an https link to chat.whatsapp.com or wa.me.
-            Leave it empty to show nothing.
-          </p>
-          <form
-            className="form"
-            onSubmit={(e) => {
-              e.preventDefault();
-              save({ whatsapp_group_url: whatsappUrl.trim() }, "Group link saved.");
-            }}
-          >
-            <div className="field">
-              <label htmlFor="whatsapp-url">Invite link</label>
-              <input
-                id="whatsapp-url"
-                type="url"
-                placeholder="https://chat.whatsapp.com/…"
-                disabled={busy}
-                value={whatsappUrl}
-                onChange={(e) => setWhatsappUrl(e.target.value)}
-              />
-            </div>
-            <FormActions editing={false} saveLabel="Save link" disabled={busy} />
-          </form>
-        </section>
-
-        <section className="admin-panel">
-          <div className="panel-head">
-            <h2>Registration window</h2>
-            <span className={`status-pill ${registrationOpen ? "status-pill--completed" : "status-pill--failed"}`}>
-              {registrationOpen ? "Open" : "Closed"}
-            </span>
-          </div>
-          <p className="muted">
-            The master switch. Closing it stops new sign-ups, saved drafts, and turning a
-            draft into a paid registration across the whole fest. Anything already paid or
-            mid-checkout is left alone.
-          </p>
-          <button
-            type="button"
-            className={`btn ${registrationOpen ? "btn-ghost" : ""}`}
-            disabled={busy}
-            onClick={() => setConfirmingClose(true)}
-          >
-            {registrationOpen ? (
-              <>
-                <Lock size={15} aria-hidden="true" /> Close Registration
-              </>
-            ) : (
-              <>
-                <LockOpen size={15} aria-hidden="true" /> Reopen Registration
-              </>
-            )}
-          </button>
-
-          {/* Per-event switches under the master. Both must be open for
-              someone to register, so these are moot while the fest is shut. */}
-          <div className={`event-toggles ${registrationOpen ? "" : "is-disabled"}`}>
-            <h3>Individual events</h3>
-            {!registrationOpen && (
-              <p className="muted">
-                Registration is closed fest-wide, so every event below is closed
-                regardless of its own setting.
-              </p>
-            )}
-            {!eventRows.length ? (
-              <p className="empty-state">No events yet.</p>
-            ) : (
-              <ul className="event-toggle-list">
-                {eventRows.map((ev) => {
-                  const open = ev.registration_open !== false;
-                  return (
-                    <li key={ev.id}>
-                      <span className="event-toggle-name">
-                        <strong>{ev.name}</strong>
-                        <span className="cell-sub">{ev.category}</span>
-                      </span>
-                      <button
-                        type="button"
-                        className={`btn btn-sm ${open ? "btn-ghost" : ""}`}
-                        disabled={busy}
-                        onClick={() => toggleEvent(ev)}
-                      >
-                        {open ? "Close" : "Reopen"}
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </div>
-        </section>
-        </div>
-
-        <section className="admin-panel pay-grid-target">
           <div className="panel-head">
             <h2>Where participants pay</h2>
           {locked && (
@@ -562,12 +381,6 @@ export default function PaymentSettings() {
             </span>
           )}
         </div>
-        <p className="muted">
-          Shown to participants in screenshot mode. A wrong UPI ID sends real money to
-          the wrong account with nothing downstream to catch it, so lock these once
-          they're confirmed.
-        </p>
-
         {locked ? (
           <div className="pay-locked">
             <div className="pay-locked-row">
@@ -646,6 +459,246 @@ export default function PaymentSettings() {
           </form>
         )}
         </section>
+
+        {/* Not behind the payment lock either, and for the same reason: the
+            lock covers the UPI id and the QR. A group link is exactly the kind
+            of thing organisers fix at the last minute. */}
+        <section className="admin-panel">
+          <div className="panel-head">
+            <h2>WhatsApp group</h2>
+          </div>
+          <form
+            className="form"
+            onSubmit={(e) => {
+              e.preventDefault();
+              save({ whatsapp_group_url: whatsappUrl.trim() }, "Group link saved.");
+            }}
+          >
+            <div className="field">
+              <label htmlFor="whatsapp-url">Invite link</label>
+              <input
+                id="whatsapp-url"
+                type="url"
+                placeholder="https://chat.whatsapp.com/…"
+                disabled={busy}
+                value={whatsappUrl}
+                onChange={(e) => setWhatsappUrl(e.target.value)}
+              />
+            </div>
+            <FormActions editing={false} saveLabel="Save link" disabled={busy} />
+          </form>
+        </section>
+      </div>
+
+      {/* Row 2 — the settings that change what participants are told.
+          Limits and the window are short, so they share the narrow column;
+          the instructions editor takes the wide one because it holds up to
+          twelve two-field rows. */}
+      <div className="pay-row pay-row--split">
+        <div className="pay-col">
+        {/* Deliberately NOT gated by `locked` as every other control here is:
+            that lock covers the UPI id and the QR, where a wrong value sends
+            real money somewhere wrong. A cap is a policy an organiser may
+            legitimately want to change mid-fest. */}
+        <section className="admin-panel">
+          <div className="panel-head">
+            <h2>Registration limits</h2>
+            <EditToggle
+              editing={isEditing("limits")}
+              disabled={busy}
+              onEdit={() => startEdit("limits")}
+            />
+          </div>
+          <form
+            className="category-limits"
+            onSubmit={(e) => {
+              e.preventDefault();
+              save(
+                {
+                  category_limits: Object.fromEntries(
+                    EVENT_CATEGORIES.map((c) => [c, Number(limits[c]) || 0]),
+                  ),
+                },
+                "Per-category limits saved.",
+              ).then((ok) => ok && stopEdit("limits"));
+            }}
+          >
+            <ul className="category-limit-list">
+              {EVENT_CATEGORIES.map((c) => (
+                <li key={c}>
+                  <label htmlFor={`limit-${c}`}>{c}</label>
+                  <input
+                    id={`limit-${c}`}
+                    className="input input-sm"
+                    type="number"
+                    min="0"
+                    disabled={busy || !isEditing("limits")}
+                    value={limits[c] ?? ""}
+                    onChange={(e) => setLimits({ ...limits, [c]: e.target.value })}
+                  />
+                  <span className="cell-sub">
+                    {Number(limits[c]) > 0 ? "per participant" : "no limit"}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            {isEditing("limits") && (
+              <FormActions
+                saveLabel="Save limits"
+                disabled={busy}
+                onCancel={() => cancelEdit("limits")}
+              />
+            )}
+          </form>
+        </section>
+
+        <section className="admin-panel">
+          <div className="panel-head">
+            <h2>Registration window</h2>
+            <span className={`status-pill ${registrationOpen ? "status-pill--completed" : "status-pill--failed"}`}>
+              {registrationOpen ? "Open" : "Closed"}
+            </span>
+            {/* No form here, so no FormActions to hold a Cancel — the toggle
+                itself flips back to "Edit" once the panel is re-locked. */}
+            {isEditing("window") ? (
+              <button
+                className="btn btn-ghost btn-sm"
+                type="button"
+                disabled={busy}
+                onClick={() => stopEdit("window")}
+              >
+                <Lock size={14} aria-hidden="true" /> Done
+              </button>
+            ) : (
+              <EditToggle editing={false} disabled={busy} onEdit={() => startEdit("window")} />
+            )}
+          </div>
+          <button
+            type="button"
+            className={`btn ${registrationOpen ? "btn-ghost" : ""}`}
+            disabled={busy || !isEditing("window")}
+            onClick={() => setConfirmingClose(true)}
+          >
+            {registrationOpen ? (
+              <>
+                <Lock size={15} aria-hidden="true" /> Close Registration
+              </>
+            ) : (
+              <>
+                <LockOpen size={15} aria-hidden="true" /> Reopen Registration
+              </>
+            )}
+          </button>
+
+          {/* Per-event switches under the master. Both must be open for
+              someone to register, so these are moot while the fest is shut. */}
+          <div className={`event-toggles ${registrationOpen ? "" : "is-disabled"}`}>
+            <h3>Individual events</h3>
+            {!registrationOpen && (
+              <p className="muted">
+                Registration is closed fest-wide, so every event below is closed
+                regardless of its own setting.
+              </p>
+            )}
+            {!eventRows.length ? (
+              <p className="empty-state">No events yet.</p>
+            ) : (
+              <ul className="event-toggle-list">
+                {eventRows.map((ev) => {
+                  const open = ev.registration_open !== false;
+                  return (
+                    <li key={ev.id}>
+                      <span className="event-toggle-name">
+                        <strong>{ev.name}</strong>
+                        <span className="cell-sub">{ev.category}</span>
+                      </span>
+                      <button
+                        type="button"
+                        className={`btn btn-sm ${open ? "btn-ghost" : ""}`}
+                        disabled={busy || !isEditing("window")}
+                        onClick={() => toggleEvent(ev)}
+                      >
+                        {open ? "Close" : "Reopen"}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+        </section>
+        </div>
+
+        <section className="admin-panel">
+          <div className="panel-head">
+            <h2>Event instructions</h2>
+            <span className="muted">{filledPoints.length} of {MAX_POINTS}</span>
+            <EditToggle
+              editing={isEditing("instructions")}
+              disabled={busy}
+              onEdit={() => startEdit("instructions")}
+            />
+          </div>
+          <form
+            className="form"
+            onSubmit={(e) => {
+              e.preventDefault();
+              // Blanks are dropped server-side too; trimming here keeps the
+              // inputs and what gets saved visibly the same thing.
+              save({ event_instructions: filledPoints }, "Instructions saved.").then(
+                (ok) => ok && stopEdit("instructions")
+              );
+            }}
+          >
+            <ol className="instruction-list">
+              {points.map((point, i) => (
+                <li key={i}>
+                  <span className="instruction-num">{String(i + 1).padStart(2, "0")}</span>
+                  <div className="instruction-fields">
+                    <input
+                      className="instruction-title"
+                      aria-label={`Heading ${i + 1}`}
+                      placeholder="Heading"
+                      maxLength={80}
+                      disabled={busy || !isEditing("instructions")}
+                      value={point.title}
+                      onChange={(e) => setPoint(i, "title", e.target.value)}
+                    />
+                    <input
+                      aria-label={`Detail ${i + 1}`}
+                      placeholder={
+                        i === points.length - 1 ? "Add another point…" : "What it means"
+                      }
+                      maxLength={240}
+                      disabled={busy || !isEditing("instructions")}
+                      value={point.text}
+                      onChange={(e) => setPoint(i, "text", e.target.value)}
+                    />
+                  </div>
+                  <button
+                    className="btn btn-sm btn-ghost"
+                    type="button"
+                    aria-label={`Remove point ${i + 1}`}
+                    disabled={busy || !isEditing("instructions") || (isBlank(point) && points.length === 1)}
+                    onClick={() => {
+                      const next = points.filter((_, j) => j !== i);
+                      setPoints(next.length ? next : [blankPoint()]);
+                    }}
+                  >
+                    <Trash2 size={14} aria-hidden="true" />
+                  </button>
+                </li>
+              ))}
+            </ol>
+            {isEditing("instructions") && (
+              <FormActions
+                saveLabel="Save instructions"
+                disabled={busy}
+                onCancel={() => cancelEdit("instructions")}
+              />
+            )}
+          </form>
+        </section>
       </div>
 
       <AlertDialog open={!!pendingMode} onOpenChange={(o) => !o && setPendingMode(null)}>
@@ -653,8 +706,7 @@ export default function PaymentSettings() {
           <AlertDialogHeader>
             <AlertDialogTitle>Switch to {target?.label.toLowerCase()}?</AlertDialogTitle>
             <AlertDialogDescription>
-              {target?.blurb}
-              {" "}Registrations already in progress keep the method they started with —
+              Registrations already in progress keep the method they started with —
               only new ones use this.
             </AlertDialogDescription>
           </AlertDialogHeader>

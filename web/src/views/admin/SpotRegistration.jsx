@@ -210,134 +210,133 @@ export default function SpotRegistration() {
         </section>
       )}
 
-      <section className="admin-panel">
-        <div className="panel-head">
-          <h2>Spot registration</h2>
-          <span className="muted">Marked SPOT · code starts SP</span>
-        </div>
-        <p className="muted panel-note">
-          For someone registering in person. Works after registrations have closed, records
-          cash or an online reference, and confirms them immediately — no payment screen and
-          no approval step. They do not need an account first.
-        </p>
-
-        <form className="form spot-form" onSubmit={submit}>
-          <div className="field">
-            <label htmlFor="spot-event">Event</label>
-            <select
-              id="spot-event"
-              required
-              value={eventId}
-              onChange={(e) => pickEvent(e.target.value)}
-            >
-              <option value="" disabled>
-                Choose an event
-              </option>
-              {(events || []).map((e) => (
-                <option key={e.id} value={e.id}>
-                  {e.name} — ₹{e.fee || 0}
-                  {e.is_team_event ? ` · team of ${e.team_min}–${e.team_max}` : ""}
-                </option>
-              ))}
-            </select>
+      {/* The desk form is the wide one — it grows a person block per
+          teammate — with the spreadsheet importer beside it rather than
+          pushed below the fold. One column on a narrow screen. */}
+      <div className="spot-row">
+        <section className="admin-panel">
+          <div className="panel-head">
+            <h2>Spot registration</h2>
+            <span className="muted">Marked SPOT · code starts SP</span>
           </div>
-
-          {event?.is_team_event && (
+          <form className="form spot-form" onSubmit={submit}>
             <div className="field">
-              <label htmlFor="spot-team">Team name</label>
-              <input
-                id="spot-team"
+              <label htmlFor="spot-event">Event</label>
+              <select
+                id="spot-event"
                 required
-                value={teamName}
-                onChange={(e) => setTeamName(e.target.value)}
-              />
+                value={eventId}
+                onChange={(e) => pickEvent(e.target.value)}
+              >
+                <option value="" disabled>
+                  Choose an event
+                </option>
+                {(events || []).map((e) => (
+                  <option key={e.id} value={e.id}>
+                    {e.name} — ₹{e.fee || 0}
+                    {e.is_team_event ? ` · team of ${e.team_min}–${e.team_max}` : ""}
+                  </option>
+                ))}
+              </select>
             </div>
-          )}
 
-          {event && (
-            <>
-              <PersonFields
-                idPrefix="spot-lead"
-                person={lead}
-                onChange={setLead}
-                heading={event.is_team_event ? "Team lead" : "Participant"}
-              />
-
-              {members.map((m, i) => (
-                <PersonFields
-                  key={i}
-                  idPrefix={`spot-m${i}`}
-                  person={m}
-                  heading={`Member ${i + 2}`}
-                  onChange={(next) =>
-                    setMembers((prev) => prev.map((p, j) => (j === i ? next : p)))
-                  }
-                  onRemove={() => setMembers((prev) => prev.filter((_, j) => j !== i))}
+            {event?.is_team_event && (
+              <div className="field">
+                <label htmlFor="spot-team">Team name</label>
+                <input
+                  id="spot-team"
+                  required
+                  value={teamName}
+                  onChange={(e) => setTeamName(e.target.value)}
                 />
-              ))}
+              </div>
+            )}
 
-              {event.is_team_event && teamSize < (event.team_max ?? 1) && (
-                <button
-                  className="btn btn-ghost"
-                  type="button"
-                  onClick={() => setMembers((prev) => [...prev, blankPerson()])}
-                >
-                  <Plus size={15} aria-hidden="true" /> Add a teammate
-                </button>
-              )}
+            {event && (
+              <>
+                <PersonFields
+                  idPrefix="spot-lead"
+                  person={lead}
+                  onChange={setLead}
+                  heading={event.is_team_event ? "Team lead" : "Participant"}
+                />
 
-              <div className="form-grid">
-                <div className="field">
-                  <label htmlFor="spot-pay">Paid by</label>
-                  <select
-                    id="spot-pay"
-                    value={paymentMethod}
-                    onChange={(e) => setPaymentMethod(e.target.value)}
+                {members.map((m, i) => (
+                  <PersonFields
+                    key={i}
+                    idPrefix={`spot-m${i}`}
+                    person={m}
+                    heading={`Member ${i + 2}`}
+                    onChange={(next) =>
+                      setMembers((prev) => prev.map((p, j) => (j === i ? next : p)))
+                    }
+                    onRemove={() => setMembers((prev) => prev.filter((_, j) => j !== i))}
+                  />
+                ))}
+
+                {event.is_team_event && teamSize < (event.team_max ?? 1) && (
+                  <button
+                    className="btn btn-ghost"
+                    type="button"
+                    onClick={() => setMembers((prev) => [...prev, blankPerson()])}
                   >
-                    <option value="cash">Cash</option>
-                    <option value="online">Online</option>
-                  </select>
-                </div>
-
-                {paymentMethod === "online" && (
-                  <div className="field">
-                    <label htmlFor="spot-txn">Transaction reference</label>
-                    <input
-                      id="spot-txn"
-                      required
-                      minLength={4}
-                      value={transactionId}
-                      onChange={(e) => setTransactionId(e.target.value)}
-                    />
-                  </div>
+                    <Plus size={15} aria-hidden="true" /> Add a teammate
+                  </button>
                 )}
 
-                <div className="field">
-                  <label htmlFor="spot-fee">Amount collected</label>
-                  <input
-                    id="spot-fee"
-                    inputMode="numeric"
-                    placeholder={String(expectedFee)}
-                    value={feeInput}
-                    onChange={(e) => setFeeInput(e.target.value.replace(/\D/g, ""))}
-                  />
-                  <span className="field-hint">
-                    Event price is ₹{expectedFee} for {teamSize} seat
-                    {teamSize === 1 ? "" : "s"}. Leave blank to charge that
-                    {fee !== expectedFee && feeInput !== "" ? "; ₹" + fee + " is recorded as an override" : ""}.
-                  </span>
+                <div className="form-grid">
+                  <div className="field">
+                    <label htmlFor="spot-pay">Paid by</label>
+                    <select
+                      id="spot-pay"
+                      value={paymentMethod}
+                      onChange={(e) => setPaymentMethod(e.target.value)}
+                    >
+                      <option value="cash">Cash</option>
+                      <option value="online">Online</option>
+                    </select>
+                  </div>
+
+                  {paymentMethod === "online" && (
+                    <div className="field">
+                      <label htmlFor="spot-txn">Transaction reference</label>
+                      <input
+                        id="spot-txn"
+                        required
+                        minLength={4}
+                        value={transactionId}
+                        onChange={(e) => setTransactionId(e.target.value)}
+                      />
+                    </div>
+                  )}
+
+                  <div className="field">
+                    <label htmlFor="spot-fee">Amount collected</label>
+                    <input
+                      id="spot-fee"
+                      inputMode="numeric"
+                      placeholder={String(expectedFee)}
+                      value={feeInput}
+                      onChange={(e) => setFeeInput(e.target.value.replace(/\D/g, ""))}
+                    />
+                    <span className="field-hint">
+                      Event price is ₹{expectedFee} for {teamSize} seat
+                      {teamSize === 1 ? "" : "s"}. Leave blank to charge that
+                      {fee !== expectedFee && feeInput !== "" ? "; ₹" + fee + " is recorded as an override" : ""}.
+                    </span>
+                  </div>
                 </div>
-              </div>
 
-              <button className="btn" type="submit" disabled={!canSubmit || submitting}>
-                {submitting ? "Registering…" : `Register & mint code — ₹${fee}`}
-              </button>
-            </>
-          )}
-        </form>
-      </section>
+                <button className="btn" type="submit" disabled={!canSubmit || submitting}>
+                  {submitting ? "Registering…" : `Register & mint code — ₹${fee}`}
+                </button>
+              </>
+            )}
+          </form>
+        </section>
 
-      <BulkImport />
+        <BulkImport />
+      </div>
     </div>
   );
 }

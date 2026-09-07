@@ -29,19 +29,29 @@ export default function ProtectedRoute({ children, adminOnly = false, roles }) {
   const pathname = usePathname();
   const [dismissed, setDismissed] = useState(false);
 
-  const denied = Boolean(user) && ((adminOnly && !isAdmin) || (roles && !isAdmin && !roles.includes(role)));
+  // A signed-in user whose role hasn't arrived yet is still LOADING, not
+  // denied. `role` is null in that window, matches no `roles` array, and
+  // previously computed denied=true — which redirected a user who had just
+  // signed in successfully. AuthContext holds `loading` across the role fetch
+  // too; this is the second guard, so the race cannot come back by way of some
+  // other path that leaves the two out of step.
+  const resolving = Boolean(user) && role === null;
+  const denied =
+    Boolean(user) &&
+    !resolving &&
+    ((adminOnly && !isAdmin) || (roles && !isAdmin && !roles.includes(role)));
   // Never redirect a page to itself, or a role whose own home is guarded
   // against it would ping-pong forever.
   const home = homeForRole(role);
   const target = home === pathname ? "/" : home;
 
   useEffect(() => {
-    if (loading) return;
+    if (loading || resolving) return;
     if (!user && dismissed) router.replace("/");
     else if (denied) router.replace(target);
-  }, [loading, user, dismissed, denied, target, router]);
+  }, [loading, resolving, user, dismissed, denied, target, router]);
 
-  if (loading) return <Loader />;
+  if (loading || resolving) return <Loader />;
 
   if (!user) {
     if (dismissed) return <Loader />;

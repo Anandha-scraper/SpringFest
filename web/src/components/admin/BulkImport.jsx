@@ -66,13 +66,6 @@ export default function BulkImport() {
           <Download size={15} aria-hidden="true" /> Template
         </button>
       </div>
-
-      <p className="muted panel-note">
-        One row per person. Give everyone on a team the same team name and event, and put the
-        lead first. Imported people are recorded as paid and get their code straight away —
-        they do not need an account first. The template lists every event and its id.
-      </p>
-
       <div className="import-controls">
         <label className="btn btn-ghost" htmlFor="import-file">
           <FileSpreadsheet size={15} aria-hidden="true" />
