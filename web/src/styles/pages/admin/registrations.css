@@ -1,7 +1,9 @@
 /* Admin Registrations — the search/total/export toolbar and the per-row
    detail sheet. */
 
-/* ── Registrations: search / total / export toolbar, pagination ── */
+/* ── Registrations: search / total / export toolbar ──────────
+   (The pager below the table lives with the other admin tables in
+   shared.css — TablePagination is shared with Approvals/Attendance/Drafts.) */
 .reg-toolbar {
   display: flex;
   align-items: center;
@@ -15,7 +17,6 @@
   color: var(--ink-faint);
   white-space: nowrap;
 }
-.reg-pagination { margin-top: 1.25rem; }
 
 /* ── Registration detail sheet (payment / Razorpay info) ────── */
 .reg-detail {
@@ -103,4 +104,11 @@
   .reg-table-wrap td:nth-child(3) {
     display: none;
   }
+  /* With auto layout the columns are sized by their content, and a short
+     name or one-word event leaves Participant and Events squeezing against
+     the door. Force them wider — the two columns an organiser scans first. */
+  .reg-table-wrap th:nth-child(1),
+  .reg-table-wrap td:nth-child(1) { min-width: 13rem; }
+  .reg-table-wrap th:nth-child(4),
+  .reg-table-wrap td:nth-child(4) { min-width: 12rem; }
 }

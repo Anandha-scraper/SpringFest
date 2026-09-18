@@ -29,6 +29,18 @@ import { matchMemberIndex } from "./registrationLookup.js";
 const RATINGS = [1, 2, 3, 4, 5];
 const MAX_COMMENT = 1000;
 
+/** Collapse legacy/corrupt duplicate entries before any reader or writer can
+ * expose them. The last entry wins because it is the most recent attempted
+ * answer in old data; normal writes replace the matching entry in place. */
+export function uniqueFeedbackEntries(entries) {
+  const byMember = new Map();
+  for (const entry of Array.isArray(entries) ? entries : []) {
+    if (!Number.isInteger(entry?.member_index) || entry.member_index < 0) continue;
+    byMember.set(entry.member_index, entry);
+  }
+  return [...byMember.values()].sort((a, b) => a.member_index - b.member_index);
+}
+
 /** Every ticket holder with their own feedback, or nulls where there is none.
  *
  * The sibling of checkin.service.js's holderCheckins(), and here for the same
@@ -130,7 +142,7 @@ export async function saveFeedback({ user, registrationId, body }) {
     const holder = ticketHolders(row)[memberIndex];
     if (!holder) throw new ApiError(404, "No such member on this registration");
 
-    const entries = [...(Array.isArray(row.feedback) ? row.feedback : [])];
+    const entries = uniqueFeedbackEntries(row.feedback);
     const at = entries.findIndex((f) => f.member_index === memberIndex);
 
     // An admin can rewrite members[] wholesale (adminReports.editRegistration),
