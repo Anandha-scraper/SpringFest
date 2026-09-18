@@ -8,4 +8,5 @@ serviceAccountKey.json
 .firebase/
 firebase-debug.log
 CLAUDE.md
+AGENTS.md
 firestore-backup-*.json

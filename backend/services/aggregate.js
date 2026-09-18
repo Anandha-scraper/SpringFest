@@ -93,6 +93,12 @@ function seatCheckedIn(row, memberIndex) {
 
 /** One registration as the admin detail panel wants it. */
 function registrationView(r, events) {
+  const feedback = new Map();
+  for (const entry of Array.isArray(r.feedback) ? r.feedback : []) {
+    if (Number.isInteger(entry?.member_index) && entry.member_index >= 0) {
+      feedback.set(entry.member_index, entry);
+    }
+  }
   return {
     registration_id: r.id,
     event_id: r.event_id || "",
@@ -106,7 +112,9 @@ function registrationView(r, events) {
     member_checkins: r.member_checkins || [],
     // Whole array, not just one seat: this feeds the admin's per-person
     // drawer, which shows every holder's answer for the team.
-    feedback: r.feedback || [],
+    // Old/imported rows may contain duplicate entries. The admin read model
+    // exposes one answer per seat, matching the feedback write contract.
+    feedback: [...feedback.values()].sort((a, b) => a.member_index - b.member_index),
     team_name: r.team_name || "",
     team_size: r.team_size ?? 1,
     members: r.members || [],
@@ -246,6 +254,10 @@ export async function participantRows(data, status = STATUS_COMPLETED) {
   }
 
   rows.sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""));
+  const keys = rows.map((row) => row.person_key);
+  if (new Set(keys).size !== keys.length) {
+    console.error("participantRows produced duplicate person_key values", keys);
+  }
   return rows;
 }
 

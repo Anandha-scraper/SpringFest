@@ -13,17 +13,9 @@
  * would skip a pending approval on the next page. Paging over a snapshot and
  * reloading after each decision has no such hole.
  */
-import {
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination.jsx";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
-/** Collapses a run of page numbers into shadcn's usual 1 … 4 5 6 … 20 shape. */
+/** Collapses a run of page numbers into the usual 1 … 4 5 6 … 20 shape. */
 export function pageList(current, total) {
   if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
   const pages = new Set([1, total, current, current - 1, current + 1]);
@@ -39,39 +31,53 @@ export function pageList(current, total) {
 export default function TablePagination({ page, totalPages, onPage }) {
   if (totalPages <= 1) return null;
 
+  const go = (p) => onPage(Math.min(totalPages, Math.max(1, p)));
+
   return (
-    <Pagination className="reg-pagination">
-      <PaginationContent>
-        <PaginationItem>
-          <PaginationPrevious
-            onClick={() => onPage(Math.max(1, page - 1))}
-            className={page === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
-          />
-        </PaginationItem>
+    <nav className="pager" aria-label="pagination">
+      <button
+        type="button"
+        className="pager__nav"
+        aria-label="Go to previous page"
+        onClick={() => go(page - 1)}
+        disabled={page === 1}
+      >
+        <ChevronLeft size={18} aria-hidden="true" />
+      </button>
+
+      <div className="pager__pages" role="list">
         {pageList(page, totalPages).map((p, i) =>
           p === "ellipsis" ? (
-            <PaginationItem key={`e${i}`}>
-              <PaginationEllipsis />
-            </PaginationItem>
+            <span className="pager__gap" key={`e${i}`} aria-hidden="true">
+              …
+            </span>
           ) : (
-            <PaginationItem key={p}>
-              <PaginationLink
-                isActive={p === page}
-                onClick={() => onPage(p)}
-                className="cursor-pointer"
-              >
-                {p}
-              </PaginationLink>
-            </PaginationItem>
+            <button
+              type="button"
+              key={p}
+              className={p === page ? "pager__page is-active" : "pager__page"}
+              aria-current={p === page ? "page" : undefined}
+              onClick={() => go(p)}
+            >
+              {p}
+            </button>
           ),
         )}
-        <PaginationItem>
-          <PaginationNext
-            onClick={() => onPage(Math.min(totalPages, page + 1))}
-            className={page === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
-          />
-        </PaginationItem>
-      </PaginationContent>
-    </Pagination>
+      </div>
+
+      <span className="pager__count">
+        Page {page} of {totalPages}
+      </span>
+
+      <button
+        type="button"
+        className="pager__nav"
+        aria-label="Go to next page"
+        onClick={() => go(page + 1)}
+        disabled={page === totalPages}
+      >
+        <ChevronRight size={18} aria-hidden="true" />
+      </button>
+    </nav>
   );
 }

@@ -18,7 +18,9 @@ app.use(express.json());
 app.use("/api", apiRouter);
 app.get("/", (req, res) => res.json({ status: "ok" }));
 app.use(errorHandler);
-const port = process.env.PORT || 8000;
+// 8100, not 8000: the popular default port is routinely claimed by other
+// local processes. App Hosting sets PORT itself, so this only affects dev.
+const port = process.env.PORT || 8100;
 app.listen(port, () => {
   console.log(`backend -> http://localhost:${port}`);
 });

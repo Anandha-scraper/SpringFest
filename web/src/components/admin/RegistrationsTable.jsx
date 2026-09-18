@@ -27,6 +27,17 @@ const paidLabel = (row) =>
 // Percentage widths so `table-layout: fixed` keeps columns steady across pages.
 const COLS = [20, 12, 11, 15, 16, 11, 9, 6];
 
+function duplicateKeys(items, getKey) {
+  const seen = new Set();
+  const duplicates = new Set();
+  items.forEach((item, index) => {
+    const key = getKey(item, index);
+    if (seen.has(key)) duplicates.add(key);
+    seen.add(key);
+  });
+  return [...duplicates];
+}
+
 /** One person's academic block — lead or team member, same rules the public
  * registration form uses, so an admin edit can't save what it couldn't. */
 function EditDetailFields({ idPrefix, values, onChange }) {
@@ -235,6 +246,21 @@ export default function RegistrationsTable({
 
   const handleSaved = () => onSaved?.();
 
+  useEffect(() => {
+    if (process.env.NODE_ENV === "production") return;
+    const participantKeys = duplicateKeys(rows, (r) => r.person_key || "");
+    const feedbackKeys = rows.flatMap((r) => r.events || []).flatMap((e) =>
+      duplicateKeys(e.feedback || [], (f) => String(f.member_index ?? ""))
+        .map((key) => `${e.registration_id || "unknown"}:${key}`)
+    );
+    if (participantKeys.length || feedbackKeys.length) {
+      console.warn("Duplicate admin registration keys", {
+        participantKeys,
+        feedbackKeys,
+      });
+    }
+  }, [rows]);
+
   return (
     <>
       <div className="table-wrap reg-table-wrap" style={{ "--reg-table-min-h": minHeight }}>
@@ -273,11 +299,11 @@ export default function RegistrationsTable({
             </tr>
           </thead>
           <tbody>
-            {rows.map((r) => (
+            {rows.map((r, rowIndex) => (
               // person_key, never uid: a person who has only ever been someone
               // else's teammate has no uid at all, and several empty keys is a
               // React crash.
-              <tr key={r.person_key}>
+              <tr key={`${r.person_key || "person"}-${rowIndex}`}>
                 <td>
                   {/* Always a link: a solo participant's own details are worth
                       one click too, not just a team's roster. */}
@@ -294,18 +320,23 @@ export default function RegistrationsTable({
                 </td>
                 <td>{r.phone || "—"}</td>
                 <td>{r.college || "—"}</td>
-                {/* Events entered alone, by name — a count tells an organiser
-                    nothing they can act on. */}
+                {/* Every event they sit in, solo or on a team, by name — a
+                    count tells an organiser nothing they can act on. Unique:
+                    one person leading a team and sitting as a teammate in the
+                    same event holds two seats and mustn't print twice. */}
                 <td>
-                  {r.solo_events.length ? (
-                    <ul className="cell-list">
-                      {r.solo_events.map((name) => (
-                        <li key={name}>{name}</li>
-                      ))}
-                    </ul>
-                  ) : (
-                    "—"
-                  )}
+                  {(() => {
+                    const names = [...new Set(r.events.map((e) => e.event_name).filter(Boolean))];
+                    return names.length ? (
+                      <ul className="cell-list">
+                        {names.map((name, nameIndex) => (
+                          <li key={`${name || "event"}-${nameIndex}`}>{name}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      "—"
+                    );
+                  })()}
                 </td>
                 {/* One chip per team registration, not one per person: the
                     same participant can lead two teams for two events, each
@@ -313,8 +344,8 @@ export default function RegistrationsTable({
                 <td>
                   {r.teams.length ? (
                     <ul className="cell-list">
-                      {r.teams.map((t) => (
-                        <li key={t.registration_id}>
+                      {r.teams.map((t, teamIndex) => (
+                        <li key={`${t.registration_id || "team"}-${teamIndex}`}>
                           <button
                             className="link-btn"
                             type="button"
@@ -322,6 +353,7 @@ export default function RegistrationsTable({
                           >
                             {t.team_name}
                           </button>
+                          <span className="cell-sub">{t.event_name || "Unknown event"}</span>
                           <span className="cell-sub">{t.team_size} members</span>
                         </li>
                       ))}
@@ -381,17 +413,17 @@ export default function RegistrationsTable({
                   <div className="reg-detail-row"><span>Location</span><span>{selected.location || "—"}</span></div>
                   {/* Every team they're in, since a person can hold more
                       than one — each event's block below names its own. */}
-                  {selected.teams.map((t) => (
-                    <div className="reg-detail-row" key={t.registration_id}>
+                  {selected.teams.map((t, teamIndex) => (
+                    <div className="reg-detail-row" key={`${t.registration_id || "team"}-${teamIndex}`}>
                       <span>Team</span>
-                      <span>{t.team_name} · {t.team_size} members</span>
+                      <span>{t.team_name} · {t.event_name || "Unknown event"} · {t.team_size} members</span>
                     </div>
                   ))}
                 </section>
 
                 {/* One block per event: the whole point of the per-person row. */}
-                {selected.events.map((e) => (
-                  <section className="reg-detail-group" key={e.registration_id}>
+                {selected.events.map((e, eventIndex) => (
+                  <section className="reg-detail-group" key={`${e.registration_id || "event"}-${eventIndex}`}>
                     <div className="reg-detail-group-head">
                       <h4>{e.event_name}</h4>
                       <button
@@ -418,8 +450,11 @@ export default function RegistrationsTable({
                     {/* Per person, so a team shows one line each. No column for
                         this in the table itself — COLS drives a fixed layout
                         and every width would need rebalancing. */}
-                    {(e.feedback || []).map((f) => (
-                      <div className="reg-detail-row" key={f.member_index}>
+                    {(e.feedback || []).map((f, feedbackIndex) => (
+                      <div
+                        className="reg-detail-row"
+                        key={`${e.registration_id || "registration"}-feedback-${f.member_index ?? "unknown"}-${feedbackIndex}`}
+                      >
                         <span>Feedback — {f.name || f.email}</span>
                         <span>
                           {f.rating}/5{f.comment ? ` · ${f.comment}` : ""}

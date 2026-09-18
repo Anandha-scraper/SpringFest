@@ -23,7 +23,9 @@
  * caller's role from Firestore, exactly as it did before — that is still the
  * only thing standing between a request and the data.
  */
-const API_ORIGIN = process.env.API_ORIGIN || "http://localhost:8000";
+// Dev fallback pairs with backend/server.js (8100), keeping the web dev
+// server and the API on the agreed ports. Override via API_ORIGIN in .env.local.
+const API_ORIGIN = process.env.API_ORIGIN || "http://localhost:8100";
 
 // Hop-by-hop and length headers: node/undici recomputes these for the outgoing
 // and incoming bodies, and passing the originals through corrupts the response
