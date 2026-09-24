@@ -31,6 +31,7 @@ router.delete("/events/:eventId/access-code", ...AdminUser, admin.revokeAccessCo
 
 // ── Registrations ────────────────────────────────────────────
 // Likewise, the literal `.csv` path stays above `/registrations/:id`.
+router.get("/team-register", ...AdminUser, admin.exportTeamRegister);
 router.get("/registrations.csv", ...AdminUser, admin.registrationsCsv);
 router.get("/registrations", ...AdminUser, admin.listRegistrations);
 router.get("/registrations/:registrationId", ...AdminUser, admin.rawRegistration);
