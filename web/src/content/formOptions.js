@@ -3,7 +3,7 @@
 // Registration-form dropdown options — keep in sync with backend/src/validate.js
 // (DEPARTMENTS / TN_CITIES / STUDY_YEARS there).
 
-export const DEPARTMENTS = ["CSE", "ECE", "IT", "MECH", "EEE", "Others"];
+export const DEPARTMENTS = ["CSE", "AIDS", "ECE", "IT", "MECH", "EEE", "Others"];
 
 /** Event categories. Keep in sync with EVENT_CATEGORIES in
  * backend/src/validate.js — the server rejects anything else. The admin Events

@@ -6,6 +6,7 @@ import { Download, FileSpreadsheet } from "lucide-react";
 
 import { downloadImportTemplate, importRegistrations } from "@/api/client.js";
 import { useToast } from "@/components/ui/toast.jsx";
+import { DEPARTMENTS } from "@/content/formOptions.js";
 
 /** Bulk entry from the .xlsx template.
  *
@@ -99,6 +100,9 @@ export default function BulkImport() {
           {busy === "import" ? "Importing…" : "Import"}
         </button>
       </div>
+      <p className="import-field-hint">
+        Accepted department names: {DEPARTMENTS.join(", ")}
+      </p>
 
       {report && (
         <div className="import-report">

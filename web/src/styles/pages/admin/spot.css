@@ -80,6 +80,13 @@
   gap: 0.625rem;
 }
 
+.import-field-hint {
+  margin: 0.75rem 0 0;
+  color: var(--ink-soft);
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
 /* The file input itself is replaced by its <label>, styled as a button, so
    the control matches the others. Kept in the layout (not display:none) so it
    stays focusable and screen readers still announce it. */
