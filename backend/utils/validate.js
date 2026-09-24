@@ -102,7 +102,7 @@ export const STUDY_YEARS = ["1", "2", "3", "4", "PG"];
 
 /** Departments offered in the registration form. Keep in sync with
  * web/src/content/formOptions.js. */
-export const DEPARTMENTS = ["CSE", "ECE", "IT", "MECH", "EEE", "Others"];
+export const DEPARTMENTS = ["CSE", "AIDS", "ECE", "IT", "MECH", "EEE", "Others"];
 
 /** Event categories offered in the admin event form. Keep in sync with
  * web/src/content/formOptions.js.

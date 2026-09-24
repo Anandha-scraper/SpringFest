@@ -3,18 +3,17 @@
 import { useCallback, useMemo, useState } from "react";
 import "@/styles/pages/admin/registrations.css";
 import Loader from "@/components/common/Loader.jsx";
+import DownloadTeamRegisterDialog from "@/components/admin/DownloadTeamRegisterDialog.jsx";
 import RegistrationsTable from "@/components/admin/RegistrationsTable.jsx";
 import TablePagination from "@/components/admin/TablePagination.jsx";
-import { getParticipants, downloadRegistrationsCsv } from "@/api/client.js";
+import { getParticipants } from "@/api/client.js";
 import { useApi } from "@/hooks/useApi.js";
-import { useToast } from "@/components/ui/toast.jsx";
 import { Input } from "@/components/ui/input.jsx";
 import { Button } from "@/components/ui/button.jsx";
 
 const PAGE_SIZE = 8;
 
 export default function Registrations() {
-  const toast = useToast();
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
 
@@ -76,19 +75,9 @@ export default function Registrations() {
             {filtered.length === 1 ? "" : "s"}
             {query && ` matching "${query}"`}
           </span>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() =>
-              // Match what's on screen — the export used to include drafts
-              // and rejections that the table itself hides.
-              downloadRegistrationsCsv({ status: rejectedOnly ? "rejected" : "completed" }).catch(
-                (err) => toast.bad(err.message)
-              )
-            }
-          >
-            Export CSV
-          </Button>
+          <DownloadTeamRegisterDialog>
+            <Button type="button" variant="outline">Download register</Button>
+          </DownloadTeamRegisterDialog>
         </div>
 
         <RegistrationsTable

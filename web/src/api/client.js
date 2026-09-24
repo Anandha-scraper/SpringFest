@@ -454,3 +454,14 @@ export function downloadRegistrationsCsv(filters = {}) {
     `registrations-${new Date().toISOString().slice(0, 10)}.csv`
   );
 }
+
+/** A print-ready attendance/signature register. The backend owns the filename
+ * because it derives the current event name rather than trusting the browser. */
+export function downloadTeamRegister({ eventId = "", format = "xlsx" } = {}) {
+  const qs = new URLSearchParams({ format });
+  if (eventId) qs.set("event_id", eventId);
+  return downloadAuthedFile(
+    `/admin/team-register?${qs.toString()}`,
+    `spring-fest-team-register.${format === "pdf" ? "pdf" : "xlsx"}`
+  );
+}

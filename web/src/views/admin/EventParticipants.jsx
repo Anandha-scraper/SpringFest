@@ -8,10 +8,10 @@ import { FileText } from "lucide-react";
 import StatCard from "@/components/admin/StatCard.jsx";
 import StatusPill from "@/components/admin/StatusPill.jsx";
 import {
-  downloadRegistrationsCsv,
   downloadVolunteerSubmission,
   getEventParticipants,
 } from "@/api/client.js";
+import DownloadTeamRegisterDialog from "@/components/admin/DownloadTeamRegisterDialog.jsx";
 import { useApi } from "@/hooks/useApi.js";
 import { useToast } from "@/components/ui/toast.jsx";
 import { formatDateTime, formatEventTime, rupees } from "@/utils/format.js";
@@ -56,13 +56,9 @@ export default function EventParticipants() {
             {event.fee > 0 ? ` · ${rupees(event.fee)} entry` : " · Free entry"}
           </p>
         </div>
-        <button
-          className="btn btn-ghost"
-          type="button"
-          onClick={() => downloadRegistrationsCsv({ event_id: id })}
-        >
-          Export CSV
-        </button>
+        <DownloadTeamRegisterDialog eventId={id}>
+          <button className="btn btn-ghost" type="button">Download register</button>
+        </DownloadTeamRegisterDialog>
       </div>
 
       <div className="stat-cards">

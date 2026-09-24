@@ -8,6 +8,7 @@
 import { IMAGE_TYPES } from "../middleware/upload.js";
 import * as adminReports from "../services/adminReports.service.js";
 import * as aggregate from "../services/aggregate.js";
+import * as teamRegister from "../services/teamRegister.service.js";
 import { STATUS_COMPLETED, STATUS_REJECTED } from "../utils/statuses.js";
 import * as approvals from "../services/approval.service.js";
 import * as attendance from "../services/attendance.service.js";
@@ -148,6 +149,19 @@ export async function registrationsCsv(req, res) {
   res.set("Content-Type", "text/csv");
   res.set("Content-Disposition", 'attachment; filename="registrations.csv"');
   res.send(body);
+}
+
+/** Print-ready, grouped attendance/signature register. This is separate from
+ * registrationsCsv: CSV remains flat, while this output has team blocks and
+ * one signature row for each ticket holder. */
+export async function exportTeamRegister(req, res) {
+  const { buffer, contentType, filename } = await teamRegister.generateTeamRegister({
+    eventId: req.query.event_id,
+    format: req.query.format,
+  });
+  res.set("Content-Type", contentType);
+  res.set("Content-Disposition", `attachment; filename="${filename}"`);
+  res.send(buffer);
 }
 
 // ── Payment settings ─────────────────────────────────────────

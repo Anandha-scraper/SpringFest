@@ -1,0 +1,84 @@
+.team-register-dialog__overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  background: rgba(17, 34, 78, 0.48);
+}
+
+.team-register-dialog {
+  position: fixed;
+  z-index: 71;
+  top: 50%;
+  left: 50%;
+  width: min(34rem, calc(100vw - 2rem));
+  max-height: min(42rem, calc(100vh - 2rem));
+  overflow: auto;
+  transform: translate(-50%, -50%);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
+}
+
+.team-register-dialog:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+.team-register-dialog__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.25rem 1.25rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+.team-register-dialog__head h2 { margin: 0; color: var(--ink); font-size: 1.15rem; }
+.team-register-dialog__head p { margin: 0.35rem 0 0; color: var(--ink-soft); font-size: 0.85rem; line-height: 1.45; }
+.team-register-dialog__close {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ink-soft);
+}
+.team-register-dialog__close:hover { background: var(--surface-2); color: var(--ink); }
+.team-register-dialog__body { display: grid; gap: 1.125rem; padding: 1.25rem; }
+.team-register-dialog__group { display: grid; gap: 0.5rem; min-width: 0; padding: 0; border: 0; }
+.team-register-dialog__group legend,
+.team-register-dialog__field > span { margin-bottom: 0.15rem; color: var(--ink); font-size: 0.8rem; font-weight: 700; }
+.team-register-dialog__choice,
+.team-register-dialog__format {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.7rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+}
+.team-register-dialog__choice:has(input:checked),
+.team-register-dialog__format.is-selected { border-color: var(--accent); background: var(--accent-soft); }
+.team-register-dialog__choice span,
+.team-register-dialog__format span { display: grid; gap: 0.1rem; min-width: 0; }
+.team-register-dialog__choice strong,
+.team-register-dialog__format strong { color: var(--ink); font-size: 0.85rem; }
+.team-register-dialog__choice small,
+.team-register-dialog__format small { color: var(--ink-soft); font-size: 0.75rem; }
+.team-register-dialog__field { display: grid; gap: 0.35rem; }
+.team-register-dialog__field select { width: 100%; }
+.team-register-dialog__error { color: var(--bad); font-size: 0.75rem; }
+.team-register-dialog__formats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.65rem; }
+.team-register-dialog__format { align-items: flex-start; }
+.team-register-dialog__format svg { flex: 0 0 auto; color: var(--accent); }
+.team-register-dialog__format input { margin-top: 0.25rem; }
+.team-register-dialog__actions { display: flex; justify-content: flex-end; gap: 0.65rem; padding-top: 0.25rem; }
+
+@media (max-width: 34rem) {
+  .team-register-dialog { width: calc(100vw - 1rem); max-height: calc(100vh - 1rem); border-radius: var(--r-md); }
+  .team-register-dialog__head,
+  .team-register-dialog__body { padding-right: 1rem; padding-left: 1rem; }
+  .team-register-dialog__formats { grid-template-columns: 1fr; }
+  .team-register-dialog__actions { display: grid; grid-template-columns: 1fr; }
+  .team-register-dialog__actions .btn { width: 100%; }
+}
